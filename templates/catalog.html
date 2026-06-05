@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Light Ideas Technology — Laptop Catalog</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --gold:#FFD700;--gold2:#C8A415;--gold3:#FFF8DC;
+  --black:#000;--dark:#111;
+  --text:#1a1a1a;--muted:#888;--light:#f8f8f8;--white:#fff;
+  --green:#25D366;
+  --font-display:"Bebas Neue",sans-serif;
+  --font-body:"DM Sans",sans-serif;
+  --r:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--light);color:var(--text);font-family:var(--font-body);min-height:100vh;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--gold2);}
+
+/* HEADER */
+.header{background:var(--black);position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,0.3);}
+.header-top{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;gap:12px;}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo img{width:40px;height:40px;border-radius:50%;object-fit:contain;}
+.logo-text{font-family:var(--font-display);font-size:1.2em;letter-spacing:2px;color:var(--gold);line-height:1;}
+.logo-sub{font-size:0.52em;color:#666;letter-spacing:2px;font-family:var(--font-body);}
+.header-cta{background:var(--green);color:#fff;padding:8px 16px;border-radius:50px;font-size:0.75em;font-weight:700;text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.header-gold-bar{height:3px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold2),var(--gold),transparent);}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--dark) 0%,#1a1500 100%);padding:28px 20px;text-align:center;border-bottom:2px solid var(--gold2);}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:50px;padding:4px 14px;font-size:0.7em;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;}
+.hero-badge span{width:5px;height:5px;background:var(--gold);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(1.5);}}
+.hero h1{font-family:var(--font-display);font-size:clamp(1.8em,6vw,3em);letter-spacing:3px;color:#fff;margin-bottom:6px;line-height:1;}
+.hero h1 span{color:var(--gold);}
+.hero p{font-size:0.85em;color:#888;letter-spacing:1px;}
+
+/* SEARCH */
+.search-wrap{background:var(--white);padding:14px 16px;border-bottom:1px solid #eee;position:sticky;top:65px;z-index:99;}
+.search-box{display:flex;align-items:center;gap:10px;background:var(--light);border:1.5px solid #e0e0e0;border-radius:50px;padding:10px 16px;transition:border-color 0.2s;}
+.search-box:focus-within{border-color:var(--gold);}
+.search-box input{flex:1;border:none;background:transparent;font-family:var(--font-body);font-size:0.9em;color:var(--text);outline:none;}
+.search-box input::placeholder{color:#bbb;}
+
+/* FILTERS */
+.filters{padding:14px 16px;background:var(--white);border-bottom:1px solid #eee;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
+.filters::-webkit-scrollbar{display:none;}
+.filter-btn{padding:7px 18px;border-radius:50px;font-family:var(--font-body);font-size:0.78em;font-weight:600;white-space:nowrap;cursor:pointer;border:1.5px solid #e0e0e0;color:#888;background:var(--white);transition:all 0.2s;flex-shrink:0;}
+.filter-btn.active,.filter-btn:hover{border-color:var(--gold);color:var(--dark);background:var(--gold3);}
+
+/* RESULTS */
+.results-info{padding:10px 16px 4px;font-size:0.78em;color:var(--muted);display:flex;align-items:center;justify-content:space-between;}
+.results-count{font-weight:600;color:var(--text);}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:12px 16px 100px;}
+.card{background:var(--white);border-radius:var(--r);overflow:hidden;border:1.5px solid #eee;transition:all 0.25s;cursor:pointer;}
+.card:hover{border-color:var(--gold);box-shadow:0 8px 24px rgba(200,164,21,0.15);transform:translateY(-2px);}
+.card-img{width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,#f0f0f0,#e8e8e8);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+.card-img img{width:100%;height:100%;object-fit:cover;}
+.card-img .placeholder{font-size:2.5em;color:#ccc;}
+.card-badge{position:absolute;top:8px;left:8px;padding:2px 8px;border-radius:50px;font-size:0.6em;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.badge-budget{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;}
+.badge-pro{background:#fff8e1;color:#f57f17;border:1px solid #ffe082;}
+.badge-gaming{background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;}
+.badge-phone{background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;}
+.badge-accessory{background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;}
+.card-body{padding:12px;}
+.card-brand{font-size:0.65em;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.card-name{font-size:0.88em;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.3;}
+.card-specs{font-size:0.72em;color:#999;margin-bottom:10px;line-height:1.4;}
+.card-price{font-size:1em;font-weight:700;color:var(--dark);margin-bottom:10px;}
+.card-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;border-radius:10px;background:var(--green);color:#fff;font-family:var(--font-body);font-size:0.75em;font-weight:700;text-decoration:none;border:none;cursor:pointer;transition:all 0.2s;}
+.card-btn:hover{background:#1da851;}
+.empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);}
+
+/* FOOTER */
+.sticky-footer{position:fixed;bottom:0;left:0;right:0;background:var(--black);border-top:2px solid var(--gold2);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:100;}
+.footer-info{display:flex;align-items:center;gap:8px;}
+.footer-info img{width:28px;height:28px;border-radius:50%;object-fit:contain;}
+.footer-name{font-family:var(--font-display);font-size:0.95em;letter-spacing:1px;color:var(--gold);}
+.footer-tag{font-size:0.62em;color:#555;letter-spacing:1px;}
+.footer-wa{background:var(--green);color:#fff;padding:9px 18px;border-radius:50px;font-size:0.78em;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;display:none;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;animation:slideUp 0.3s ease;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-img{width:100%;aspect-ratio:16/9;overflow:hidden;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:4em;}
+.modal-img img{width:100%;height:100%;object-fit:cover;}
+.modal-body{padding:20px;}
+.modal-badge{display:inline-block;padding:3px 12px;border-radius:50px;font-size:0.7em;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+.modal-name{font-size:1.3em;font-weight:700;color:var(--dark);margin-bottom:6px;}
+.modal-price{font-size:1.4em;font-weight:700;color:var(--dark);margin-bottom:12px;}
+.modal-specs{font-size:0.85em;color:#666;line-height:1.7;margin-bottom:16px;}
+.modal-usps{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.modal-usp{display:flex;align-items:center;gap:10px;background:var(--gold3);border-radius:10px;padding:8px 12px;font-size:0.8em;font-weight:600;color:var(--dark);}
+.modal-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border-radius:14px;background:var(--green);color:#fff;font-family:var(--font-body);font-size:0.95em;font-weight:700;text-decoration:none;box-shadow:0 4px 16px rgba(37,211,102,0.3);}
+.modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:1em;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
+.modal-wrap{position:relative;}
+
+@media(min-width:500px){.grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <a href="/" class="logo">
+      <img src="/static/images/logo.jpg" alt="Light Ideas"/>
+      <div>
+        <div class="logo-text">LIGHT IDEAS</div>
+        <div class="logo-sub">TECHNOLOGY</div>
+      </div>
+    </a>
+    <a href="https://wa.me/2348169441990?text=Hi%20Victor%2C%20I%20want%20to%20order%20a%20laptop" class="header-cta" target="_blank">
+      📲 Order Now
+    </a>
+  </div>
+  <div class="header-gold-bar"></div>
+</div>
+
+<div class="hero">
+  <div class="hero-badge"><span></span>UK Used · Tested &amp; Confirmed</div>
+  <h1>BROWSE <span>LAPTOPS</span></h1>
+  <p>Pick what you like &middot; Chat Victor to order &middot; Delivered to you</p>
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <span>🔍</span>
+    <input type="text" id="searchInput" placeholder="Search laptop name or brand..." oninput="filterProducts()"/>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="setFilter('all',this)">All Products</button>
+  <button class="filter-btn" onclick="setFilter('budget',this)">✅ Budget (under ₦250k)</button>
+  <button class="filter-btn" onclick="setFilter('pro',this)">🏆 Pro (₦250k+)</button>
+  <button class="filter-btn" onclick="setFilter('gaming',this)">🎮 Gaming</button>
+  <button class="filter-btn" onclick="setFilter('phone',this)">📱 Phones</button>
+  <button class="filter-btn" onclick="setFilter('accessory',this)">🔌 Accessories</button>
+</div>
+
+<div class="results-info">
+  <span id="resultsText"><span class="results-count">{{ products|length }}</span> products</span>
+  <span style="font-size:0.75em;color:#aaa;">Tap any card for details</span>
+</div>
+
+<div class="grid" id="productGrid"></div>
+
+<div class="sticky-footer">
+  <div class="footer-info">
+    <img src="/static/images/logo.jpg" alt="Light Ideas"/>
+    <div>
+      <div class="footer-name">LIGHT IDEAS</div>
+      <div class="footer-tag">Tested and Confirmed</div>
+    </div>
+  </div>
+  <a href="https://wa.me/2348169441990?text=Hi%20Victor%2C%20I%20am%20browsing%20your%20catalog" class="footer-wa" target="_blank">💬 Chat Victor</a>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="handleModalClick(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-wrap">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-img" id="modalImg"></div>
+      <div class="modal-body">
+        <div id="modalBadge" class="modal-badge"></div>
+        <div class="modal-name" id="modalName"></div>
+        <div class="modal-price" id="modalPrice"></div>
+        <div class="modal-specs" id="modalSpecs"></div>
+        <div class="modal-usps">
+          <div class="modal-usp">🔬 Passed 15-module diagnostic check</div>
+          <div class="modal-usp">⚡ FREE power surge protector included</div>
+          <div class="modal-usp">🛡️ Guarantee on every laptop</div>
+          <div class="modal-usp">🔧 Tech support via WhatsApp</div>
+          <div class="modal-usp">✅ Windows and Office activated</div>
+        </div>
+        <a class="modal-wa" id="modalWA" href="#" target="_blank">📲 Order This on WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PRODUCTS = {{ products | tojson }};
+
+const badgeMap = {
+  budget:   {cls:"badge-budget",  label:"✅ Budget"},
+  pro:      {cls:"badge-pro",     label:"🏆 Pro"},
+  gaming:   {cls:"badge-gaming",  label:"🎮 Gaming"},
+  phone:    {cls:"badge-phone",   label:"📱 Phone"},
+  accessory:{cls:"badge-accessory",label:"🔌 Accessory"},
+};
+const iconMap = {laptop:"💻", phone:"📱", accessory:"🔌", gaming:"🎮"};
+
+let activeFilter = "all", searchQuery = "";
+
+function fmt(n){ return "₦" + n.toLocaleString("en-NG"); }
+
+function filtered(){
+  return PRODUCTS.filter(p => {
+    const mf = activeFilter==="all" || p.sub_category===activeFilter || p.category===activeFilter;
+    const q  = searchQuery.toLowerCase();
+    const ms = !q || p.name.toLowerCase().includes(q) || (p.specs||"").toLowerCase().includes(q);
+    return mf && ms;
+  });
+}
+
+function render(){
+  const list = filtered();
+  const grid = document.getElementById("productGrid");
+  document.getElementById("resultsText").innerHTML =
+    "<span class=\"results-count\">" + list.length + "</span> product" + (list.length!==1?"s":"") + " found";
+
+  if(!list.length){
+    grid.innerHTML = "<div class=\"empty\"><div>🔍</div><p>No products found. Try a different filter.</p></div>";
+    return;
+  }
+
+  grid.innerHTML = list.map(p => {
+    const b   = badgeMap[p.sub_category] || badgeMap[p.category] || {cls:"badge-budget",label:"Available"};
+    const imgH = p.image
+      ? `<img src="${p.image}" alt="${p.name}" loading="lazy"/>`
+      : `<div class="placeholder">${iconMap[p.category] || "💻"}</div>`;
+    const waMsg = encodeURIComponent(`Hi Victor, I\'m interested in the ${p.name} at ${fmt(p.price)}. Is it available?`);
+    return `
+      <div class="card" onclick="openModal(${p.id})">
+        <div class="card-img">${imgH}<span class="card-badge ${b.cls}">${b.label}</span></div>
+        <div class="card-body">
+          <div class="card-brand">${p.name.split(" ")[0]}</div>
+          <div class="card-name">${p.name}</div>
+          <div class="card-specs">${p.specs || ""}</div>
+          <div class="card-price">${fmt(p.price)}</div>
+          <a class="card-btn" href="https://wa.me/2348169441990?text=${waMsg}"
+             target="_blank" onclick="event.stopPropagation()">📲 Order on WhatsApp</a>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function setFilter(f, el){
+  activeFilter = f;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  render();
+}
+
+function filterProducts(){
+  searchQuery = document.getElementById("searchInput").value;
+  render();
+}
+
+function openModal(id){
+  const p = PRODUCTS.find(x => x.id === id);
+  if(!p) return;
+  const b = badgeMap[p.sub_category] || badgeMap[p.category] || {cls:"badge-budget",label:"Available"};
+  document.getElementById("modalImg").innerHTML = p.image
+    ? `<img src="${p.image}" alt="${p.name}"/>`
+    : (iconMap[p.category] || "💻");
+  document.getElementById("modalBadge").textContent  = b.label;
+  document.getElementById("modalBadge").className    = "modal-badge " + b.cls;
+  document.getElementById("modalName").textContent   = p.name;
+  document.getElementById("modalPrice").textContent  = fmt(p.price);
+  document.getElementById("modalSpecs").textContent  = p.specs || "";
+  const waMsg = encodeURIComponent(`Hi Victor, I\'m interested in the ${p.name} at ${fmt(p.price)}. Is it available?`);
+  document.getElementById("modalWA").href = `https://wa.me/2348169441990?text=${waMsg}`;
+  document.getElementById("modal").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal(){
+  document.getElementById("modal").classList.remove("open");
+  document.body.style.overflow = "";
+}
+function handleModalClick(e){
+  if(e.target === document.getElementById("modal")) closeModal();
+}
+
+render();
+</script>
+</body>
+</html>

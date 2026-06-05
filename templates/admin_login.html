@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Login — Light Ideas</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:#000;color:#fff;
+  font-family:'Outfit',sans-serif;
+  min-height:100vh;display:flex;
+  align-items:center;justify-content:center;
+  background-image:radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255,215,0,0.05), transparent);
+}
+.login-box{
+  background:#111;border:1px solid rgba(255,215,0,0.25);
+  border-radius:24px;padding:48px 40px;
+  width:100%;max-width:400px;text-align:center;
+}
+.login-logo{width:70px;border-radius:50%;margin-bottom:20px;}
+h1{font-family:'Bebas Neue',sans-serif;font-size:2em;letter-spacing:3px;color:#FFD700;margin-bottom:6px;}
+.subtitle{font-size:0.78em;color:#555;letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
+.input-wrap{margin-bottom:16px;text-align:left;}
+label{font-size:0.72em;color:#666;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:8px;}
+input[type=password]{
+  width:100%;background:#1a1a1a;border:1px solid #2a2a2a;
+  border-radius:12px;padding:13px 16px;color:#fff;
+  font-family:'Outfit',sans-serif;font-size:0.95em;outline:none;
+  transition:border-color 0.3s;
+}
+input[type=password]:focus{border-color:rgba(255,215,0,0.4);}
+.btn-login{
+  width:100%;background:#FFD700;color:#000;
+  padding:14px;border-radius:50px;border:none;
+  font-family:'Outfit',sans-serif;font-weight:700;
+  font-size:0.95em;letter-spacing:1.5px;text-transform:uppercase;
+  cursor:pointer;transition:all 0.3s;margin-top:8px;
+}
+.btn-login:hover{background:#fff;}
+.error{
+  background:#450a0a;border:1px solid #7f1d1d;
+  border-radius:10px;padding:10px 16px;
+  color:#f87171;font-size:0.8em;margin-bottom:16px;
+}
+.lock{font-size:2em;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<div class="login-box">
+  <img src="/static/images/logo.jpg" class="login-logo" alt="Light Ideas"/>
+  <div class="lock">🔐</div>
+  <h1>ADMIN ACCESS</h1>
+  <div class="subtitle">Light Ideas Technology</div>
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+  <form method="POST">
+    <div class="input-wrap">
+      <label>Password</label>
+      <input type="password" name="password" placeholder="Enter admin password" autofocus/>
+    </div>
+    <button type="submit" class="btn-login">🔓 Enter Dashboard</button>
+  </form>
+</div>
+</body>
+</html>

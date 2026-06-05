@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Light Ideas Technology — Tested and Confirmed</title>
+<link rel="icon" href="/static/images/logo.jpg" type="image/jpeg"/>
+<link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <a href="#hero" class="nav-logo">
+    <img src="/static/images/logo.jpg" alt="Light Ideas Technology"/>
+    <div>
+      <div class="nav-logo-text">LIGHT IDEAS</div>
+      <div class="nav-logo-sub">TECHNOLOGY</div>
+    </div>
+  </a>
+  <div class="nav-links" id="navLinks">
+    <a href="#services">Services</a>
+    <a href="#products">Products</a>
+    <a href="#trust">Why Us</a>
+    <a href="#community">Community</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <a href="#" class="nav-cta" onclick="openDiagModal(); return false;">🔬 Get Diagnostic Tool</a>
+  <div class="nav-hamburger" onclick="toggleNav()" id="hamburger">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<div id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-particles" id="particles"></div>
+  <div class="hero-badge"><span></span>Nigeria's Premium Refurbished Tech</div>
+  <img src="/static/images/logo.jpg" alt="Light Ideas Technology" class="hero-logo"/>
+  <h1 class="hero-title">LIGHT <span>IDEAS</span></h1>
+  <div class="hero-sub">TECHNOLOGY</div>
+  <div class="hero-slogan">✦ Tested and Confirmed — Just for Your Convenience ✦</div>
+  <div class="hero-btns">
+    <a href="#" class="btn-primary" onclick="openDiagModal(); return false;">🔬 Run Diagnostic Tool</a>
+    <a href="#products" class="btn-outline">Browse Products</a>
+  </div>
+  <div class="hero-scroll"><div class="scroll-line"></div>SCROLL</div>
+</div>
+
+<!-- ── SERVICES ── -->
+<div class="section-divider" id="services">
+<div class="section-wrap">
+  <div class="section-label">What We Offer</div>
+  <h2 class="section-title">OUR SERVICES</h2>
+  <p class="section-desc">Every service is built around one goal — making sure you get exactly what you pay for.</p>
+  <div class="services-grid">
+
+    <div class="service-card featured" style="cursor:pointer;" onclick="openDiagModal()">
+      <div class="service-icon">🔬</div>
+      <div class="service-tag paid">Paid Service</div>
+      <div class="service-name">DIAGNOSTIC TOOL</div>
+      <div class="service-desc">Full 15-module laptop health check. Battery, SSD, CPU, GPU, RAM, Ports, Screen, WiFi and more — all in one automated scan with a full report.</div>
+      <div class="service-price">₦2,000 <span style="font-size:0.6em;color:var(--muted);font-weight:400;">/ per scan</span></div>
+      <button class="service-btn" onclick="openDiagModal()">Get Access →</button>
+    </div>
+
+    <div class="service-card">
+      <div class="service-icon">🪟</div>
+      <div class="service-tag">Available</div>
+      <div class="service-name">WINDOWS ACTIVATION</div>
+      <div class="service-desc">Genuine Windows activation for your laptop. Fast, reliable, one-click process. Your laptop walks away fully activated and ready to use.</div>
+      <div class="service-price">Contact for pricing</div>
+      <a href="https://wa.me/2348169441990?text=Hi%20Victor%2C%20I%20need%20Windows%20activation"
+         class="service-btn outline" target="_blank">Chat on WhatsApp →</a>
+    </div>
+
+    <div class="service-card">
+      <div class="service-icon">📦</div>
+      <div class="service-tag">Available</div>
+      <div class="service-name">MS OFFICE</div>
+      <div class="service-desc">Full Microsoft Office suite activated on your laptop. Word, Excel, PowerPoint and more. Works on any Windows laptop, any version.</div>
+      <div class="service-price">Contact for pricing</div>
+      <a href="https://wa.me/2348169441990?text=Hi%20Victor%2C%20I%20need%20MS%20Office%20activation"
+         class="service-btn outline" target="_blank">Chat on WhatsApp →</a>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ── PRODUCTS ── -->
+<div class="section-bg-alt section-wrap-full" id="products">
+<div class="inner">
+  <div class="section-label">Shop</div>
+  <h2 class="section-title">OUR PRODUCTS</h2>
+  <p class="section-desc">Every product is tested, verified, and confirmed before it reaches you.</p>
+
+  <div class="cat-tabs">
+    <button class="cat-tab active" onclick="filterCat('all', this)">All Products</button>
+    <button class="cat-tab" onclick="filterCat('laptop', this)">💻 Laptops</button>
+    <button class="cat-tab" onclick="filterCat('phone', this)">📱 Phones</button>
+    <button class="cat-tab" onclick="filterCat('accessory', this)">🔌 Accessories</button>
+  </div>
+
+  <div class="sub-tabs" id="subTabs" style="display:none;">
+    <button class="sub-tab active" onclick="filterSub('all', this)">All Laptops</button>
+    <button class="sub-tab" onclick="filterSub('budget', this)">✅ Verified Budget (₦100k–₦250k)</button>
+    <button class="sub-tab" onclick="filterSub('pro', this)">🏆 Pro Version (₦250k+)</button>
+    <button class="sub-tab" onclick="filterSub('gaming', this)">🎮 Gaming</button>
+  </div>
+
+  <div class="products-grid" id="productsGrid">
+    {% for product in products %}
+    <div class="product-card"
+         data-cat="{{ product.category }}"
+         data-sub="{{ product.sub_category }}">
+      <div class="product-img-wrap">
+        {% if product.image %}
+          <img src="{{ product.image }}" alt="{{ product.name }}"/>
+        {% else %}
+          {% if product.category == 'laptop' %}💻
+          {% elif product.category == 'phone' %}📱
+          {% else %}🔌{% endif %}
+        {% endif %}
+      </div>
+      <div class="product-body">
+        <span class="product-cat-badge badge-{{ product.sub_category if product.sub_category else product.category }}">
+          {% if product.sub_category == 'budget' %}✅ Budget
+          {% elif product.sub_category == 'pro' %}🏆 Pro
+          {% elif product.sub_category == 'gaming' %}🎮 Gaming
+          {% elif product.category == 'phone' %}📱 Phone
+          {% else %}🔌 Accessory{% endif %}
+        </span>
+        <div class="product-name">{{ product.name }}</div>
+        <div class="product-spec">{{ product.specs }}</div>
+        <div class="product-price">₦{{ "{:,}".format(product.price) }}</div>
+        <a href="https://wa.me/2348169441990?text=Hi%20Victor%2C%20I%27m%20interested%20in%20the%20{{ product.name | urlencode }}"
+           class="product-cta" target="_blank">📲 Enquire on WhatsApp</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      No products yet. Add them from the <a href="/admin" style="color:var(--gold);">Admin Panel</a>.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</div>
+
+<!-- ── HOW IT WORKS ── -->
+<div class="section-divider" id="how">
+<div class="section-wrap">
+  <div class="section-label">The Process</div>
+  <h2 class="section-title">HOW IT WORKS</h2>
+  <p class="section-desc">Getting a fully verified laptop from Light Ideas is simple.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-title">Browse & Choose</div>
+      <div class="step-desc">Pick a product from our verified inventory. Filter by budget, category, or performance level.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-title">We Run the Check</div>
+      <div class="step-desc">Every laptop passes our 15-module diagnostic tool before leaving our hands. No shortcuts. No exceptions.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-title">Tested & Confirmed</div>
+      <div class="step-desc">You receive a full diagnostic report with your purchase. You know exactly what you're getting.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-title">It's Yours</div>
+      <div class="step-desc">Windows activated. Office installed. Ready to use from day one. Delivered to you.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ── TRUST ── -->
+<div class="section-bg-alt section-wrap-full" id="trust">
+<div class="inner">
+  <div class="trust-grid">
+    <div>
+      <div class="section-label">Why Light Ideas</div>
+      <h2 class="section-title">TESTED.<br/>CONFIRMED.<br/>DELIVERED.</h2>
+      <p class="section-desc">We built our own 15-module diagnostic tool from scratch. Every laptop we sell has passed it. Not a claim — a process you can verify.</p>
+      <div class="trust-stats">
+        <div class="stat-card"><div class="stat-num">15</div><div class="stat-label">Diagnostic Modules</div></div>
+        <div class="stat-card"><div class="stat-num">100%</div><div class="stat-label">Tested Before Sale</div></div>
+        <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">Unverified Sales</div></div>
+        <div class="stat-card"><div class="stat-num">✦</div><div class="stat-label">SDG 11 Aligned</div></div>
+      </div>
+    </div>
+    <div class="trust-visual">
+      <div style="font-size:0.72em;color:var(--gold);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:16px;">🔬 15-Module Diagnostic</div>
+      <div class="modules-list">
+        <div class="module-item"><span class="module-check">✅</span><span class="module-name">Battery Health</span><span class="module-score">Pass</span></div>
+        <div class="module-item"><span class="module-check">✅</span><span class="module-name">Keyboard Test</span><span class="module-score">Pass</span></div>
+        <div class="module-item"><span class="module-check">✅</span><span class="module-name">RAM Check</span><span class="module-score">Pass</span></div>
+        <div class="module-item"><span class="module-check">✅</span><span class="module-name">SSD Health (SMART)</span><span class="module-score">Pass</span></div>
+        <div class="module-item"><span class="module-check">✅</span><span class="module-name">CPU Performance</span><span class="module-score">Pass</span></div>
+        <div class="module-item"><span class="module-check">✅</span><span class="module-name">GPU & Display</span><span class="module-score">Pass</span></div>
+        <div class="module-item"><span class="module-check">✅</span><span class="module-name">Temperature & Cooling</span><span class="module-score">Pass</span></div>
+        <div class="module-item" style="opacity:0.4;"><span class="module-check">⏳</span><span class="module-name">+ 8 More Modules</span><span class="module-score" style="background:rgba(255,215,0,0.1);color:var(--gold);">Soon</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ── COMMUNITY ── -->
+<div class="section-divider" id="community" style="text-align:center;">
+<div class="section-wrap" style="display:flex;flex-direction:column;align-items:center;">
+  <div class="section-label">Community</div>
+  <h2 class="section-title">JOIN THE COMMUNITY</h2>
+  <p class="section-desc" style="text-align:center;margin:0 auto;">Get first access to new arrivals, deals, and laptop tips straight in your WhatsApp.</p>
+  <div class="wa-card">
+    <div class="wa-icon">💬</div>
+    <div class="wa-title">LIGHTIDEAS GROUP</div>
+    <div class="wa-desc">Join our WhatsApp community. Be the first to know when new laptops, phones, and accessories land. Ask questions, get advice, and connect with other smart buyers.</div>
+    <a href="https://chat.whatsapp.com/GwoeaA3k8Od8SJULzc3A7N" class="btn-wa" target="_blank">📲 Join WhatsApp Group</a>
+  </div>
+</div>
+</div>
+
+<!-- ── EMAIL ── -->
+<div class="section-bg-alt" id="email">
+<div style="max-width:600px;margin:0 auto;padding:80px 40px;text-align:center;">
+  <div class="section-label" style="justify-content:center;">Stay Updated</div>
+  <h2 class="section-title">GET TIPS & DEALS<br/>IN YOUR INBOX</h2>
+  <p class="section-desc" style="margin:0 auto;">No spam. Just useful laptop tips, new arrivals, and exclusive offers.</p>
+  <div class="email-form">
+    <input type="email" class="email-input" placeholder="Enter your email address" id="emailInput"/>
+    <button class="btn-subscribe" onclick="subscribeEmail()">Subscribe</button>
+  </div>
+  <div class="email-notice" id="emailNotice">We respect your privacy. Unsubscribe anytime.</div>
+</div>
+</div>
+
+<!-- ── CONTACT ── -->
+<div class="section-divider" id="contact" style="text-align:center;">
+<div class="section-wrap" style="display:flex;flex-direction:column;align-items:center;">
+  <div class="section-label">Direct Contact</div>
+  <h2 class="section-title">TALK TO VICTOR</h2>
+  <p class="section-desc" style="text-align:center;margin:0 auto;">Have a question? Want a specific laptop? Just want honest advice? Victor is one message away.</p>
+  <div class="contact-card">
+    <div class="contact-avatar">👨‍💻</div>
+    <div class="contact-name">VICTOR</div>
+    <div class="contact-role">CEO — Light Ideas Technology</div>
+    <div class="contact-desc">Whether you need a specific laptop, a Windows activation, or just honest advice on what to buy — reach out directly. No bots. Just Victor.</div>
+    <a href="https://wa.me/2348169441990?text=Hi%20Victor%2C%20I%20visited%20your%20website%20and%20I%27d%20like%20to%20chat"
+       class="btn-wa" style="display:inline-flex;" target="_blank">📲 Chat With Victor</a>
+  </div>
+</div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <img src="/static/images/logo.jpg" alt="Light Ideas Technology"/>
+          <div class="footer-logo-text">LIGHT IDEAS</div>
+        </div>
+        <div class="footer-slogan">Tested and Confirmed<br/>Just for Your Convenience</div>
+      </div>
+      <div class="footer-links">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="#" onclick="openDiagModal();return false;">Diagnostic Tool</a></li>
+          <li><a href="https://wa.me/2348169441990?text=Hi%2C%20Windows%20activation" target="_blank">Windows Activation</a></li>
+          <li><a href="https://wa.me/2348169441990?text=Hi%2C%20MS%20Office" target="_blank">MS Office</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Products</h4>
+        <ul>
+          <li><a href="#products" onclick="filterCat('laptop',null)">Laptops</a></li>
+          <li><a href="#products" onclick="filterCat('phone',null)">Phones</a></li>
+          <li><a href="#products" onclick="filterCat('accessory',null)">Accessories</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Connect</h4>
+        <ul>
+          <li><a href="https://chat.whatsapp.com/GwoeaA3k8Od8SJULzc3A7N" target="_blank">WhatsApp Group</a></li>
+          <li><a href="https://wa.me/2348169441990" target="_blank">Chat With Us</a></li>
+          <li><a href="#email">Newsletter</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2026 Light Ideas Technology. All rights reserved.</div>
+      <div class="footer-tagline">✦ Tested and Confirmed ✦</div>
+    </div>
+  </div>
+</footer>
+
+<!-- ── DIAGNOSTIC MODAL ── -->
+<div class="modal-overlay" id="diagModal">
+  <div class="modal">
+    <div class="modal-logo"><img src="/static/images/logo.jpg" alt="Light Ideas"/></div>
+    <h3>DIAGNOSTIC TOOL</h3>
+    <p>Complete 15-module laptop health check. Know exactly what you're buying — or confirm what you're selling.</p>
+    <div class="modal-price">
+      <div class="price">₦2,000</div>
+      <div class="price-note">One-time payment · Instant access</div>
+    </div>
+    <input type="email" class="modal-email-input" id="diagEmail" placeholder="Enter your email address"/>
+    <button class="btn-pay" onclick="payWithPaystack()">🔒 Pay Securely with Paystack</button>
+    <span class="modal-close" onclick="closeDiagModal()">✕ Close</span>
+  </div>
+</div>
+
+<!-- ── AI GREETER ── -->
+<div id="ai-bubble">
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-header">
+      <img src="/static/images/logo.jpg" class="ai-avatar" alt="Light"/>
+      <div class="ai-header-text">
+        <h4>Light AI Assistant</h4>
+        <p>Online · Ask me anything</p>
+      </div>
+      <button class="ai-close" onclick="toggleAI()">✕</button>
+    </div>
+    <div class="ai-messages" id="aiMessages">
+      <div class="ai-msg bot">👋 Hi! I'm Light — the AI assistant for Light Ideas Technology. How can I help you today?</div>
+    </div>
+    <div class="ai-quick" id="aiQuick">
+      <button class="ai-quick-btn" onclick="quickAsk('What laptops do you have?')">💻 Laptops</button>
+      <button class="ai-quick-btn" onclick="quickAsk('How does the diagnostic tool work?')">🔬 Diagnostic</button>
+      <button class="ai-quick-btn" onclick="quickAsk('How do I contact Victor?')">📲 Contact</button>
+      <button class="ai-quick-btn" onclick="quickAsk('What is the price range?')">💰 Pricing</button>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="aiInput" placeholder="Ask anything..."/>
+      <button class="ai-send" onclick="sendAI()">➤</button>
+    </div>
+  </div>
+  <button class="ai-toggle" onclick="toggleAI()" id="aiToggle" title="Chat with Light AI">🤖</button>
+</div>
+
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script src="/static/js/main.js"></script>
+</body>
+</html>
