@@ -230,8 +230,8 @@ function render(){
     const imgH = p.image
       ? `<img src="${p.image}" alt="${p.name}" loading="lazy"/>`
       : `<div class="placeholder">${iconMap[p.category] || "💻"}</div>`;
-    const waMsg = encodeURIComponent(`Hi Victor, I\'m interested in the ${p.name} at ${fmt(p.price)}. Is it available?`);
-    return `
+const waMsg = encodeURIComponent(`Hi Victor! 👋\n\nI want to order this laptop:\n\n💻 *${p.name}*\n💰 Price: ${fmt(p.price)}\n📋 Specs: ${p.specs}${p.image ? '\n📸 Photo: ' + p.image : ''}\n\nPlease confirm if it's available.`);  
+  return `
       <div class="card" onclick="openModal(${p.id})">
         <div class="card-img">${imgH}<span class="card-badge ${b.cls}">${b.label}</span></div>
         <div class="card-body">
