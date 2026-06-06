@@ -270,8 +270,7 @@ function openModal(id){
   document.getElementById("modalName").textContent   = p.name;
   document.getElementById("modalPrice").textContent  = fmt(p.price);
   document.getElementById("modalSpecs").textContent  = p.specs || "";
-  const waMsg = encodeURIComponent(`Hi Victor, I\'m interested in the ${p.name} at ${fmt(p.price)}. Is it available?`);
-  document.getElementById("modalWA").href = `https://wa.me/2348169441990?text=${waMsg}`;
+const waMsg = encodeURIComponent(`Hi Victor! 👋\n\nI want to order this laptop:\n\n💻 *${p.name}*\n💰 Price: ${fmt(p.price)}\n📋 Specs: ${p.specs}${p.image ? '\n📸 Photo: ' + p.image : ''}\n\nPlease confirm if it's available.`); //  document.getElementById("modalWA").href = `https://wa.me/2348169441990?text=${waMsg}`;
   document.getElementById("modal").classList.add("open");
   document.body.style.overflow = "hidden";
 }

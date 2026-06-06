@@ -1,12 +1,21 @@
 ﻿from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-import json, os, datetime, base64
+import json, os, datetime
+import cloudinary
+import cloudinary.uploader
 
 app = Flask(__name__)
 app.secret_key = 'lightideas_secret_2026_victor'
 
+# ── Cloudinary config
+cloudinary.config(
+    cloud_name = 'dfkdvznkp',
+    api_key    = '519772916967931',
+    api_secret = 'a-tRq7QYepp6jxEx9TFlk10OMpQ'
+)
+
 ADMIN_PASSWORD = 'lightideas2026'
-PRODUCTS_FILE = 'products.json'
-EMAILS_FILE   = 'emails.json'
+PRODUCTS_FILE  = 'products.json'
+EMAILS_FILE    = 'emails.json'
 
 def load_products():
     if not os.path.exists(PRODUCTS_FILE):
@@ -31,11 +40,19 @@ def save_emails(emails):
 def is_logged_in():
     return session.get('admin_logged_in') == True
 
+# ── MAIN WEBSITE
 @app.route('/')
 def index():
     products = [p for p in load_products() if p.get('available', True)]
     return render_template('index.html', products=products)
 
+# ── CATALOG
+@app.route('/catalog')
+def catalog():
+    products = [p for p in load_products() if p.get('available', True)]
+    return render_template('catalog.html', products=products)
+
+# ── ADMIN LOGIN
 @app.route('/victor-admin', methods=['GET', 'POST'])
 def admin_login():
     if is_logged_in():
@@ -49,6 +66,7 @@ def admin_login():
             error = 'Wrong password. Try again.'
     return render_template('admin_login.html', error=error)
 
+# ── ADMIN DASHBOARD
 @app.route('/victor-admin/dashboard')
 def admin_dashboard():
     if not is_logged_in():
@@ -57,46 +75,50 @@ def admin_dashboard():
     emails   = load_emails()
     return render_template('admin_dashboard.html', products=products, emails=emails)
 
+# ── ADMIN LOGOUT
 @app.route('/victor-admin/logout')
 def admin_logout():
     session.clear()
     return redirect(url_for('admin_login'))
 
+# ── API: Get all products
 @app.route('/api/products', methods=['GET'])
 def get_products():
     return jsonify([p for p in load_products() if p.get('available', True)])
 
+# ── API: Add product
 @app.route('/api/products', methods=['POST'])
 def add_product():
     if not is_logged_in():
         return jsonify({'success': False}), 401
     products = load_products()
-    data = request.json
-    sub_cat = data.get('sub_category', '')
+    data     = request.json
+    sub_cat  = data.get('sub_category', '')
     if data.get('category') == 'laptop' and not sub_cat:
         sub_cat = 'budget' if int(data.get('price', 0)) <= 250000 else 'pro'
     product = {
-        'id': int(datetime.datetime.now().timestamp() * 1000),
-        'name': data.get('name', ''),
-        'price': int(data.get('price', 0)),
-        'category': data.get('category', 'laptop'),
+        'id':           int(datetime.datetime.now().timestamp() * 1000),
+        'name':         data.get('name', ''),
+        'price':        int(data.get('price', 0)),
+        'category':     data.get('category', 'laptop'),
         'sub_category': sub_cat,
-        'specs': data.get('specs', ''),
-        'description': data.get('description', ''),
-        'image': data.get('image', ''),
-        'available': True,
-        'created_at': datetime.datetime.now().isoformat()
+        'specs':        data.get('specs', ''),
+        'description':  data.get('description', ''),
+        'image':        data.get('image', ''),
+        'available':    True,
+        'created_at':   datetime.datetime.now().isoformat()
     }
     products.append(product)
     save_products(products)
     return jsonify({'success': True, 'product': product})
 
+# ── API: Update product
 @app.route('/api/products/<int:product_id>', methods=['PUT'])
 def update_product(product_id):
     if not is_logged_in():
         return jsonify({'success': False}), 401
     products = load_products()
-    data = request.json
+    data     = request.json
     for i, p in enumerate(products):
         if p['id'] == product_id:
             products[i].update(data)
@@ -104,6 +126,7 @@ def update_product(product_id):
             return jsonify({'success': True})
     return jsonify({'success': False}), 404
 
+# ── API: Delete product
 @app.route('/api/products/<int:product_id>', methods=['DELETE'])
 def delete_product(product_id):
     if not is_logged_in():
@@ -112,24 +135,27 @@ def delete_product(product_id):
     save_products(products)
     return jsonify({'success': True})
 
+# ── API: Upload image to Cloudinary
 @app.route('/api/upload_image', methods=['POST'])
 def upload_image():
     if not is_logged_in():
         return jsonify({'success': False}), 401
-    data = request.json
-    img_b64 = data.get('image', '')
-    ext = data.get('ext', 'jpg')
-    fname = f"product_{int(datetime.datetime.now().timestamp() * 1000)}.{ext}"
-    path = os.path.join('static', 'images', 'products', fname)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    img_data = base64.b64decode(img_b64.split(',')[1] if ',' in img_b64 else img_b64)
-    with open(path, 'wb') as f:
-        f.write(img_data)
-    return jsonify({'success': True, 'url': f'/static/images/products/{fname}'})
+    try:
+        data    = request.json
+        img_b64 = data.get('image', '')
+        result  = cloudinary.uploader.upload(
+            img_b64,
+            folder='lightideas-products',
+            transformation=[{'width': 800, 'crop': 'limit', 'quality': 'auto'}]
+        )
+        return jsonify({'success': True, 'url': result['secure_url']})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
+# ── API: Email subscribe
 @app.route('/api/subscribe', methods=['POST'])
 def subscribe():
-    data = request.json
+    data  = request.json
     email = data.get('email', '').strip()
     if not email or '@' not in email:
         return jsonify({'success': False}), 400
@@ -138,10 +164,6 @@ def subscribe():
         emails.append(email)
         save_emails(emails)
     return jsonify({'success': True})
-@app.route('/catalog')
-def catalog():
-    products = [p for p in load_products() if p.get('available', True)]
-    return render_template('catalog.html', products=products)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5050)
