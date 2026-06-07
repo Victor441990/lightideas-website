@@ -248,6 +248,9 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <div class="sidebar-item" onclick="showPage('emails')">
       <span class="icon">📧</span> Subscribers
     </div>
+    <div class="sidebar-item" onclick="showPage('emailsender')">
+      <span class="icon">📨</span> Send Email
+    </div>
   </div>
 
   <!-- MAIN CONTENT -->
@@ -339,6 +342,71 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
             {% endfor %}
           </tbody>
         </table>
+      </div>
+    </div>
+
+
+    <!-- EMAIL SENDER PAGE -->
+    <div class="page" id="page-emailsender">
+      <div class="section-head">
+        <h2>SEND BULK EMAIL</h2>
+      </div>
+      <div style="background:var(--black);border:1px solid #1a1a1a;border-radius:16px;padding:28px;max-width:700px;">
+        
+        <!-- Stats bar -->
+        <div style="background:var(--black4);border-radius:12px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+          <span style="color:var(--gold);font-size:1.2em;">📧</span>
+          <div>
+            <div style="font-size:0.85em;color:#fff;font-weight:600;" id="emailCountDisplay">Loading subscribers...</div>
+            <div style="font-size:0.72em;color:#555;">All emails collected from your website</div>
+          </div>
+        </div>
+
+        <!-- Subject -->
+        <div class="form-row">
+          <label>Email Subject *</label>
+          <input type="text" id="emailSubject" placeholder="e.g. New Laptops Just Arrived at Light Ideas 🔥"/>
+        </div>
+
+        <!-- Message -->
+        <div class="form-row">
+          <label>Your Message *</label>
+          <textarea id="emailMessage" style="min-height:200px;resize:vertical;" 
+            placeholder="Write your message here...
+
+Example:
+Hi there,
+
+We just got fresh stock of quality UK used laptops. All tested and confirmed with our 16-module diagnostic tool.
+
+Check our catalog: https://lightideas-website.onrender.com/catalog
+
+Reply to this email or WhatsApp +234 816 944 1990 to order.
+
+Victor
+Light Ideas Technology"></textarea>
+        </div>
+
+        <!-- Preview note -->
+        <div style="background:#0a1a0a;border:1px solid #14532d;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:0.78em;color:#4ade80;">
+          ✅ Email will be sent with your Light Ideas branding — black/gold design with WhatsApp and Catalog buttons automatically included.
+        </div>
+
+        <!-- Send button -->
+        <button class="btn-add" id="sendEmailBtn" onclick="sendBulkEmail()" style="width:100%;padding:14px;font-size:0.95em;border-radius:12px;">
+          📨 Send to All Subscribers
+        </button>
+
+        <!-- Progress -->
+        <div id="emailProgress" style="display:none;margin-top:16px;">
+          <div style="background:#1a1a1a;border-radius:8px;overflow:hidden;height:8px;margin-bottom:8px;">
+            <div id="emailProgressBar" style="height:100%;background:var(--gold);width:0%;transition:width 0.5s;border-radius:8px;"></div>
+          </div>
+          <div id="emailProgressText" style="font-size:0.78em;color:#888;text-align:center;">Sending...</div>
+        </div>
+
+        <!-- Result -->
+        <div id="emailResult" style="display:none;margin-top:16px;"></div>
       </div>
     </div>
 
@@ -600,6 +668,86 @@ function copyEmails() {
   const emails = Array.from(document.querySelectorAll('.email-item span')).map(e => e.textContent).join('\n');
   navigator.clipboard.writeText(emails).then(() => showToast('✅ Emails copied to clipboard'));
 }
+
+// ── BULK EMAIL SENDER
+async function loadEmailCount() {
+  try {
+    const emails = document.querySelectorAll('.email-item span');
+    const count = emails.length;
+    const el = document.getElementById('emailCountDisplay');
+    if (el) el.textContent = count + ' subscriber' + (count !== 1 ? 's' : '') + ' will receive this email';
+  } catch(e) {}
+}
+
+async function sendBulkEmail() {
+  const subject = document.getElementById('emailSubject').value.trim();
+  const message = document.getElementById('emailMessage').value.trim();
+  
+  if (!subject) { showToast('Please enter a subject', 'error'); return; }
+  if (!message) { showToast('Please write a message', 'error'); return; }
+  
+  const btn = document.getElementById('sendEmailBtn');
+  const progress = document.getElementById('emailProgress');
+  const bar = document.getElementById('emailProgressBar');
+  const text = document.getElementById('emailProgressText');
+  const result = document.getElementById('emailResult');
+  
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Sending...';
+  progress.style.display = 'block';
+  result.style.display = 'none';
+  
+  // Animate progress
+  let pct = 0;
+  const interval = setInterval(() => {
+    pct = Math.min(pct + 2, 90);
+    bar.style.width = pct + '%';
+    text.textContent = 'Sending emails... ' + pct + '%';
+  }, 300);
+  
+  try {
+    const res = await fetch('/api/send_bulk_email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject, message, targets: 'all' })
+    });
+    const data = await res.json();
+    clearInterval(interval);
+    bar.style.width = '100%';
+    
+    if (data.success) {
+      bar.style.background = '#4ade80';
+      text.textContent = '✅ Done!';
+      result.style.display = 'block';
+      result.innerHTML = `
+        <div style="background:#14532d;border:1px solid #166534;border-radius:12px;padding:16px;text-align:center;">
+          <div style="font-size:1.5em;margin-bottom:8px;">✅</div>
+          <div style="color:#4ade80;font-weight:700;font-size:1em;">Email Sent Successfully!</div>
+          <div style="color:#888;font-size:0.82em;margin-top:8px;">
+            ${data.sent} sent · ${data.failed} failed · ${data.total} total
+          </div>
+        </div>`;
+      document.getElementById('emailSubject').value = '';
+      document.getElementById('emailMessage').value = '';
+      showToast('✅ ' + data.sent + ' emails sent!');
+    } else {
+      bar.style.background = '#f87171';
+      text.textContent = '❌ Failed';
+      result.style.display = 'block';
+      result.innerHTML = `<div style="background:#450a0a;border:1px solid #7f1d1d;border-radius:12px;padding:16px;color:#f87171;text-align:center;">${data.error}</div>`;
+      showToast('Failed to send', 'error');
+    }
+  } catch(e) {
+    clearInterval(interval);
+    showToast('Error: ' + e.message, 'error');
+  }
+  
+  btn.disabled = false;
+  btn.innerHTML = '📨 Send to All Subscribers';
+}
+
+// Load email count when navigating to email sender page
+const origShowPage = showPage;
 
 // ── Close modal on overlay click
 document.getElementById('productModal').addEventListener('click', function(e) {
