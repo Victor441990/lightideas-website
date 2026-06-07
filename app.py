@@ -1,12 +1,21 @@
 ﻿from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-import json, os, datetime
+from pymongo import MongoClient
+from bson import ObjectId
 import cloudinary
 import cloudinary.uploader
+import datetime, os, json
 
 app = Flask(__name__)
 app.secret_key = 'lightideas_secret_2026_victor'
 
-# ── Cloudinary config
+# ── MongoDB
+MONGO_URI = "mongodb+srv://enema910_db_user:MsHwrG1k3TNCCcAr@cluster0.b0rxo4f.mongodb.net/?appName=Cluster0"
+client     = MongoClient(MONGO_URI)
+db         = client['lightideas']
+products_col = db['products']
+emails_col   = db['emails']
+
+# ── Cloudinary
 cloudinary.config(
     cloud_name = 'dfkdvznkp',
     api_key    = '519772916967931',
@@ -14,48 +23,28 @@ cloudinary.config(
 )
 
 ADMIN_PASSWORD = 'lightideas2026'
-PRODUCTS_FILE  = 'products.json'
-EMAILS_FILE    = 'emails.json'
 
-def load_products():
-    if not os.path.exists(PRODUCTS_FILE):
-        return []
-    with open(PRODUCTS_FILE, 'r') as f:
-        return json.load(f)
-
-def save_products(products):
-    with open(PRODUCTS_FILE, 'w') as f:
-        json.dump(products, f, indent=2)
-
-def load_emails():
-    if not os.path.exists(EMAILS_FILE):
-        return []
-    with open(EMAILS_FILE, 'r') as f:
-        return json.load(f)
-
-def save_emails(emails):
-    with open(EMAILS_FILE, 'w') as f:
-        json.dump(emails, f, indent=2)
-
-def is_logged_in():
-    return session.get('admin_logged_in') == True
+def product_to_dict(p):
+    p['id'] = str(p['_id'])
+    del p['_id']
+    return p
 
 # ── MAIN WEBSITE
 @app.route('/')
 def index():
-    products = [p for p in load_products() if p.get('available', True)]
+    products = [product_to_dict(p) for p in products_col.find({'available': True})]
     return render_template('index.html', products=products)
 
 # ── CATALOG
 @app.route('/catalog')
 def catalog():
-    products = [p for p in load_products() if p.get('available', True)]
+    products = [product_to_dict(p) for p in products_col.find({'available': True})]
     return render_template('catalog.html', products=products)
 
 # ── ADMIN LOGIN
 @app.route('/victor-admin', methods=['GET', 'POST'])
 def admin_login():
-    if is_logged_in():
+    if session.get('admin_logged_in'):
         return redirect(url_for('admin_dashboard'))
     error = None
     if request.method == 'POST':
@@ -69,10 +58,10 @@ def admin_login():
 # ── ADMIN DASHBOARD
 @app.route('/victor-admin/dashboard')
 def admin_dashboard():
-    if not is_logged_in():
+    if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    products = load_products()
-    emails   = load_emails()
+    products = [product_to_dict(p) for p in products_col.find()]
+    emails   = [e['email'] for e in emails_col.find()]
     return render_template('admin_dashboard.html', products=products, emails=emails)
 
 # ── ADMIN LOGOUT
@@ -84,20 +73,19 @@ def admin_logout():
 # ── API: Get all products
 @app.route('/api/products', methods=['GET'])
 def get_products():
-    return jsonify([p for p in load_products() if p.get('available', True)])
+    products = [product_to_dict(p) for p in products_col.find({'available': True})]
+    return jsonify(products)
 
 # ── API: Add product
 @app.route('/api/products', methods=['POST'])
 def add_product():
-    if not is_logged_in():
+    if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 401
-    products = load_products()
-    data     = request.json
-    sub_cat  = data.get('sub_category', '')
+    data    = request.json
+    sub_cat = data.get('sub_category', '')
     if data.get('category') == 'laptop' and not sub_cat:
         sub_cat = 'budget' if int(data.get('price', 0)) <= 250000 else 'pro'
     product = {
-        'id':           int(datetime.datetime.now().timestamp() * 1000),
         'name':         data.get('name', ''),
         'price':        int(data.get('price', 0)),
         'category':     data.get('category', 'laptop'),
@@ -108,40 +96,35 @@ def add_product():
         'available':    True,
         'created_at':   datetime.datetime.now().isoformat()
     }
-    products.append(product)
-    save_products(products)
+    result = products_col.insert_one(product)
+    product['id'] = str(result.inserted_id)
     return jsonify({'success': True, 'product': product})
 
 # ── API: Update product
-@app.route('/api/products/<int:product_id>', methods=['PUT'])
+@app.route('/api/products/<product_id>', methods=['PUT'])
 def update_product(product_id):
-    if not is_logged_in():
+    if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 401
-    products = load_products()
-    data     = request.json
-    for i, p in enumerate(products):
-        if p['id'] == product_id:
-            products[i].update(data)
-            save_products(products)
-            return jsonify({'success': True})
-    return jsonify({'success': False}), 404
+    data = request.json
+    data.pop('id', None)
+    products_col.update_one({'_id': ObjectId(product_id)}, {'$set': data})
+    return jsonify({'success': True})
 
 # ── API: Delete product
-@app.route('/api/products/<int:product_id>', methods=['DELETE'])
+@app.route('/api/products/<product_id>', methods=['DELETE'])
 def delete_product(product_id):
-    if not is_logged_in():
+    if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 401
-    products = [p for p in load_products() if p['id'] != product_id]
-    save_products(products)
+    products_col.delete_one({'_id': ObjectId(product_id)})
     return jsonify({'success': True})
 
 # ── API: Upload image to Cloudinary
 @app.route('/api/upload_image', methods=['POST'])
 def upload_image():
-    if not is_logged_in():
+    if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 401
     try:
-        data    = request.json
+        data   = request.json
         img_b64 = data.get('image', '')
         result  = cloudinary.uploader.upload(
             img_b64,
@@ -159,10 +142,8 @@ def subscribe():
     email = data.get('email', '').strip()
     if not email or '@' not in email:
         return jsonify({'success': False}), 400
-    emails = load_emails()
-    if email not in emails:
-        emails.append(email)
-        save_emails(emails)
+    if not emails_col.find_one({'email': email}):
+        emails_col.insert_one({'email': email, 'created_at': datetime.datetime.now().isoformat()})
     return jsonify({'success': True})
 
 if __name__ == '__main__':
