@@ -202,22 +202,24 @@ def send_bulk_email():
                 text_body = message + "\n\n---\nLight Ideas Technology\nTested and Confirmed — Just for Your Convenience\nWhatsApp: +234 816 944 1990\nWebsite: lightideas-website.onrender.com\n\nTo unsubscribe reply with STOP"
 
                 # HTML version
-                html_body = f"""
-                <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#000;color:#fff;">
-                  <div style="background:#000;padding:24px;text-align:center;border-bottom:3px solid #FFD700;">
-                    <h1 style="color:#FFD700;font-size:24px;margin:0;letter-spacing:3px;">LIGHT IDEAS TECHNOLOGY</h1>
-                    <p style="color:#888;font-size:12px;margin:4px 0 0;">Tested and Confirmed — Just for Your Convenience</p>
-                  </div>
-                  <div style="padding:32px 24px;background:#111;">
-                    <div style="color:#e8e8e8;font-size:15px;line-height:1.7;white-space:pre-wrap;">{message}</div>
-                  </div>
-                  <div style="background:#000;padding:20px 24px;border-top:1px solid #1a1a1a;text-align:center;">
-                    <a href="https://wa.me/2348169441990" style="background:#25D366;color:#fff;padding:10px 24px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:13px;display:inline-block;margin-bottom:12px;">💬 Chat Victor on WhatsApp</a>
-                    <br/>
-                    <a href="https://lightideas-website.onrender.com/catalog" style="background:#FFD700;color:#000;padding:10px 24px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:13px;display:inline-block;">📋 Browse Our Catalog</a>
-                    <p style="color:#444;font-size:11px;margin-top:16px;">Light Ideas Technology · Lagos, Nigeria<br/>To unsubscribe reply with STOP</p>
-                  </div>
-                </div>"""
+                safe_message = message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
+                html_body = (
+                    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#000;color:#fff;">'
+                    '<div style="background:#000;padding:24px;text-align:center;border-bottom:3px solid #FFD700;">'
+                    '<h1 style="color:#FFD700;font-size:24px;margin:0;letter-spacing:3px;">LIGHT IDEAS TECHNOLOGY</h1>'
+                    '<p style="color:#888;font-size:12px;margin:4px 0 0;">Tested and Confirmed - Just for Your Convenience</p>'
+                    '</div>'
+                    '<div style="padding:32px 24px;background:#111;">'
+                    '<div style="color:#e8e8e8;font-size:15px;line-height:1.7;white-space:pre-wrap;">' + safe_message + '</div>'
+                    '</div>'
+                    '<div style="background:#000;padding:20px 24px;border-top:1px solid #1a1a1a;text-align:center;">'
+                    '<a href="https://wa.me/2348169441990" style="background:#25D366;color:#fff;padding:10px 24px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:13px;display:inline-block;margin-bottom:12px;">Chat Victor on WhatsApp</a>'
+                    '<br/>'
+                    '<a href="https://lightideas-website.onrender.com/catalog" style="background:#FFD700;color:#000;padding:10px 24px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:13px;display:inline-block;">Browse Our Catalog</a>'
+                    '<p style="color:#444;font-size:11px;margin-top:16px;">Light Ideas Technology - Lagos, Nigeria<br/>To unsubscribe reply STOP</p>'
+                    '</div>'
+                    '</div>'
+                )
 
                 msg.attach(MIMEText(text_body, 'plain'))
                 msg.attach(MIMEText(html_body, 'html'))

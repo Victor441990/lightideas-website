@@ -799,7 +799,7 @@ async function sendBulkEmail() {
     const res = await fetch('/api/send_bulk_email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject, message, targets })
+      body: JSON.stringify({ subject: subject, message: message, targets: targets })
     });
     const data = await res.json();
     clearInterval(interval);
