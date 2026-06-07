@@ -3,11 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 import cloudinary
 import cloudinary.uploader
-import datetime, os, json
-import smtplib
-import threading
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import datetime, json, requests, threading, os, os
 
 app = Flask(__name__)
 app.secret_key = 'lightideas_secret_2026_victor'
@@ -32,9 +28,10 @@ cloudinary.config(
     api_secret = 'a-tRq7QYepp6jxEx9TFlk10OMpQ'
 )
 
-# ── Email config
-EMAIL_ADDRESS  = 'lightideastechnology1@gmail.com'
-EMAIL_PASSWORD = 'gqoiomeokqkyllhc'
+# ── Brevo email config
+BREVO_API_KEY    = os.environ.get('BREVO_API_KEY', '')
+BREVO_API_URL    = 'https://api.brevo.com/v3/smtp/email'
+EMAIL_SENDER     = {'name': 'Light Ideas Technology', 'email': 'lightideastechnology1@gmail.com'}
 
 ADMIN_PASSWORD = 'lightideas2026'
 
@@ -42,6 +39,21 @@ def product_to_dict(p):
     p['id'] = str(p['_id'])
     del p['_id']
     return p
+
+def send_brevo_email(to_email, subject, html_body, text_body):
+    payload = {
+        'sender':      EMAIL_SENDER,
+        'to':          [{'email': to_email}],
+        'subject':     subject,
+        'htmlContent': html_body,
+        'textContent': text_body
+    }
+    headers = {
+        'api-key':      BREVO_API_KEY,
+        'Content-Type': 'application/json'
+    }
+    res = requests.post(BREVO_API_URL, json=payload, headers=headers, timeout=15)
+    return res.status_code in [200, 201]
 
 # ── MAIN WEBSITE
 @app.route('/')
@@ -160,7 +172,7 @@ def subscribe():
         get_emails_col().insert_one({'email': email, 'created_at': datetime.datetime.now().isoformat()})
     return jsonify({'success': True})
 
-# ── API: Send bulk email (background thread - no timeout)
+# ── API: Send bulk email via Brevo
 @app.route('/api/send_bulk_email', methods=['POST'])
 def send_bulk_email():
     if not session.get('admin_logged_in'):
@@ -189,7 +201,7 @@ def send_bulk_email():
     if not recipients:
         return jsonify({'success': False, 'error': 'No recipients found. Add subscribers or paste emails above.'}), 400
 
-    # Build email HTML once
+    # Build email HTML
     safe_msg  = message.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
     html_body = (
         '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#000;color:#fff;">'
@@ -208,31 +220,15 @@ def send_bulk_email():
     )
     text_body = message + '\n\n---\nLight Ideas Technology\nWhatsApp: +234 816 944 1990\nReply STOP to unsubscribe'
 
-    # Send in background so Render does not timeout
-    def send_in_background(recips, subj, html, text):
-        try:
-            srv = smtplib.SMTP('smtp.gmail.com', 587, timeout=20)
-            srv.starttls()
-            srv.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            for recip in recips:
-                try:
-                    msg = MIMEMultipart('alternative')
-                    msg['Subject'] = subj
-                    msg['From']    = f"Light Ideas Technology <{EMAIL_ADDRESS}>"
-                    msg['To']      = recip
-                    msg.attach(MIMEText(text, 'plain'))
-                    msg.attach(MIMEText(html, 'html'))
-                    srv.sendmail(EMAIL_ADDRESS, recip, msg.as_string())
-                except Exception:
-                    pass
-            srv.quit()
-        except Exception:
-            pass
+    # Send via Brevo in background
+    def send_via_brevo(recips, subj, html, text):
+        for recip in recips:
+            try:
+                send_brevo_email(recip, subj, html, text)
+            except Exception:
+                pass
 
-    t = threading.Thread(
-        target=send_in_background,
-        args=(recipients, subject, html_body, text_body)
-    )
+    t = threading.Thread(target=send_via_brevo, args=(recipients, subject, html_body, text_body))
     t.daemon = True
     t.start()
 
@@ -241,7 +237,7 @@ def send_bulk_email():
         'sent':    len(recipients),
         'failed':  0,
         'total':   len(recipients),
-        'message': f'Sending to {len(recipients)} recipient(s). Check your Gmail sent folder in 1-2 minutes.'
+        'message': f'Sending to {len(recipients)} recipient(s) via Brevo. Check inbox in 1-2 minutes.'
     })
 
 if __name__ == '__main__':
