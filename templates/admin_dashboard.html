@@ -754,86 +754,112 @@ async function loadEmailCount() {
 async function sendBulkEmail() {
   const subject = document.getElementById('emailSubject').value.trim();
   const message = document.getElementById('emailMessage').value.trim();
-  
+
   if (!subject) { showToast('Please enter a subject', 'error'); return; }
   if (!message) { showToast('Please write a message', 'error'); return; }
-  
-  const btn = document.getElementById('sendEmailBtn');
-  const progress = document.getElementById('emailProgress');
-  const bar = document.getElementById('emailProgressBar');
-  const text = document.getElementById('emailProgressText');
-  const result = document.getElementById('emailResult');
-  
-  btn.disabled = true;
-  btn.innerHTML = '⏳ Sending...';
-  progress.style.display = 'block';
-  result.style.display = 'none';
-  
-  // Animate progress
-  let pct = 0;
-  const interval = setInterval(() => {
-    pct = Math.min(pct + 2, 90);
-    bar.style.width = pct + '%';
-    text.textContent = 'Sending emails... ' + pct + '%';
-  }, 300);
-  
-  try {
-    // Parse manual emails
-    const rawManual = document.getElementById('manualEmails').value;
-    const manualList = rawManual.split(/[,;\n\t]/).map(e => e.trim()).filter(e => e.includes('@'));
 
-    let targets;
-    if (recipientOption === 'manual') {
-      if (manualList.length === 0) {
-        showToast('Please paste at least one email address above', 'error');
-        btn.disabled = false; btn.innerHTML = '📨 Send Email'; clearInterval(interval); return;
-      }
-      targets = manualList;
-    } else if (recipientOption === 'subscribers') {
-      targets = 'all';
-    } else {
-      // both
-      targets = { mode: 'both', extra: manualList };
-    }
+  // Parse manual emails - handle Excel paste, commas, semicolons, tabs
+  const rawManual = document.getElementById('manualEmails').value || '';
+  const manualList = rawManual
+    .split(/[,;\n\t\r]+/)
+    .map(e => e.trim().toLowerCase())
+    .filter(e => e.includes('@') && e.includes('.'));
+
+  if (recipientOption === 'manual' && manualList.length === 0) {
+    showToast('Please paste at least one valid email above', 'error'); return;
+  }
+
+  let targets;
+  if (recipientOption === 'subscribers') targets = 'all';
+  else if (recipientOption === 'manual') targets = manualList;
+  else targets = { mode: 'both', extra: manualList };
+
+  const btn      = document.getElementById('sendEmailBtn');
+  const progress = document.getElementById('emailProgress');
+  const bar      = document.getElementById('emailProgressBar');
+  const ptext    = document.getElementById('emailProgressText');
+  const result   = document.getElementById('emailResult');
+
+  btn.disabled     = true;
+  btn.innerHTML    = '⏳ Sending...';
+  progress.style.display = 'block';
+  result.style.display   = 'none';
+  bar.style.background   = 'var(--gold)';
+
+  let pct = 0;
+  const ticker = setInterval(() => {
+    pct = Math.min(pct + 3, 88);
+    bar.style.width = pct + '%';
+    ptext.textContent = 'Sending... ' + pct + '%';
+  }, 400);
+
+  try {
+    const payload = JSON.stringify({ subject, message, targets });
 
     const res = await fetch('/api/send_bulk_email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject: subject, message: message, targets: targets })
+      body: payload
     });
-    const data = await res.json();
-    clearInterval(interval);
+
+    clearInterval(ticker);
     bar.style.width = '100%';
-    
+
+    const rawText = await res.text();
+
+    if (!rawText || rawText.trim() === '') {
+      throw new Error('Server returned empty response. Check Render logs.');
+    }
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch(pe) {
+      throw new Error('Server error: ' + rawText.substring(0, 200));
+    }
+
     if (data.success) {
       bar.style.background = '#4ade80';
-      text.textContent = '✅ Done!';
+      ptext.textContent    = 'Done!';
       result.style.display = 'block';
       result.innerHTML = `
-        <div style="background:#14532d;border:1px solid #166534;border-radius:12px;padding:16px;text-align:center;">
-          <div style="font-size:1.5em;margin-bottom:8px;">✅</div>
-          <div style="color:#4ade80;font-weight:700;font-size:1em;">Email Sent Successfully!</div>
+        <div style="background:#14532d;border:1px solid #166534;border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:2em;margin-bottom:8px;">✅</div>
+          <div style="color:#4ade80;font-weight:700;font-size:1.05em;">Emails Sent!</div>
           <div style="color:#888;font-size:0.82em;margin-top:8px;">
-            ${data.sent} sent · ${data.failed} failed · ${data.total} total
+            ${data.sent} sent &nbsp;·&nbsp; ${data.failed} failed &nbsp;·&nbsp; ${data.total} total
           </div>
         </div>`;
-      document.getElementById('emailSubject').value = '';
-      document.getElementById('emailMessage').value = '';
+      document.getElementById('emailSubject').value  = '';
+      document.getElementById('emailMessage').value  = '';
+      document.getElementById('manualEmails').value  = '';
       showToast('✅ ' + data.sent + ' emails sent!');
     } else {
       bar.style.background = '#f87171';
-      text.textContent = '❌ Failed';
+      ptext.textContent    = 'Failed';
       result.style.display = 'block';
-      result.innerHTML = `<div style="background:#450a0a;border:1px solid #7f1d1d;border-radius:12px;padding:16px;color:#f87171;text-align:center;">${data.error}</div>`;
-      showToast('Failed to send', 'error');
+      result.innerHTML = `
+        <div style="background:#450a0a;border:1px solid #7f1d1d;border-radius:12px;padding:16px;color:#f87171;text-align:center;font-size:0.85em;">
+          ❌ ${data.error || 'Unknown error'}
+        </div>`;
+      showToast('Failed: ' + (data.error || 'Unknown error'), 'error');
     }
-  } catch(e) {
-    clearInterval(interval);
-    showToast('Error: ' + e.message, 'error');
+
+  } catch(err) {
+    clearInterval(ticker);
+    bar.style.background = '#f87171';
+    bar.style.width = '100%';
+    ptext.textContent = 'Error';
+    result.style.display = 'block';
+    result.innerHTML = `
+      <div style="background:#450a0a;border:1px solid #7f1d1d;border-radius:12px;padding:16px;color:#f87171;font-size:0.82em;">
+        ❌ ${err.message}
+      </div>`;
+    showToast('Error: ' + err.message, 'error');
   }
-  
-  btn.disabled = false;
-  btn.innerHTML = '📨 Send to All Subscribers';
+
+  btn.disabled  = false;
+  btn.innerHTML = '📨 Send Email';
 }
 
 // Load email count when navigating to email sender page
