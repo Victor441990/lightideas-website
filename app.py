@@ -169,8 +169,15 @@ def send_bulk_email():
     # Get recipients
     if targets == 'all':
         recipients = [e['email'] for e in emails_col.find()]
-    else:
+    elif isinstance(targets, dict) and targets.get('mode') == 'both':
+        # All subscribers + extra emails
+        sub_emails = [e['email'] for e in emails_col.find()]
+        extra = targets.get('extra', [])
+        recipients = list(set(sub_emails + extra))  # no duplicates
+    elif isinstance(targets, list):
         recipients = targets
+    else:
+        recipients = [e['email'] for e in emails_col.find()]
 
     if not recipients:
         return jsonify({'success': False, 'error': 'No subscribers found'}), 400

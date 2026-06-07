@@ -351,16 +351,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
       <div class="section-head">
         <h2>SEND BULK EMAIL</h2>
       </div>
-      <div style="background:var(--black);border:1px solid #1a1a1a;border-radius:16px;padding:28px;max-width:700px;">
-        
-        <!-- Stats bar -->
-        <div style="background:var(--black4);border-radius:12px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:10px;">
-          <span style="color:var(--gold);font-size:1.2em;">📧</span>
-          <div>
-            <div style="font-size:0.85em;color:#fff;font-weight:600;" id="emailCountDisplay">Loading subscribers...</div>
-            <div style="font-size:0.72em;color:#555;">All emails collected from your website</div>
-          </div>
-        </div>
+      <div style="background:var(--black);border:1px solid #1a1a1a;border-radius:16px;padding:28px;max-width:720px;">
 
         <!-- Subject -->
         <div class="form-row">
@@ -371,30 +362,83 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
         <!-- Message -->
         <div class="form-row">
           <label>Your Message *</label>
-          <textarea id="emailMessage" style="min-height:200px;resize:vertical;" 
+          <textarea id="emailMessage" style="min-height:180px;resize:vertical;"
             placeholder="Write your message here...
 
-Example:
-Hi there,
+Hi,
 
-We just got fresh stock of quality UK used laptops. All tested and confirmed with our 16-module diagnostic tool.
+We just got fresh stock of quality UK used laptops — all tested and confirmed with our 15-module diagnostic tool.
 
-Check our catalog: https://lightideas-website.onrender.com/catalog
+Check our catalog to see available laptops and prices.
 
-Reply to this email or WhatsApp +234 816 944 1990 to order.
+To order, reply to this email or WhatsApp +234 816 944 1990.
 
 Victor
 Light Ideas Technology"></textarea>
         </div>
 
-        <!-- Preview note -->
+        <!-- Manual Emails -->
+        <div class="form-row">
+          <label>Manually Added Emails</label>
+          <textarea id="manualEmails" style="min-height:120px;resize:vertical;"
+            placeholder="Paste emails here — from Excel, WhatsApp, anywhere.
+
+Accepted formats (any of these work):
+john@gmail.com
+mary@company.com, paul@school.ng
+boss@business.com
+
+You can paste a whole column from Excel — one email per line."></textarea>
+          <div style="font-size:0.72em;color:#555;margin-top:6px;">Paste from Excel, copy from anywhere. One per line or separated by commas. Duplicates are removed automatically.</div>
+        </div>
+
+        <!-- WHO TO SEND TO -->
+        <div class="form-row">
+          <label>Who to Send To *</label>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+
+            <label onclick="setTarget('both')" id="opt-both"
+              style="display:flex;align-items:center;gap:12px;background:rgba(255,215,0,0.08);border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.2s;">
+              <div id="radio-both" style="width:20px;height:20px;border-radius:50%;border:2px solid var(--gold);background:var(--gold);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#000;"></div>
+              </div>
+              <div>
+                <div style="font-weight:700;font-size:0.9em;color:#fff;">1 — Send to Everyone</div>
+                <div style="font-size:0.75em;color:#888;margin-top:2px;">All website subscribers + manually added emails combined</div>
+              </div>
+            </label>
+
+            <label onclick="setTarget('subscribers')" id="opt-subscribers"
+              style="display:flex;align-items:center;gap:12px;background:var(--black4);border:1.5px solid #222;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.2s;">
+              <div id="radio-subscribers" style="width:20px;height:20px;border-radius:50%;border:2px solid #333;background:transparent;flex-shrink:0;">
+              </div>
+              <div>
+                <div style="font-weight:700;font-size:0.9em;color:#fff;">2 — Subscribers Only</div>
+                <div style="font-size:0.75em;color:#888;margin-top:2px;">Only people who signed up on your website</div>
+              </div>
+            </label>
+
+            <label onclick="setTarget('manual')" id="opt-manual"
+              style="display:flex;align-items:center;gap:12px;background:var(--black4);border:1.5px solid #222;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.2s;">
+              <div id="radio-manual" style="width:20px;height:20px;border-radius:50%;border:2px solid #333;background:transparent;flex-shrink:0;">
+              </div>
+              <div>
+                <div style="font-weight:700;font-size:0.9em;color:#fff;">3 — Manually Added Only</div>
+                <div style="font-size:0.75em;color:#888;margin-top:2px;">Only the emails you pasted above — no subscribers</div>
+              </div>
+            </label>
+
+          </div>
+        </div>
+
+        <!-- Branding note -->
         <div style="background:#0a1a0a;border:1px solid #14532d;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:0.78em;color:#4ade80;">
-          ✅ Email will be sent with your Light Ideas branding — black/gold design with WhatsApp and Catalog buttons automatically included.
+          ✅ Every email is sent with your Light Ideas black/gold branding — with WhatsApp and Catalog buttons automatically included.
         </div>
 
         <!-- Send button -->
         <button class="btn-add" id="sendEmailBtn" onclick="sendBulkEmail()" style="width:100%;padding:14px;font-size:0.95em;border-radius:12px;">
-          📨 Send to All Subscribers
+          📨 Send Email
         </button>
 
         <!-- Progress -->
@@ -670,6 +714,34 @@ function copyEmails() {
 }
 
 // ── BULK EMAIL SENDER
+let recipientOption = 'both';
+
+function setTarget(option) {
+  recipientOption = option;
+  const opts = ['both', 'subscribers', 'manual'];
+  opts.forEach(o => {
+    const radio = document.getElementById('radio-' + o);
+    const box   = document.getElementById('opt-' + o);
+    if (!radio || !box) return;
+    radio.style.background    = 'transparent';
+    radio.style.borderColor   = '#333';
+    radio.innerHTML           = '';
+    box.style.borderColor     = '#222';
+    box.style.background      = 'var(--black4)';
+  });
+  const selRadio = document.getElementById('radio-' + option);
+  const selBox   = document.getElementById('opt-' + option);
+  if (selRadio) {
+    selRadio.style.background  = 'var(--gold)';
+    selRadio.style.borderColor = 'var(--gold)';
+    selRadio.innerHTML         = '<div style="width:8px;height:8px;border-radius:50%;background:#000;"></div>';
+  }
+  if (selBox) {
+    selBox.style.borderColor = 'var(--gold)';
+    selBox.style.background  = 'rgba(255,215,0,0.08)';
+  }
+}
+
 async function loadEmailCount() {
   try {
     const emails = document.querySelectorAll('.email-item span');
@@ -706,10 +778,28 @@ async function sendBulkEmail() {
   }, 300);
   
   try {
+    // Parse manual emails
+    const rawManual = document.getElementById('manualEmails').value;
+    const manualList = rawManual.split(/[,;\n\t]/).map(e => e.trim()).filter(e => e.includes('@'));
+
+    let targets;
+    if (recipientOption === 'manual') {
+      if (manualList.length === 0) {
+        showToast('Please paste at least one email address above', 'error');
+        btn.disabled = false; btn.innerHTML = '📨 Send Email'; clearInterval(interval); return;
+      }
+      targets = manualList;
+    } else if (recipientOption === 'subscribers') {
+      targets = 'all';
+    } else {
+      // both
+      targets = { mode: 'both', extra: manualList };
+    }
+
     const res = await fetch('/api/send_bulk_email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject, message, targets: 'all' })
+      body: JSON.stringify({ subject, message, targets })
     });
     const data = await res.json();
     clearInterval(interval);
