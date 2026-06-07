@@ -13,10 +13,10 @@ app.secret_key = 'lightideas_secret_2026_victor'
 
 # ── MongoDB
 MONGO_URI = "mongodb+srv://enema910_db_user:MsHwrG1k3TNCCcAr@cluster0.b0rxo4f.mongodb.net/?appName=Cluster0"
-client       = MongoClient(MONGO_URI)
-db           = client['lightideas']
-products_col = db['products']
-emails_col   = db['emails']
+
+def get_db():
+    client = MongoClient(MONGO_URI)
+    return client['lightideas']
 
 # ── Cloudinary
 cloudinary.config(
@@ -36,16 +36,22 @@ def product_to_dict(p):
     del p['_id']
     return p
 
+def get_products_col():
+    return get_db()['products']
+
+def get_emails_col():
+    return get_db()['emails']
+
 # ── MAIN WEBSITE
 @app.route('/')
 def index():
-    products = [product_to_dict(p) for p in products_col.find({'available': True})]
+    products = [product_to_dict(p) for p in get_products_col().find({'available': True})]
     return render_template('index.html', products=products)
 
 # ── CATALOG
 @app.route('/catalog')
 def catalog():
-    products = [product_to_dict(p) for p in products_col.find({'available': True})]
+    products = [product_to_dict(p) for p in get_products_col().find({'available': True})]
     return render_template('catalog.html', products=products)
 
 # ── ADMIN LOGIN
@@ -67,8 +73,8 @@ def admin_login():
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    products = [product_to_dict(p) for p in products_col.find()]
-    emails   = [e['email'] for e in emails_col.find()]
+    products = [product_to_dict(p) for p in get_products_col().find()]
+    emails   = [e['email'] for e in get_emails_col().find()]
     return render_template('admin_dashboard.html', products=products, emails=emails)
 
 # ── ADMIN LOGOUT
@@ -80,7 +86,7 @@ def admin_logout():
 # ── API: Get all products
 @app.route('/api/products', methods=['GET'])
 def get_products():
-    products = [product_to_dict(p) for p in products_col.find({'available': True})]
+    products = [product_to_dict(p) for p in get_products_col().find({'available': True})]
     return jsonify(products)
 
 # ── API: Add product
@@ -103,7 +109,7 @@ def add_product():
         'available':    True,
         'created_at':   datetime.datetime.now().isoformat()
     }
-    result = products_col.insert_one(product)
+    result = get_products_col().insert_one(product)
     product['id'] = str(result.inserted_id)
     return jsonify({'success': True, 'product': product})
 
@@ -114,7 +120,7 @@ def update_product(product_id):
         return jsonify({'success': False}), 401
     data = request.json
     data.pop('id', None)
-    products_col.update_one({'_id': ObjectId(product_id)}, {'$set': data})
+    get_products_col().update_one({'_id': ObjectId(product_id)}, {'$set': data})
     return jsonify({'success': True})
 
 # ── API: Delete product
@@ -122,7 +128,7 @@ def update_product(product_id):
 def delete_product(product_id):
     if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 401
-    products_col.delete_one({'_id': ObjectId(product_id)})
+    get_products_col().delete_one({'_id': ObjectId(product_id)})
     return jsonify({'success': True})
 
 # ── API: Upload image to Cloudinary
@@ -149,8 +155,8 @@ def subscribe():
     email = data.get('email', '').strip()
     if not email or '@' not in email:
         return jsonify({'success': False}), 400
-    if not emails_col.find_one({'email': email}):
-        emails_col.insert_one({'email': email, 'created_at': datetime.datetime.now().isoformat()})
+    if not get_emails_col().find_one({'email': email}):
+        get_emails_col().insert_one({'email': email, 'created_at': datetime.datetime.now().isoformat()})
     return jsonify({'success': True})
 
 # ── API: Send bulk email
@@ -168,16 +174,16 @@ def send_bulk_email():
 
     # Get recipients
     if targets == 'all':
-        recipients = [e['email'] for e in emails_col.find()]
+        recipients = [e['email'] for e in get_emails_col().find()]
     elif isinstance(targets, dict) and targets.get('mode') == 'both':
         # All subscribers + extra emails
-        sub_emails = [e['email'] for e in emails_col.find()]
+        sub_emails = [e['email'] for e in get_emails_col().find()]
         extra = targets.get('extra', [])
         recipients = list(set(sub_emails + extra))  # no duplicates
     elif isinstance(targets, list):
         recipients = targets
     else:
-        recipients = [e['email'] for e in emails_col.find()]
+        recipients = [e['email'] for e in get_emails_col().find()]
 
     if not recipients:
         return jsonify({'success': False, 'error': 'No subscribers found'}), 400
@@ -187,53 +193,54 @@ def send_bulk_email():
     errors = []
 
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        # Build email content once
+        safe_msg = message.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+        html_body = (
+            '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#000;color:#fff;">'
+            '<div style="background:#000;padding:24px;text-align:center;border-bottom:3px solid #FFD700;">'
+            '<h1 style="color:#FFD700;font-size:22px;margin:0;letter-spacing:2px;">LIGHT IDEAS TECHNOLOGY</h1>'
+            '<p style="color:#888;font-size:11px;margin:4px 0 0;">Tested and Confirmed - Just for Your Convenience</p>'
+            '</div>'
+            '<div style="padding:28px 20px;background:#111;">'
+            '<div style="color:#e8e8e8;font-size:14px;line-height:1.8;white-space:pre-wrap;">' + safe_msg + '</div>'
+            '</div>'
+            '<div style="background:#000;padding:16px 20px;text-align:center;">'
+            '<a href="https://wa.me/2348169441990" style="background:#25D366;color:#fff;padding:9px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">WhatsApp Victor</a>'
+            '<a href="https://lightideas-website.onrender.com/catalog" style="background:#FFD700;color:#000;padding:9px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">Browse Catalog</a>'
+            '<p style="color:#444;font-size:10px;margin-top:12px;">Light Ideas Technology - Lagos, Nigeria. Reply STOP to unsubscribe.</p>'
+            '</div></div>'
+        )
+        text_body = message + "
+
+---
+Light Ideas Technology
+WhatsApp: +234 816 944 1990
+lightideas-website.onrender.com
+Reply STOP to unsubscribe"
+
+        # Connect once, send all
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=25)
         server.starttls()
         server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
 
-        for email in recipients:
+        for recipient in recipients:
             try:
                 msg = MIMEMultipart('alternative')
                 msg['Subject'] = subject
                 msg['From']    = f"Light Ideas Technology <{EMAIL_ADDRESS}>"
-                msg['To']      = email
-
-                # Plain text version
-                text_body = message + "\n\n---\nLight Ideas Technology\nTested and Confirmed — Just for Your Convenience\nWhatsApp: +234 816 944 1990\nWebsite: lightideas-website.onrender.com\n\nTo unsubscribe reply with STOP"
-
-                # HTML version
-                safe_message = message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
-                html_body = (
-                    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#000;color:#fff;">'
-                    '<div style="background:#000;padding:24px;text-align:center;border-bottom:3px solid #FFD700;">'
-                    '<h1 style="color:#FFD700;font-size:24px;margin:0;letter-spacing:3px;">LIGHT IDEAS TECHNOLOGY</h1>'
-                    '<p style="color:#888;font-size:12px;margin:4px 0 0;">Tested and Confirmed - Just for Your Convenience</p>'
-                    '</div>'
-                    '<div style="padding:32px 24px;background:#111;">'
-                    '<div style="color:#e8e8e8;font-size:15px;line-height:1.7;white-space:pre-wrap;">' + safe_message + '</div>'
-                    '</div>'
-                    '<div style="background:#000;padding:20px 24px;border-top:1px solid #1a1a1a;text-align:center;">'
-                    '<a href="https://wa.me/2348169441990" style="background:#25D366;color:#fff;padding:10px 24px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:13px;display:inline-block;margin-bottom:12px;">Chat Victor on WhatsApp</a>'
-                    '<br/>'
-                    '<a href="https://lightideas-website.onrender.com/catalog" style="background:#FFD700;color:#000;padding:10px 24px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:13px;display:inline-block;">Browse Our Catalog</a>'
-                    '<p style="color:#444;font-size:11px;margin-top:16px;">Light Ideas Technology - Lagos, Nigeria<br/>To unsubscribe reply STOP</p>'
-                    '</div>'
-                    '</div>'
-                )
-
+                msg['To']      = recipient
                 msg.attach(MIMEText(text_body, 'plain'))
                 msg.attach(MIMEText(html_body, 'html'))
-
-                server.sendmail(EMAIL_ADDRESS, email, msg.as_string())
+                server.sendmail(EMAIL_ADDRESS, recipient, msg.as_string())
                 sent += 1
             except Exception as e:
                 failed += 1
-                errors.append(str(e))
+                errors.append(f"{recipient}: {str(e)}")
 
         server.quit()
 
     except Exception as e:
-        return jsonify({'success': False, 'error': f'Failed to connect to Gmail: {str(e)}'}), 500
+        return jsonify({'success': False, 'error': f'Gmail error: {str(e)}'}), 500
 
     return jsonify({
         'success': True,
