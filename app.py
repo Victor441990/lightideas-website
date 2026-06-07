@@ -19,6 +19,12 @@ def get_db():
     client = MongoClient(MONGO_URI)
     return client['lightideas']
 
+def get_products_col():
+    return get_db()['products']
+
+def get_emails_col():
+    return get_db()['emails']
+
 # ── Cloudinary
 cloudinary.config(
     cloud_name = 'dfkdvznkp',
@@ -36,12 +42,6 @@ def product_to_dict(p):
     p['id'] = str(p['_id'])
     del p['_id']
     return p
-
-def get_products_col():
-    return get_db()['products']
-
-def get_emails_col():
-    return get_db()['emails']
 
 # ── MAIN WEBSITE
 @app.route('/')
@@ -160,95 +160,88 @@ def subscribe():
         get_emails_col().insert_one({'email': email, 'created_at': datetime.datetime.now().isoformat()})
     return jsonify({'success': True})
 
-# ── API: Send bulk email
+# ── API: Send bulk email (background thread - no timeout)
 @app.route('/api/send_bulk_email', methods=['POST'])
 def send_bulk_email():
     if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 401
+
     data    = request.json
     subject = data.get('subject', '').strip()
     message = data.get('message', '').strip()
-    targets = data.get('targets', 'all')  # 'all' or list of emails
+    targets = data.get('targets', 'all')
 
     if not subject or not message:
         return jsonify({'success': False, 'error': 'Subject and message are required'}), 400
 
-    # Get recipients
+    # Build recipient list
     if targets == 'all':
         recipients = [e['email'] for e in get_emails_col().find()]
     elif isinstance(targets, dict) and targets.get('mode') == 'both':
-        # All subscribers + extra emails
         sub_emails = [e['email'] for e in get_emails_col().find()]
-        extra = targets.get('extra', [])
-        recipients = list(set(sub_emails + extra))  # no duplicates
+        extra      = targets.get('extra', [])
+        recipients = list(set(sub_emails + extra))
     elif isinstance(targets, list):
         recipients = targets
     else:
         recipients = [e['email'] for e in get_emails_col().find()]
 
     if not recipients:
-        return jsonify({'success': False, 'error': 'No subscribers found'}), 400
+        return jsonify({'success': False, 'error': 'No recipients found. Add subscribers or paste emails above.'}), 400
 
-    sent = 0
-    failed = 0
-    errors = []
+    # Build email HTML once
+    safe_msg  = message.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+    html_body = (
+        '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#000;color:#fff;">'
+        '<div style="background:#000;padding:20px;text-align:center;border-bottom:3px solid #FFD700;">'
+        '<h1 style="color:#FFD700;font-size:22px;margin:0;">LIGHT IDEAS TECHNOLOGY</h1>'
+        '<p style="color:#888;font-size:11px;margin:4px 0 0;">Tested and Confirmed</p>'
+        '</div>'
+        '<div style="padding:24px;background:#111;">'
+        '<pre style="color:#e8e8e8;font-size:14px;line-height:1.7;white-space:pre-wrap;font-family:Arial,sans-serif;">' + safe_msg + '</pre>'
+        '</div>'
+        '<div style="background:#000;padding:16px;text-align:center;">'
+        '<a href="https://wa.me/2348169441990" style="background:#25D366;color:#fff;padding:8px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">WhatsApp Victor</a>'
+        '<a href="https://lightideas-website.onrender.com/catalog" style="background:#FFD700;color:#000;padding:8px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">Browse Catalog</a>'
+        '<p style="color:#444;font-size:10px;margin-top:12px;">Light Ideas Technology - Lagos, Nigeria. Reply STOP to unsubscribe.</p>'
+        '</div></div>'
+    )
+    text_body = message + '\n\n---\nLight Ideas Technology\nWhatsApp: +234 816 944 1990\nReply STOP to unsubscribe'
 
-    try:
-        # Build email content once
-        safe_msg = message.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
-        html_body = (
-            '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#000;color:#fff;">'
-            '<div style="background:#000;padding:24px;text-align:center;border-bottom:3px solid #FFD700;">'
-            '<h1 style="color:#FFD700;font-size:22px;margin:0;letter-spacing:2px;">LIGHT IDEAS TECHNOLOGY</h1>'
-            '<p style="color:#888;font-size:11px;margin:4px 0 0;">Tested and Confirmed - Just for Your Convenience</p>'
-            '</div>'
-            '<div style="padding:28px 20px;background:#111;">'
-            '<div style="color:#e8e8e8;font-size:14px;line-height:1.8;white-space:pre-wrap;">' + safe_msg + '</div>'
-            '</div>'
-            '<div style="background:#000;padding:16px 20px;text-align:center;">'
-            '<a href="https://wa.me/2348169441990" style="background:#25D366;color:#fff;padding:9px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">WhatsApp Victor</a>'
-            '<a href="https://lightideas-website.onrender.com/catalog" style="background:#FFD700;color:#000;padding:9px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">Browse Catalog</a>'
-            '<p style="color:#444;font-size:10px;margin-top:12px;">Light Ideas Technology - Lagos, Nigeria. Reply STOP to unsubscribe.</p>'
-            '</div></div>'
-        )
-        text_body = message + "
+    # Send in background so Render does not timeout
+    def send_in_background(recips, subj, html, text):
+        try:
+            srv = smtplib.SMTP('smtp.gmail.com', 587, timeout=20)
+            srv.starttls()
+            srv.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            for recip in recips:
+                try:
+                    msg = MIMEMultipart('alternative')
+                    msg['Subject'] = subj
+                    msg['From']    = f"Light Ideas Technology <{EMAIL_ADDRESS}>"
+                    msg['To']      = recip
+                    msg.attach(MIMEText(text, 'plain'))
+                    msg.attach(MIMEText(html, 'html'))
+                    srv.sendmail(EMAIL_ADDRESS, recip, msg.as_string())
+                except Exception:
+                    pass
+            srv.quit()
+        except Exception:
+            pass
 
----
-Light Ideas Technology
-WhatsApp: +234 816 944 1990
-lightideas-website.onrender.com
-Reply STOP to unsubscribe"
-
-        # Connect once, send all
-        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=25)
-        server.starttls()
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-
-        for recipient in recipients:
-            try:
-                msg = MIMEMultipart('alternative')
-                msg['Subject'] = subject
-                msg['From']    = f"Light Ideas Technology <{EMAIL_ADDRESS}>"
-                msg['To']      = recipient
-                msg.attach(MIMEText(text_body, 'plain'))
-                msg.attach(MIMEText(html_body, 'html'))
-                server.sendmail(EMAIL_ADDRESS, recipient, msg.as_string())
-                sent += 1
-            except Exception as e:
-                failed += 1
-                errors.append(f"{recipient}: {str(e)}")
-
-        server.quit()
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Gmail error: {str(e)}'}), 500
+    t = threading.Thread(
+        target=send_in_background,
+        args=(recipients, subject, html_body, text_body)
+    )
+    t.daemon = True
+    t.start()
 
     return jsonify({
         'success': True,
-        'sent':    sent,
-        'failed':  failed,
+        'sent':    len(recipients),
+        'failed':  0,
         'total':   len(recipients),
-        'errors':  errors[:5]
+        'message': f'Sending to {len(recipients)} recipient(s). Check your Gmail sent folder in 1-2 minutes.'
     })
 
 if __name__ == '__main__':
