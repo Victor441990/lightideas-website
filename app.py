@@ -31,7 +31,7 @@ cloudinary.config(
 # ── Brevo email config
 BREVO_API_KEY    = os.environ.get('BREVO_API_KEY', '')
 BREVO_API_URL    = 'https://api.brevo.com/v3/smtp/email'
-EMAIL_SENDER     = {'name': 'Light Ideas Technology', 'email': 'enema910@gmail.com'}
+EMAIL_SENDER    = {'name': 'Light Ideas Technology', 'email': 'info@lightideastechnology.com.ng'}
 
 ADMIN_PASSWORD = 'lightideas2026'
 
