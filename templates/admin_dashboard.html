@@ -353,6 +353,16 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
       </div>
       <div style="background:var(--black);border:1px solid #1a1a1a;border-radius:16px;padding:28px;max-width:720px;">
 
+        <!-- EMAIL MODE TOGGLE -->
+<div style="margin-bottom:20px;">
+  <div style="font-size:0.7em;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Email Type</div>
+  <div style="display:flex;background:var(--black4);border:1px solid #222;border-radius:12px;padding:4px;gap:4px;">
+    <button id="mode-btn-branded" onclick="setEmailMode('branded')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:var(--font-body);font-size:0.82em;font-weight:600;cursor:pointer;background:var(--gold);color:#000;">🎨 Branded Email</button>
+    <button id="mode-btn-plain" onclick="setEmailMode('plain')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:var(--font-body);font-size:0.82em;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);">✉️ Plain Text (Lands in Primary)</button>
+  </div>
+  <div id="mode-hint-branded" style="font-size:0.75em;color:#555;margin-top:6px;">Black/gold branded template. Goes to Promotions tab.</div>
+  <div id="mode-hint-plain" style="display:none;font-size:0.75em;color:#4ade80;margin-top:6px;">Simple plain text — lands in Primary inbox with notification sound. Best for follow-ups.</div>
+</div>
         <!-- Subject -->
         <div class="form-row">
           <label>Email Subject *</label>
@@ -794,7 +804,7 @@ async function sendBulkEmail() {
   }, 400);
 
   try {
-    const payload = JSON.stringify({ subject, message, targets });
+    const payload = JSON.stringify({ subject, message, targets, mode: emailMode });
 
     const res = await fetch('/api/send_bulk_email', {
       method: 'POST',
@@ -861,7 +871,17 @@ async function sendBulkEmail() {
   btn.disabled  = false;
   btn.innerHTML = '📨 Send Email';
 }
-
+// ── EMAIL MODE
+let emailMode = 'branded';
+function setEmailMode(mode) {
+  emailMode = mode;
+  document.getElementById('mode-btn-branded').style.background = mode === 'branded' ? 'var(--gold)' : 'transparent';
+  document.getElementById('mode-btn-branded').style.color = mode === 'branded' ? '#000' : 'var(--muted)';
+  document.getElementById('mode-btn-plain').style.background = mode === 'plain' ? 'var(--gold)' : 'transparent';
+  document.getElementById('mode-btn-plain').style.color = mode === 'plain' ? '#000' : 'var(--muted)';
+  document.getElementById('mode-hint-branded').style.display = mode === 'branded' ? 'block' : 'none';
+  document.getElementById('mode-hint-plain').style.display = mode === 'plain' ? 'block' : 'none';
+}
 // Load email count when navigating to email sender page
 const origShowPage = showPage;
 
