@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 import cloudinary
 import cloudinary.uploader
-import datetime, json, requests, threading, os, os
+import datetime, json, requests, threading, os
 
 app = Flask(__name__)
 app.secret_key = 'lightideas_secret_2026_victor'
@@ -29,9 +29,9 @@ cloudinary.config(
 )
 
 # ── Brevo email config
-BREVO_API_KEY    = os.environ.get('BREVO_API_KEY', '')
-BREVO_API_URL    = 'https://api.brevo.com/v3/smtp/email'
-EMAIL_SENDER    = {'name': 'Light Ideas Technology', 'email': 'info@lightideastechnology.com.ng'}
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
+EMAIL_SENDER  = {'name': 'Light Ideas Technology', 'email': 'info@lightideastechnology.com.ng'}
 
 ADMIN_PASSWORD = 'lightideas2026'
 
@@ -178,10 +178,11 @@ def send_bulk_email():
     if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 401
 
-    data    = request.json
-    subject = data.get('subject', '').strip()
-    message = data.get('message', '').strip()
-    targets = data.get('targets', 'all')
+    data       = request.json
+    subject    = data.get('subject', '').strip()
+    message    = data.get('message', '').strip()
+    targets    = data.get('targets', 'all')
+    email_mode = data.get('mode', 'branded')
 
     if not subject or not message:
         return jsonify({'success': False, 'error': 'Subject and message are required'}), 400
@@ -201,24 +202,34 @@ def send_bulk_email():
     if not recipients:
         return jsonify({'success': False, 'error': 'No recipients found. Add subscribers or paste emails above.'}), 400
 
-    # Build email HTML
-    safe_msg  = message.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
-    html_body = (
-        '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#000;color:#fff;">'
-        '<div style="background:#000;padding:20px;text-align:center;border-bottom:3px solid #FFD700;">'
-        '<h1 style="color:#FFD700;font-size:22px;margin:0;">LIGHT IDEAS TECHNOLOGY</h1>'
-        '<p style="color:#888;font-size:11px;margin:4px 0 0;">Tested and Confirmed</p>'
-        '</div>'
-        '<div style="padding:24px;background:#111;">'
-        '<pre style="color:#e8e8e8;font-size:14px;line-height:1.7;white-space:pre-wrap;font-family:Arial,sans-serif;">' + safe_msg + '</pre>'
-        '</div>'
-        '<div style="background:#000;padding:16px;text-align:center;">'
-        '<a href="https://wa.me/2348169441990" style="background:#25D366;color:#fff;padding:8px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">WhatsApp Victor</a>'
-        '<a href="https://lightideas-website.onrender.com/catalog" style="background:#FFD700;color:#000;padding:8px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">Browse Catalog</a>'
-        '<p style="color:#444;font-size:10px;margin-top:12px;">Light Ideas Technology - Lagos, Nigeria. Reply STOP to unsubscribe.</p>'
-        '</div></div>'
-    )
-    text_body = message + '\n\n---\nLight Ideas Technology\nWhatsApp: +234 816 944 1990\nReply STOP to unsubscribe'
+    # Build email body based on mode
+    safe_msg = message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+    if email_mode == 'plain':
+        html_body = (
+            '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.8;color:#000;max-width:600px;">'
+            + safe_msg.replace('\n', '<br>')
+            + '<br><br>--<br>Victor<br>Light Ideas Technology<br>WhatsApp: +234 816 944 1990'
+            + '</div>'
+        )
+        text_body = message + '\n\n--\nVictor\nLight Ideas Technology\nWhatsApp: +234 816 944 1990'
+    else:
+        html_body = (
+            '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#000;color:#fff;">'
+            '<div style="background:#000;padding:20px;text-align:center;border-bottom:3px solid #FFD700;">'
+            '<h1 style="color:#FFD700;font-size:22px;margin:0;">LIGHT IDEAS TECHNOLOGY</h1>'
+            '<p style="color:#888;font-size:11px;margin:4px 0 0;">Tested and Confirmed</p>'
+            '</div>'
+            '<div style="padding:24px;background:#111;">'
+            '<pre style="color:#e8e8e8;font-size:14px;line-height:1.7;white-space:pre-wrap;font-family:Arial,sans-serif;">' + safe_msg + '</pre>'
+            '</div>'
+            '<div style="background:#000;padding:16px;text-align:center;">'
+            '<a href="https://wa.me/2348169441990" style="background:#25D366;color:#fff;padding:8px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">WhatsApp Victor</a>'
+            '<a href="https://lightideastechnology.com.ng/catalog" style="background:#FFD700;color:#000;padding:8px 20px;border-radius:50px;text-decoration:none;font-weight:bold;font-size:12px;display:inline-block;margin:4px;">Browse Catalog</a>'
+            '<p style="color:#444;font-size:10px;margin-top:12px;">Light Ideas Technology - Lagos, Nigeria. Reply STOP to unsubscribe.</p>'
+            '</div></div>'
+        )
+        text_body = message + '\n\n---\nLight Ideas Technology\nWhatsApp: +234 816 944 1990\nReply STOP to unsubscribe'
 
     # Send via Brevo in background
     def send_via_brevo(recips, subj, html, text):
