@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activate LaptopSeal - Light Ideas Technology</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000; color: #FFD700;
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh; display: flex;
+            align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: #111; border: 1.5px solid #FFD700;
+            border-radius: 16px; padding: 40px; max-width: 480px;
+            width: 100%; text-align: center;
+        }
+        .icon { font-size: 3em; margin-bottom: 16px; }
+        h1 { font-size: 1.3em; letter-spacing: 2px; margin-bottom: 8px; }
+        p { color: #555; font-size: 0.82em; line-height: 1.7; margin-bottom: 24px; }
+        .token-box {
+            background: #1a1a1a; border: 1px solid #333;
+            border-radius: 8px; padding: 12px 16px;
+            font-size: 0.72em; color: #888; word-break: break-all;
+            margin-bottom: 24px; text-align: left;
+        }
+        .token-label { color: #555; font-size: 0.65em; letter-spacing: 1px; margin-bottom: 6px; }
+        .btn {
+            width: 100%; padding: 14px; background: #FFD700; color: #000;
+            border: none; border-radius: 50px; font-size: 0.9em;
+            font-weight: bold; cursor: pointer; letter-spacing: 1px;
+            transition: all 0.3s; margin-bottom: 12px;
+        }
+        .btn:hover { background: #e6b800; }
+        .btn-outline {
+            width: 100%; padding: 14px; background: transparent; color: #555;
+            border: 2px solid #333; border-radius: 50px; font-size: 0.9em;
+            font-weight: bold; cursor: pointer; letter-spacing: 1px;
+            transition: all 0.3s; text-decoration: none; display: block;
+        }
+        .btn-outline:hover { border-color: #FFD700; color: #FFD700; }
+        .status { font-size: 0.78em; color: #888; margin-top: 16px; min-height: 20px; }
+        .status.success { color: #4ade80; }
+        .status.error { color: #f87171; }
+        .divider { border: none; border-top: 1px solid #1a1a1a; margin: 20px 0; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="icon">&#128274;</div>
+    <h1>PAYMENT SUCCESSFUL</h1>
+    <p>Your LaptopSeal Pro license has been created. Click the button below to activate it on this laptop. Your license will be permanently locked to this device.</p>
+
+    <div class="token-box">
+        <div class="token-label">YOUR LICENSE TOKEN — SAVE THIS</div>
+        <div id="tokenDisplay">{{ token }}</div>
+    </div>
+
+    <button class="btn" onclick="activateDevice()">&#128274; Activate on This Laptop</button>
+    <hr class="divider">
+    <a href="/laptopseal/tool?token={{ token }}" class="btn-outline">Open LaptopSeal Tool</a>
+
+    <div class="status" id="statusMsg"></div>
+</div>
+
+<script>
+    const TOKEN = '{{ token }}';
+
+    function getHardwareId() {
+        // Generate a fingerprint from browser/device properties
+        const nav = window.navigator;
+        const screen = window.screen;
+        const data = [
+            nav.userAgent,
+            nav.language,
+            screen.width + 'x' + screen.height,
+            screen.colorDepth,
+            new Date().getTimezoneOffset(),
+            nav.hardwareConcurrency || '',
+            nav.platform || ''
+        ].join('|');
+
+        // Simple hash
+        let hash = 0;
+        for (let i = 0; i < data.length; i++) {
+            const char = data.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return 'HW_' + Math.abs(hash).toString(16).toUpperCase();
+    }
+
+    async function activateDevice() {
+        const statusMsg = document.getElementById('statusMsg');
+        statusMsg.textContent = 'Activating...';
+        statusMsg.className = 'status';
+
+        const hardware_id = getHardwareId();
+
+        try {
+            const res = await fetch('/laptopseal/bind_hardware', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: TOKEN, hardware_id: hardware_id })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                statusMsg.textContent = 'Activated successfully! This license is now locked to this laptop.';
+                statusMsg.className = 'status success';
+                // Save token to localStorage
+                localStorage.setItem('ls_token', TOKEN);
+                localStorage.setItem('ls_hw', hardware_id);
+                setTimeout(() => {
+                    window.location.href = '/laptopseal/tool?token=' + TOKEN;
+                }, 2000);
+            } else {
+                statusMsg.textContent = data.error || 'Activation failed. Please try again.';
+                statusMsg.className = 'status error';
+            }
+        } catch(e) {
+            statusMsg.textContent = 'Network error. Please try again.';
+            statusMsg.className = 'status error';
+        }
+    }
+</script>
+</body>
+</html>

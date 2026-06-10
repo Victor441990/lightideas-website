@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaptopSeal - Light Ideas Technology</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: #000000;
+            color: #FFD700;
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── SPLASH SCREEN ── */
+        #splash {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 1s ease;
+        }
+        #splash.fade-out { opacity: 0; pointer-events: none; }
+
+        .splash-logo-wrap {
+            width: 220px; height: 220px;
+            border-radius: 50%; overflow: hidden; background: #000;
+            opacity: 0; transform: scale(0.3);
+            animation: logoIn 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+            box-shadow: 0 0 40px rgba(245,197,24,0.4), 0 0 80px rgba(245,197,24,0.2);
+        }
+        .splash-logo { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+        @keyframes logoIn { to { opacity: 1; transform: scale(1); } }
+
+        .splash-glow {
+            position: absolute; width: 320px; height: 320px;
+            background: radial-gradient(circle, rgba(245,197,24,0.12) 0%, transparent 70%);
+            animation: glowPulse 2.5s ease-in-out infinite; animation-delay: 1.2s; border-radius: 50%;
+        }
+        @keyframes glowPulse {
+            0%,100% { transform: scale(1); opacity: 0.4; }
+            50%      { transform: scale(1.4); opacity: 1; }
+        }
+        .splash-company {
+            font-size: 2em; font-weight: 900; color: #FFD700; letter-spacing: 6px;
+            text-transform: uppercase; opacity: 0; transform: translateY(20px);
+            animation: slideUp 0.8s ease 1.4s forwards;
+            text-shadow: 0 0 20px rgba(245,197,24,0.5); margin-top: 24px;
+        }
+        .splash-divider {
+            width: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, #FFD700, transparent);
+            animation: expandLine 0.8s ease 2s forwards; margin: 14px 0;
+        }
+        @keyframes expandLine { to { width: 320px; } }
+        .splash-slogan {
+            font-size: 0.72em; color: #aaa; letter-spacing: 3px;
+            text-transform: uppercase; opacity: 0;
+            animation: fadeIn 0.8s ease 2.1s forwards; text-align: center;
+        }
+        .splash-subtitle {
+            font-size: 0.62em; color: #555; letter-spacing: 2px;
+            text-transform: uppercase; opacity: 0;
+            animation: fadeIn 0.8s ease 2.6s forwards; margin-top: 6px;
+        }
+        .splash-bar-wrap {
+            position: absolute; bottom: 60px; width: 280px; height: 3px;
+            background: #1a1a1a; border-radius: 10px; overflow: hidden;
+            opacity: 0; animation: fadeIn 0.5s ease 2.2s forwards;
+        }
+        .splash-bar {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #f5c518, #fff8dc, #f5c518);
+            border-radius: 10px; animation: loadBar 2s ease 2.3s forwards;
+        }
+        @keyframes loadBar { to { width: 100%; } }
+        .splash-loading-text {
+            position: absolute; bottom: 38px; font-size: 0.62em;
+            color: #444; letter-spacing: 2px; text-transform: uppercase;
+            opacity: 0; animation: fadeIn 0.5s ease 2.2s forwards;
+        }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn  { to { opacity: 1; } }
+
+        /* ── LICENSE BAR ── */
+        .license-bar {
+            width: 100%; background: #0a0a0a;
+            border-bottom: 1px solid #1a1a1a;
+            padding: 8px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 8px;
+        }
+        .license-info { font-size: 0.72em; color: #555; }
+        .license-info span { color: #FFD700; }
+        .license-badge {
+            padding: 4px 14px; border-radius: 50px;
+            font-size: 0.68em; font-weight: bold; letter-spacing: 1px;
+        }
+        .badge-pro { background: #14532d; color: #4ade80; }
+        .badge-free { background: #1a1a1a; color: #555; }
+        .upgrade-btn {
+            background: #FFD700; color: #000; border: none;
+            padding: 6px 16px; border-radius: 50px; font-size: 0.68em;
+            font-weight: bold; cursor: pointer; letter-spacing: 1px;
+            text-decoration: none; display: inline-block;
+        }
+        .upgrade-btn:hover { background: #e6b800; }
+
+        /* ── DAYS WARNING ── */
+        .days-warning {
+            width: 100%; background: #1a0e00; border-bottom: 1px solid #78350f;
+            padding: 8px 20px; font-size: 0.75em; color: #fbbf24;
+            display: none; text-align: center;
+        }
+
+        /* ── HOMEPAGE ── */
+        #homepage {
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            min-height: 100vh; padding: 40px 20px;
+        }
+        #homepage.visible { display: flex; }
+
+        .logo-section { text-align: center; margin-bottom: 40px; }
+        .company-name { font-size: 2.5em; font-weight: bold; color: #FFD700; letter-spacing: 3px; }
+        .tagline { font-size: 1em; color: #aaa; margin-top: 5px; letter-spacing: 2px; }
+        .divider { width: 200px; height: 2px; background: #FFD700; margin: 20px auto; }
+        .title { font-size: 1.5em; text-align: center; margin-bottom: 10px; color: #FFD700; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 40px; font-size: 0.95em; }
+
+        .modules-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 15px; max-width: 800px; width: 90%; margin-bottom: 40px;
+        }
+        .module-card {
+            background: #111; border: 1px solid #FFD700;
+            border-radius: 10px; padding: 20px; text-align: center;
+            cursor: pointer; transition: all 0.3s;
+            text-decoration: none; display: block; position: relative;
+        }
+        .module-card:hover { background: #FFD700; }
+        .module-card:hover .module-name { color: #000; }
+        .module-icon { font-size: 2em; margin-bottom: 10px; }
+        .module-name { font-size: 0.85em; color: #FFD700; font-weight: bold; }
+
+        /* Locked card */
+        .module-card.locked {
+            border-color: #222; opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .module-card.locked:hover { background: #111; }
+        .module-card.locked:hover .module-name { color: #FFD700; }
+        .lock-overlay {
+            position: absolute; top: 8px; right: 8px;
+            font-size: 0.8em; color: #333;
+        }
+
+        /* Store card */
+        .module-card.store-card {
+            border-color: #f5c518; background: #0d0d00; grid-column: 1 / -1;
+        }
+        .module-card.store-card:hover { background: #FFD700; }
+        .module-card.store-card .module-name { font-size: 1em; letter-spacing: 1px; }
+        .module-card.store-card.locked { border-color: #1a1a00; }
+
+        .btn-section {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 14px; margin-bottom: 30px;
+        }
+        .start-btn {
+            background: #FFD700; color: #000; border: none;
+            padding: 18px 60px; font-size: 1.2em; font-weight: bold;
+            border-radius: 50px; cursor: pointer; letter-spacing: 2px; transition: all 0.3s;
+        }
+        .start-btn:hover { background: #FFA500; transform: scale(1.05); }
+        .clear-btn {
+            background: transparent; color: #555; border: 1px solid #333;
+            padding: 8px 24px; font-size: 0.8em; font-weight: bold;
+            border-radius: 50px; cursor: pointer; transition: all 0.3s;
+        }
+        .clear-btn:hover { color: #FFD700; border-color: #FFD700; }
+        .footer-note { margin-top: 10px; color: #444; font-size: 0.8em; letter-spacing: 1px; }
+
+        /* ── UPGRADE OVERLAY ── */
+        .upgrade-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.92);
+            z-index: 1000; align-items: center; justify-content: center;
+        }
+        .upgrade-overlay.active { display: flex; }
+        .upgrade-card {
+            background: #111; border: 1.5px solid #FFD700;
+            border-radius: 16px; padding: 40px; max-width: 420px;
+            width: 90%; text-align: center; position: relative;
+        }
+        .upgrade-card h2 { font-size: 1.2em; letter-spacing: 2px; margin-bottom: 10px; }
+        .upgrade-card p { color: #555; font-size: 0.82em; line-height: 1.7; margin-bottom: 20px; }
+        .upgrade-price { font-size: 2em; font-weight: 900; color: #FFD700; }
+        .upgrade-period { font-size: 0.72em; color: #555; margin-bottom: 24px; }
+        .ub {
+            width: 100%; padding: 14px; background: #FFD700; color: #000;
+            border: none; border-radius: 50px; font-size: 0.9em;
+            font-weight: bold; cursor: pointer; letter-spacing: 1px;
+            margin-bottom: 12px; transition: all 0.3s;
+            text-decoration: none; display: block;
+        }
+        .ub:hover { background: #e6b800; }
+        .ub-cancel {
+            background: transparent; color: #555; border: none;
+            font-size: 0.8em; cursor: pointer; letter-spacing: 1px;
+        }
+        .ub-cancel:hover { color: #FFD700; }
+        .overlay-close {
+            position: absolute; top: 14px; right: 18px;
+            background: none; border: none; color: #333;
+            font-size: 1.3em; cursor: pointer;
+        }
+        .overlay-close:hover { color: #FFD700; }
+    </style>
+</head>
+<body>
+
+    <!-- LICENSE BAR (shown after splash) -->
+    <div class="license-bar" id="licenseBar" style="display:none;">
+        <div class="license-info" id="licenseInfo">Checking license...</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span class="license-badge badge-free" id="licenseBadge">FREE</span>
+            <a href="/laptopseal#pricing" class="upgrade-btn" id="upgradeBtn" style="display:none;">
+                Upgrade to Pro
+            </a>
+        </div>
+    </div>
+
+    <!-- DAYS WARNING -->
+    <div class="days-warning" id="daysWarning"></div>
+
+    <!-- SPLASH -->
+    <div id="splash">
+        <div class="splash-glow"></div>
+        <div class="splash-logo-wrap">
+            <img src="/static/logo.jpg" class="splash-logo" alt="Light Ideas Technology"/>
+        </div>
+        <div class="splash-company">Light Ideas Technology</div>
+        <div class="splash-divider"></div>
+        <div class="splash-slogan">Tested and Confirmed — Just for Your Convenience</div>
+        <div class="splash-subtitle">LaptopSeal Diagnostic Tool</div>
+        <div class="splash-bar-wrap">
+            <div class="splash-bar"></div>
+        </div>
+        <div class="splash-loading-text">Initializing system...</div>
+    </div>
+
+    <!-- HOMEPAGE -->
+    <div id="homepage">
+        <div class="logo-section">
+            <div class="company-name">&#128274; LAPTOPSEAL</div>
+            <div class="tagline">BY LIGHT IDEAS TECHNOLOGY</div>
+            <div class="divider"></div>
+            <div class="title">LAPTOP DIAGNOSTIC TOOL</div>
+            <div class="subtitle" id="tierSubtitle">Complete hardware and software analysis system</div>
+        </div>
+
+        <div class="modules-grid" id="modulesGrid">
+            <!-- Rendered by JS based on license -->
+        </div>
+
+        <div class="btn-section">
+            <button class="start-btn" onclick="startDiagnostic()">&#9654; START DIAGNOSTIC</button>
+            <button class="clear-btn" onclick="clearResults()">&#10006; Clear Previous Results</button>
+        </div>
+
+        <div class="footer-note">&copy; 2026 Light Ideas Technology &mdash; All Rights Reserved</div>
+    </div>
+
+    <!-- UPGRADE OVERLAY -->
+    <div class="upgrade-overlay" id="upgradeOverlay">
+        <div class="upgrade-card">
+            <button class="overlay-close" onclick="closeOverlay()">&times;</button>
+            <div style="font-size:2em;margin-bottom:12px;">&#128274;</div>
+            <h2>PRO MODULE</h2>
+            <p>This module requires a LaptopSeal Pro license. Unlock all 16 modules for full hardware diagnostics on this laptop.</p>
+            <div class="upgrade-price">&#8358;5,000</div>
+            <div class="upgrade-period">per laptop / per month</div>
+            <a href="/laptopseal#pricing" class="ub">Get Pro Access</a>
+            <button class="ub-cancel" onclick="closeOverlay()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // ── LICENSE CHECK ──
+        function getHardwareId() {
+            const nav = window.navigator;
+            const scr = window.screen;
+            const data = [
+                nav.userAgent, nav.language,
+                scr.width + 'x' + scr.height, scr.colorDepth,
+                new Date().getTimezoneOffset(),
+                nav.hardwareConcurrency || '', nav.platform || ''
+            ].join('|');
+            let hash = 0;
+            for (let i = 0; i < data.length; i++) {
+                const c = data.charCodeAt(i);
+                hash = ((hash << 5) - hash) + c;
+                hash = hash & hash;
+            }
+            return 'HW_' + Math.abs(hash).toString(16).toUpperCase();
+        }
+
+        function getToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('token') || localStorage.getItem('ls_token') || '';
+        }
+
+        let IS_PRO = false;
+
+        const MODULES = [
+            { name: 'Battery Health',       icon: '&#128267;', route: '/battery',        tier: 'free' },
+            { name: 'Keyboard Test',         icon: '&#9000;',   route: '/keyboard',       tier: 'free' },
+            { name: 'RAM Check',             icon: '&#129504;', route: '/ram',            tier: 'pro' },
+            { name: 'SSD/HDD Check',         icon: '&#128190;', route: '/ssd',            tier: 'pro' },
+            { name: 'CPU Check',             icon: '&#9889;',   route: '/cpu',            tier: 'pro' },
+            { name: 'GPU Check',             icon: '&#127918;', route: '/gpu',            tier: 'pro' },
+            { name: 'Temperature',           icon: '&#127777;', route: '/temperature',    tier: 'pro' },
+            { name: 'Ports Test',            icon: '&#128268;', route: '/ports',          tier: 'pro' },
+            { name: 'WiFi &amp; Bluetooth',  icon: '&#128246;', route: '/wifi',           tier: 'pro' },
+            { name: 'Screen Test',           icon: '&#128421;', route: '/screen',         tier: 'pro' },
+            { name: 'Webcam &amp; Mic',      icon: '&#128247;', route: '/webcam',         tier: 'pro' },
+            { name: 'Speaker Test',          icon: '&#128266;', route: '/speaker',        tier: 'pro' },
+            { name: 'Touchpad Test',         icon: '&#128433;', route: '/touchpad',       tier: 'pro' },
+            { name: 'Windows Status',        icon: '&#129695;', route: '/windows_status', tier: 'pro' },
+            { name: 'Full Report',           icon: '&#128202;', route: '/report',         tier: 'pro' },
+        ];
+
+        const STORE = { name: "&#9733; LIGHT'S APP STORE — Install Essential Apps", icon: '&#128722;', route: '/app_store', tier: 'pro' };
+
+        function renderModules(isPro) {
+            const grid = document.getElementById('modulesGrid');
+            grid.innerHTML = '';
+
+            MODULES.forEach(function(m) {
+                const unlocked = isPro || m.tier === 'free';
+                const lockHtml = !unlocked ? '<div class="lock-overlay">&#128274;</div>' : '';
+                const cardClass = 'module-card' + (!unlocked ? ' locked' : '');
+                const onclick = unlocked
+                    ? `href="${m.route}"`
+                    : `href="#" onclick="showUpgrade(); return false;"`;
+
+                grid.innerHTML += `<a class="${cardClass}" ${onclick}>${lockHtml}<div class="module-icon">${m.icon}</div><div class="module-name">${m.name}</div></a>`;
+            });
+
+            // Store card
+            const storeUnlocked = isPro;
+            const storeLock = !storeUnlocked ? '<div class="lock-overlay">&#128274;</div>' : '';
+            const storeClass = 'module-card store-card' + (!storeUnlocked ? ' locked' : '');
+            const storeOnclick = storeUnlocked
+                ? `href="${STORE.route}"`
+                : `href="#" onclick="showUpgrade(); return false;"`;
+            grid.innerHTML += `<a class="${storeClass}" ${storeOnclick}>${storeLock}<div class="module-icon">${STORE.icon}</div><div class="module-name">${STORE.name}</div></a>`;
+        }
+
+        async function checkLicense() {
+            const token = getToken();
+            const hardware_id = getHardwareId();
+
+            try {
+                const res = await fetch('/laptopseal/check_license', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, hardware_id })
+                });
+                const data = await res.json();
+
+                const badge = document.getElementById('licenseBadge');
+                const info = document.getElementById('licenseInfo');
+                const upgradeBtn = document.getElementById('upgradeBtn');
+                const daysWarning = document.getElementById('daysWarning');
+                const subtitle = document.getElementById('tierSubtitle');
+
+                if (data.valid && data.tier === 'pro') {
+                    IS_PRO = true;
+                    badge.textContent = 'PRO ACTIVE';
+                    badge.className = 'license-badge badge-pro';
+                    info.innerHTML = 'Licensed to: <span>' + data.email + '</span> &nbsp;|&nbsp; Expires: <span>' + data.expires_at + '</span> (' + data.days_left + ' days)';
+                    upgradeBtn.style.display = 'none';
+                    subtitle.textContent = 'Full 16-module diagnostic — all modules unlocked';
+
+                    if (data.days_left <= 5) {
+                        daysWarning.style.display = 'block';
+                        daysWarning.textContent = 'Your license expires in ' + data.days_left + ' day(s). Renew now to keep access.';
+                    }
+                } else {
+                    IS_PRO = false;
+                    badge.textContent = 'FREE TIER';
+                    badge.className = 'license-badge badge-free';
+                    info.innerHTML = 'Free tier &mdash; Battery &amp; Keyboard only. <span>Upgrade for full access.</span>';
+                    upgradeBtn.style.display = 'inline-block';
+                    subtitle.textContent = 'Free tier — Battery and Keyboard unlocked. Upgrade for full access.';
+                }
+            } catch(e) {
+                IS_PRO = false;
+            }
+
+            renderModules(IS_PRO);
+        }
+
+        function showUpgrade() {
+            document.getElementById('upgradeOverlay').classList.add('active');
+        }
+
+        function closeOverlay() {
+            document.getElementById('upgradeOverlay').classList.remove('active');
+        }
+
+        function startDiagnostic() {
+            if (IS_PRO) {
+                window.location.href = '/battery?auto=1';
+            } else {
+                // Free tier — only run battery and keyboard
+                window.location.href = '/battery?auto=1&tier=free';
+            }
+        }
+
+        function clearResults() {
+            fetch('/api/clear_results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(function() {
+                alert('Results cleared.');
+            });
+        }
+
+        // ── SPLASH ──
+        const splashShown = sessionStorage.getItem('lsSplashShown');
+
+        if (splashShown) {
+            document.getElementById('splash').style.display = 'none';
+            document.getElementById('licenseBar').style.display = 'flex';
+            document.getElementById('homepage').classList.add('visible');
+            checkLicense();
+        } else {
+            sessionStorage.setItem('lsSplashShown', 'true');
+            setTimeout(function() {
+                const splash = document.getElementById('splash');
+                splash.classList.add('fade-out');
+                setTimeout(function() {
+                    splash.style.display = 'none';
+                    document.getElementById('licenseBar').style.display = 'flex';
+                    document.getElementById('homepage').classList.add('visible');
+                    checkLicense();
+                }, 1000);
+            }, 7000);
+        }
+    </script>
+</body>
+</html>

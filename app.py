@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 import cloudinary
 import cloudinary.uploader
-import datetime, json, requests, threading, os
+import datetime, json, requests, threading, os, uuid
 
 app = Flask(__name__)
 app.secret_key = 'lightideas_secret_2026_victor'
@@ -187,7 +187,6 @@ def send_bulk_email():
     if not subject or not message:
         return jsonify({'success': False, 'error': 'Subject and message are required'}), 400
 
-    # Build recipient list
     if targets == 'all':
         recipients = [e['email'] for e in get_emails_col().find()]
     elif isinstance(targets, dict) and targets.get('mode') == 'both':
@@ -202,7 +201,6 @@ def send_bulk_email():
     if not recipients:
         return jsonify({'success': False, 'error': 'No recipients found. Add subscribers or paste emails above.'}), 400
 
-    # Build email body based on mode
     safe_msg = message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
     if email_mode == 'plain':
@@ -231,7 +229,6 @@ def send_bulk_email():
         )
         text_body = message + '\n\n---\nLight Ideas Technology\nWhatsApp: +234 816 944 1990\nReply STOP to unsubscribe'
 
-    # Send via Brevo in background
     def send_via_brevo(recips, subj, html, text):
         for recip in recips:
             try:
@@ -268,11 +265,132 @@ def track_click():
             upsert=True
         )
     return jsonify({'success': True})
+
 @app.route('/api/link_stats')
 def link_stats():
     if not session.get('admin_logged_in'):
         return jsonify([]), 401
     stats = list(get_db()['link_clicks'].find({}, {'_id': 0}))
     return jsonify(stats)
+
+# ─── LAPTOPSEAL ROUTES ─────────────────────────────────────────────────────
+
+@app.route('/laptopseal')
+def laptopseal():
+    return render_template('laptopseal.html', paystack_public_key=os.environ.get('PAYSTACK_PUBLIC_KEY', ''))
+
+@app.route('/laptopseal/tool')
+def laptopseal_tool():
+    token = request.args.get('token') or request.cookies.get('ls_token')
+    is_pro = False
+    if token:
+        license_data = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
+        if license_data:
+            if license_data.get('expires_at') and license_data['expires_at'] > datetime.datetime.utcnow():
+                is_pro = True
+            else:
+                get_db()['ls_licenses'].update_one({'token': token}, {'$set': {'active': False}})
+    return render_template('laptopseal_tool.html', is_pro=is_pro, token=token or '')
+
+@app.route('/laptopseal/verify_payment', methods=['POST'])
+def laptopseal_verify_payment():
+    data = request.get_json()
+    reference = data.get('reference')
+    email = data.get('email')
+    if not reference or not email:
+        return jsonify({'success': False, 'error': 'Missing reference or email'})
+    headers = {'Authorization': 'Bearer ' + os.environ.get('PAYSTACK_SECRET_KEY', '')}
+    r = requests.get('https://api.paystack.co/transaction/verify/' + reference, headers=headers)
+    res = r.json()
+    if res.get('status') and res['data']['status'] == 'success':
+        amount_paid = res['data']['amount']
+        if amount_paid >= 500000:
+            token = str(uuid.uuid4()).replace('-', '')
+            expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=30)
+            get_db()['ls_licenses'].insert_one({
+                'email': email,
+                'token': token,
+                'reference': reference,
+                'amount': amount_paid,
+                'active': True,
+                'created_at': datetime.datetime.utcnow(),
+                'expires_at': expires_at,
+                'hardware_id': None
+            })
+            return jsonify({'success': True, 'token': token})
+    return jsonify({'success': False, 'error': 'Payment verification failed'})
+
+@app.route('/laptopseal/activate')
+def laptopseal_activate():
+    token = request.args.get('token')
+    email = request.args.get('email', '')
+    if not token:
+        return redirect('/laptopseal')
+    license_data = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
+    if not license_data:
+        return redirect('/laptopseal')
+    return render_template('laptopseal_activate.html', token=token, email=email)
+
+@app.route('/laptopseal/bind_hardware', methods=['POST'])
+def laptopseal_bind_hardware():
+    data = request.get_json()
+    token = data.get('token')
+    hardware_id = data.get('hardware_id')
+    if not token or not hardware_id:
+        return jsonify({'success': False, 'error': 'Missing data'})
+    license_data = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
+    if not license_data:
+        return jsonify({'success': False, 'error': 'Invalid license'})
+    if not license_data.get('hardware_id'):
+        get_db()['ls_licenses'].update_one({'token': token}, {'$set': {'hardware_id': hardware_id}})
+        return jsonify({'success': True, 'message': 'License activated on this device'})
+    if license_data['hardware_id'] == hardware_id:
+        return jsonify({'success': True, 'message': 'License verified'})
+    return jsonify({'success': False, 'error': 'This license is bound to a different device'})
+
+@app.route('/laptopseal/check_license', methods=['POST'])
+def laptopseal_check_license():
+    data = request.get_json()
+    token = data.get('token')
+    hardware_id = data.get('hardware_id')
+    if not token:
+        return jsonify({'valid': False, 'tier': 'free'})
+    license_data = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
+    if not license_data:
+        return jsonify({'valid': False, 'tier': 'free'})
+    if license_data.get('expires_at') and license_data['expires_at'] < datetime.datetime.utcnow():
+        get_db()['ls_licenses'].update_one({'token': token}, {'$set': {'active': False}})
+        return jsonify({'valid': False, 'tier': 'free', 'error': 'License expired'})
+    if license_data.get('hardware_id') and license_data['hardware_id'] != hardware_id:
+        return jsonify({'valid': False, 'tier': 'free', 'error': 'Wrong device'})
+    expires_at = license_data['expires_at']
+    days_left = (expires_at - datetime.datetime.utcnow()).days
+    return jsonify({
+        'valid': True,
+        'tier': 'pro',
+        'email': license_data['email'],
+        'days_left': days_left,
+        'expires_at': expires_at.strftime('%d %B %Y')
+    })
+
+@app.route('/laptopseal/admin_data')
+def laptopseal_admin_data():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    licenses = list(get_db()['ls_licenses'].find({}, {'_id': 0}))
+    for l in licenses:
+        if 'created_at' in l:
+            l['created_at'] = l['created_at'].strftime('%d %b %Y')
+        if 'expires_at' in l:
+            l['expires_at'] = l['expires_at'].strftime('%d %b %Y')
+    active = sum(1 for l in licenses if l.get('active'))
+    total_revenue = sum(l.get('amount', 0) for l in licenses) / 100
+    return jsonify({
+        'licenses': licenses,
+        'total': len(licenses),
+        'active': active,
+        'revenue': total_revenue
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, port=5050)
