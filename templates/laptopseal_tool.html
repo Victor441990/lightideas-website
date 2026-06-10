@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -15,7 +15,7 @@
             overflow-x: hidden;
         }
 
-        /* ── SPLASH SCREEN ── */
+        /* â”€â”€ SPLASH SCREEN â”€â”€ */
         #splash {
             position: fixed;
             top: 0; left: 0;
@@ -90,7 +90,7 @@
         @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn  { to { opacity: 1; } }
 
-        /* ── LICENSE BAR ── */
+        /* â”€â”€ LICENSE BAR â”€â”€ */
         .license-bar {
             width: 100%; background: #0a0a0a;
             border-bottom: 1px solid #1a1a1a;
@@ -114,14 +114,14 @@
         }
         .upgrade-btn:hover { background: #e6b800; }
 
-        /* ── DAYS WARNING ── */
+        /* â”€â”€ DAYS WARNING â”€â”€ */
         .days-warning {
             width: 100%; background: #1a0e00; border-bottom: 1px solid #78350f;
             padding: 8px 20px; font-size: 0.75em; color: #fbbf24;
             display: none; text-align: center;
         }
 
-        /* ── HOMEPAGE ── */
+        /* â”€â”€ HOMEPAGE â”€â”€ */
         #homepage {
             display: none; flex-direction: column;
             align-items: center; justify-content: center;
@@ -189,7 +189,7 @@
         .clear-btn:hover { color: #FFD700; border-color: #FFD700; }
         .footer-note { margin-top: 10px; color: #444; font-size: 0.8em; letter-spacing: 1px; }
 
-        /* ── UPGRADE OVERLAY ── */
+        /* â”€â”€ UPGRADE OVERLAY â”€â”€ */
         .upgrade-overlay {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.92);
@@ -250,7 +250,7 @@
         </div>
         <div class="splash-company">Light Ideas Technology</div>
         <div class="splash-divider"></div>
-        <div class="splash-slogan">Tested and Confirmed — Just for Your Convenience</div>
+        <div class="splash-slogan">Tested and Confirmed â€” Just for Your Convenience</div>
         <div class="splash-subtitle">LaptopSeal Diagnostic Tool</div>
         <div class="splash-bar-wrap">
             <div class="splash-bar"></div>
@@ -295,7 +295,7 @@
     </div>
 
     <script>
-        // ── LICENSE CHECK ──
+        // â”€â”€ LICENSE CHECK â”€â”€
         function getHardwareId() {
             const nav = window.navigator;
             const scr = window.screen;
@@ -339,7 +339,7 @@
             { name: 'Full Report',           icon: '&#128202;', route: '/report',         tier: 'pro' },
         ];
 
-        const STORE = { name: "&#9733; LIGHT'S APP STORE — Install Essential Apps", icon: '&#128722;', route: '/app_store', tier: 'pro' };
+        const STORE = { name: "&#9733; LIGHT'S APP STORE â€” Install Essential Apps", icon: '&#128722;', route: '/app_store', tier: 'pro' };
 
         function renderModules(isPro) {
             const grid = document.getElementById('modulesGrid');
@@ -390,7 +390,7 @@
                     badge.className = 'license-badge badge-pro';
                     info.innerHTML = 'Licensed to: <span>' + data.email + '</span> &nbsp;|&nbsp; Expires: <span>' + data.expires_at + '</span> (' + data.days_left + ' days)';
                     upgradeBtn.style.display = 'none';
-                    subtitle.textContent = 'Full 16-module diagnostic — all modules unlocked';
+                    subtitle.textContent = 'Full 16-module diagnostic â€” all modules unlocked';
 
                     if (data.days_left <= 5) {
                         daysWarning.style.display = 'block';
@@ -402,7 +402,7 @@
                     badge.className = 'license-badge badge-free';
                     info.innerHTML = 'Free tier &mdash; Battery &amp; Keyboard only. <span>Upgrade for full access.</span>';
                     upgradeBtn.style.display = 'inline-block';
-                    subtitle.textContent = 'Free tier — Battery and Keyboard unlocked. Upgrade for full access.';
+                    subtitle.textContent = 'Free tier â€” Battery and Keyboard unlocked. Upgrade for full access.';
                 }
             } catch(e) {
                 IS_PRO = false;
@@ -423,7 +423,7 @@
             if (IS_PRO) {
                 window.location.href = '/battery?auto=1';
             } else {
-                // Free tier — only run battery and keyboard
+                // Free tier â€” only run battery and keyboard
                 window.location.href = '/battery?auto=1&tier=free';
             }
         }
@@ -437,7 +437,7 @@
             });
         }
 
-        // ── SPLASH ──
+        // â”€â”€ SPLASH â”€â”€
         const splashShown = sessionStorage.getItem('lsSplashShown');
 
         if (splashShown) {
@@ -461,3 +461,4 @@
     </script>
 </body>
 </html>
+
