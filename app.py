@@ -268,5 +268,11 @@ def track_click():
             upsert=True
         )
     return jsonify({'success': True})
+@app.route('/api/link_stats')
+def link_stats():
+    if not session.get('admin_logged_in'):
+        return jsonify([]), 401
+    stats = list(get_db()['link_clicks'].find({}, {'_id': 0}))
+    return jsonify(stats)
 if __name__ == '__main__':
     app.run(debug=True, port=5050)

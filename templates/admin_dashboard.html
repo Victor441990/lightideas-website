@@ -15,218 +15,93 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-height:100vh;}
-
-/* TOPBAR */
-.topbar{
-  background:var(--black);border-bottom:1px solid #1a1a1a;
-  padding:14px 32px;display:flex;align-items:center;
-  justify-content:space-between;position:sticky;top:0;z-index:100;
-}
+.topbar{background:var(--black);border-bottom:1px solid #1a1a1a;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
 .topbar-brand{display:flex;align-items:center;gap:10px;}
 .topbar-brand img{width:34px;height:34px;border-radius:50%;object-fit:contain;}
 .topbar-brand h1{font-family:var(--font-display);font-size:1.2em;letter-spacing:2px;color:var(--gold);}
 .topbar-brand span{font-size:0.65em;color:var(--muted);letter-spacing:2px;}
 .topbar-right{display:flex;align-items:center;gap:16px;}
-.btn-view{
-  padding:7px 18px;border-radius:50px;
-  background:var(--gold-dim);color:var(--gold);
-  border:1px solid rgba(255,215,0,0.2);
-  font-size:0.78em;font-weight:600;text-decoration:none;
-  letter-spacing:1px;transition:all 0.2s;
-}
+.btn-view{padding:7px 18px;border-radius:50px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(255,215,0,0.2);font-size:0.78em;font-weight:600;text-decoration:none;letter-spacing:1px;transition:all 0.2s;}
 .btn-view:hover{background:var(--gold);color:#000;}
-.btn-logout{
-  padding:7px 18px;border-radius:50px;
-  background:transparent;color:var(--muted);
-  border:1px solid #222;font-size:0.78em;
-  font-weight:600;text-decoration:none;letter-spacing:1px;transition:all 0.2s;
-}
+.btn-logout{padding:7px 18px;border-radius:50px;background:transparent;color:var(--muted);border:1px solid #222;font-size:0.78em;font-weight:600;text-decoration:none;letter-spacing:1px;transition:all 0.2s;}
 .btn-logout:hover{border-color:#555;color:#fff;}
-
-/* LAYOUT */
 .layout{display:flex;min-height:calc(100vh - 62px);}
-.sidebar{
-  width:220px;background:var(--black);border-right:1px solid #1a1a1a;
-  padding:24px 0;flex-shrink:0;
-}
-.sidebar-item{
-  display:flex;align-items:center;gap:10px;
-  padding:11px 24px;font-size:0.82em;font-weight:500;
-  color:var(--muted);cursor:pointer;transition:all 0.2s;
-  border-left:3px solid transparent;
-}
-.sidebar-item:hover,.sidebar-item.active{
-  color:var(--gold);background:var(--gold-dim);
-  border-left-color:var(--gold);
-}
+.sidebar{width:220px;background:var(--black);border-right:1px solid #1a1a1a;padding:24px 0;flex-shrink:0;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:11px 24px;font-size:0.82em;font-weight:500;color:var(--muted);cursor:pointer;transition:all 0.2s;border-left:3px solid transparent;}
+.sidebar-item:hover,.sidebar-item.active{color:var(--gold);background:var(--gold-dim);border-left-color:var(--gold);}
 .sidebar-item .icon{font-size:1em;width:20px;text-align:center;}
 .sidebar-divider{height:1px;background:#1a1a1a;margin:12px 0;}
-
-/* MAIN */
 .main{flex:1;padding:32px;}
 .page{display:none;}
 .page.active{display:block;}
-
-/* STATS ROW */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:32px;}
-.stat-card{
-  background:var(--black);border:1px solid #1a1a1a;
-  border-radius:14px;padding:20px;
-}
+.stat-card{background:var(--black);border:1px solid #1a1a1a;border-radius:14px;padding:20px;}
 .stat-num{font-family:var(--font-display);font-size:2.2em;color:var(--gold);}
 .stat-label{font-size:0.72em;color:var(--muted);margin-top:4px;letter-spacing:1px;text-transform:uppercase;}
-
-/* SECTION TITLE */
-.section-head{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:20px;
-}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
 .section-head h2{font-family:var(--font-display);font-size:1.5em;letter-spacing:2px;color:#fff;}
-.btn-add{
-  background:var(--gold);color:#000;
-  padding:9px 22px;border-radius:50px;border:none;
-  font-family:var(--font-body);font-weight:700;
-  font-size:0.8em;letter-spacing:1px;cursor:pointer;
-  transition:all 0.2s;
-}
+.btn-add{background:var(--gold);color:#000;padding:9px 22px;border-radius:50px;border:none;font-family:var(--font-body);font-weight:700;font-size:0.8em;letter-spacing:1px;cursor:pointer;transition:all 0.2s;}
 .btn-add:hover{background:#fff;}
-
-/* PRODUCTS TABLE */
 .products-table{width:100%;border-collapse:collapse;}
-.products-table th{
-  text-align:left;font-size:0.68em;color:var(--muted);
-  letter-spacing:2px;text-transform:uppercase;
-  padding:10px 14px;border-bottom:1px solid #1a1a1a;
-}
-.products-table td{
-  padding:12px 14px;border-bottom:1px solid #111;
-  font-size:0.82em;vertical-align:middle;
-}
+.products-table th{text-align:left;font-size:0.68em;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid #1a1a1a;}
+.products-table td{padding:12px 14px;border-bottom:1px solid #111;font-size:0.82em;vertical-align:middle;}
 .products-table tr:hover td{background:rgba(255,255,255,0.02);}
-.prod-img{
-  width:44px;height:44px;border-radius:8px;
-  object-fit:cover;background:var(--black4);
-  display:flex;align-items:center;justify-content:center;font-size:1.2em;
-}
+.prod-img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--black4);display:flex;align-items:center;justify-content:center;font-size:1.2em;}
 .prod-img img{width:44px;height:44px;border-radius:8px;object-fit:cover;}
-.cat-badge{
-  display:inline-block;padding:2px 10px;border-radius:50px;
-  font-size:0.65em;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-}
+.cat-badge{display:inline-block;padding:2px 10px;border-radius:50px;font-size:0.65em;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
 .badge-budget{background:rgba(74,222,128,0.1);color:var(--green);border:1px solid rgba(74,222,128,0.2);}
 .badge-pro{background:rgba(255,215,0,0.1);color:var(--gold);border:1px solid rgba(255,215,0,0.2);}
 .badge-gaming{background:rgba(168,85,247,0.1);color:#a855f7;border:1px solid rgba(168,85,247,0.2);}
 .badge-phone{background:rgba(96,165,250,0.1);color:#60a5fa;border:1px solid rgba(96,165,250,0.2);}
 .badge-accessory{background:rgba(251,191,36,0.1);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);}
-.avail-toggle{
-  width:40px;height:22px;border-radius:50px;border:none;cursor:pointer;
-  position:relative;transition:background 0.3s;
-}
+.avail-toggle{width:40px;height:22px;border-radius:50px;border:none;cursor:pointer;position:relative;transition:background 0.3s;}
 .avail-toggle.on{background:#166534;}
 .avail-toggle.off{background:#450a0a;}
-.avail-toggle::after{
-  content:'';position:absolute;top:3px;width:16px;height:16px;
-  border-radius:50%;background:#fff;transition:left 0.3s;
-}
+.avail-toggle::after{content:'';position:absolute;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left 0.3s;}
 .avail-toggle.on::after{left:21px;}
 .avail-toggle.off::after{left:3px;}
 .row-actions{display:flex;gap:8px;}
-.btn-edit,.btn-del{
-  padding:5px 14px;border-radius:50px;border:none;
-  font-family:var(--font-body);font-size:0.72em;font-weight:600;cursor:pointer;transition:all 0.2s;
-}
+.btn-edit,.btn-del{padding:5px 14px;border-radius:50px;border:none;font-family:var(--font-body);font-size:0.72em;font-weight:600;cursor:pointer;transition:all 0.2s;}
 .btn-edit{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(255,215,0,0.2);}
 .btn-edit:hover{background:var(--gold);color:#000;}
 .btn-del{background:rgba(248,113,113,0.1);color:var(--red);border:1px solid rgba(248,113,113,0.2);}
 .btn-del:hover{background:var(--red);color:#000;}
-
-/* MODAL */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.85);
-  z-index:500;display:none;align-items:center;justify-content:center;padding:20px;
-}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
 .modal-overlay.open{display:flex;}
-.modal{
-  background:var(--black);border:1px solid rgba(255,215,0,0.2);
-  border-radius:20px;padding:32px;width:100%;max-width:560px;
-  max-height:90vh;overflow-y:auto;
-}
+.modal{background:var(--black);border:1px solid rgba(255,215,0,0.2);border-radius:20px;padding:32px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
 .modal h3{font-family:var(--font-display);font-size:1.6em;letter-spacing:2px;color:#fff;margin-bottom:24px;}
 .form-row{margin-bottom:16px;}
-.form-row label{
-  display:block;font-size:0.7em;color:var(--muted);
-  letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;
-}
-.form-row input,.form-row select,.form-row textarea{
-  width:100%;background:var(--black4);border:1px solid #2a2a2a;
-  border-radius:10px;padding:11px 14px;color:#fff;
-  font-family:var(--font-body);font-size:0.88em;outline:none;
-  transition:border-color 0.3s;
-}
-.form-row input:focus,.form-row select:focus,.form-row textarea:focus{
-  border-color:rgba(255,215,0,0.35);
-}
+.form-row label{display:block;font-size:0.7em;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;}
+.form-row input,.form-row select,.form-row textarea{width:100%;background:var(--black4);border:1px solid #2a2a2a;border-radius:10px;padding:11px 14px;color:#fff;font-family:var(--font-body);font-size:0.88em;outline:none;transition:border-color 0.3s;}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:rgba(255,215,0,0.35);}
 .form-row select option{background:var(--black4);}
 .form-row textarea{resize:vertical;min-height:80px;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.img-preview{
-  width:100%;height:160px;border-radius:12px;
-  background:var(--black4);border:2px dashed #2a2a2a;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  cursor:pointer;transition:border-color 0.3s;overflow:hidden;
-  font-size:0.8em;color:var(--muted);gap:8px;
-}
+.img-preview{width:100%;height:160px;border-radius:12px;background:var(--black4);border:2px dashed #2a2a2a;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:border-color 0.3s;overflow:hidden;font-size:0.8em;color:var(--muted);gap:8px;}
 .img-preview:hover{border-color:rgba(255,215,0,0.3);}
 .img-preview img{width:100%;height:100%;object-fit:cover;}
 .modal-btns{display:flex;gap:12px;margin-top:24px;}
-.btn-save{
-  flex:1;background:var(--gold);color:#000;
-  padding:12px;border-radius:50px;border:none;
-  font-family:var(--font-body);font-weight:700;
-  font-size:0.88em;letter-spacing:1px;cursor:pointer;transition:all 0.2s;
-}
+.btn-save{flex:1;background:var(--gold);color:#000;padding:12px;border-radius:50px;border:none;font-family:var(--font-body);font-weight:700;font-size:0.88em;letter-spacing:1px;cursor:pointer;transition:all 0.2s;}
 .btn-save:hover{background:#fff;}
-.btn-cancel{
-  padding:12px 24px;border-radius:50px;
-  background:transparent;color:var(--muted);
-  border:1px solid #333;font-family:var(--font-body);
-  font-size:0.88em;cursor:pointer;transition:all 0.2s;
-}
+.btn-cancel{padding:12px 24px;border-radius:50px;background:transparent;color:var(--muted);border:1px solid #333;font-family:var(--font-body);font-size:0.88em;cursor:pointer;transition:all 0.2s;}
 .btn-cancel:hover{border-color:#666;color:#fff;}
-
-/* EMAILS */
 .email-list{display:flex;flex-direction:column;gap:8px;}
-.email-item{
-  background:var(--black);border:1px solid #1a1a1a;
-  border-radius:10px;padding:12px 16px;
-  display:flex;align-items:center;justify-content:space-between;
-  font-size:0.85em;
-}
+.email-item{background:var(--black);border:1px solid #1a1a1a;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-size:0.85em;}
 .email-item span{color:#ccc;}
-.email-item .date{font-size:0.7em;color:var(--muted);}
-
-/* TOAST */
-.toast{
-  position:fixed;top:80px;left:50%;transform:translateX(-50%);
-  background:#14532d;color:var(--green);
-  border-radius:10px;padding:12px 24px;font-size:0.82em;
-  z-index:1000;display:none;
-}
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#14532d;color:var(--green);border-radius:10px;padding:12px 24px;font-size:0.82em;z-index:1000;display:none;}
 .toast.error{background:#450a0a;color:var(--red);}
-
 .empty-row td{text-align:center;padding:40px;color:var(--muted);font-size:0.85em;}
+.link-stat-card{background:var(--black);border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.link-stat-bar-wrap{width:100%;background:#111;border-radius:50px;height:6px;margin-top:8px;overflow:hidden;}
+.link-stat-bar{height:100%;background:var(--gold);border-radius:50px;transition:width 0.8s ease;}
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-brand">
     <img src="/static/images/logo.jpg" alt="Light Ideas"/>
-    <div>
-      <h1>LIGHT IDEAS</h1>
-      <span>ADMIN PANEL</span>
-    </div>
+    <div><h1>LIGHT IDEAS</h1><span>ADMIN PANEL</span></div>
   </div>
   <div class="topbar-right">
     <a href="/" target="_blank" class="btn-view">🌐 View Website</a>
@@ -235,107 +110,56 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
 </div>
 
 <div class="layout">
-
-  <!-- SIDEBAR -->
   <div class="sidebar">
-    <div class="sidebar-item active" onclick="showPage('overview')">
-      <span class="icon">📊</span> Overview
-    </div>
-    <div class="sidebar-item" onclick="showPage('products')">
-      <span class="icon">📦</span> Products
-    </div>
+    <div class="sidebar-item active" onclick="showPage('overview')"><span class="icon">📊</span> Overview</div>
+    <div class="sidebar-item" onclick="showPage('products')"><span class="icon">📦</span> Products</div>
     <div class="sidebar-divider"></div>
-    <div class="sidebar-item" onclick="showPage('emails')">
-      <span class="icon">📧</span> Subscribers
-    </div>
-    <div class="sidebar-item" onclick="showPage('emailsender')">
-      <span class="icon">📨</span> Send Email
-    </div>
+    <div class="sidebar-item" onclick="showPage('emails')"><span class="icon">📧</span> Subscribers</div>
+    <div class="sidebar-item" onclick="showPage('emailsender')"><span class="icon">📨</span> Send Email</div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-item" onclick="showPage('linkstats');loadLinkStats()"><span class="icon">🔗</span> Link Clicks</div>
   </div>
 
-  <!-- MAIN CONTENT -->
   <div class="main">
 
-    <!-- OVERVIEW PAGE -->
+    <!-- OVERVIEW -->
     <div class="page active" id="page-overview">
       <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-num" id="stat-total">{{ products|length }}</div>
-          <div class="stat-label">Total Products</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="stat-laptops">{{ products|selectattr('category','equalto','laptop')|list|length }}</div>
-          <div class="stat-label">Laptops</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="stat-phones">{{ products|selectattr('category','equalto','phone')|list|length }}</div>
-          <div class="stat-label">Phones</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="stat-accessories">{{ products|selectattr('category','equalto','accessory')|list|length }}</div>
-          <div class="stat-label">Accessories</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num">{{ emails|length }}</div>
-          <div class="stat-label">Subscribers</div>
-        </div>
+        <div class="stat-card"><div class="stat-num">{{ products|length }}</div><div class="stat-label">Total Products</div></div>
+        <div class="stat-card"><div class="stat-num">{{ products|selectattr('category','equalto','laptop')|list|length }}</div><div class="stat-label">Laptops</div></div>
+        <div class="stat-card"><div class="stat-num">{{ products|selectattr('category','equalto','phone')|list|length }}</div><div class="stat-label">Phones</div></div>
+        <div class="stat-card"><div class="stat-num">{{ products|selectattr('category','equalto','accessory')|list|length }}</div><div class="stat-label">Accessories</div></div>
+        <div class="stat-card"><div class="stat-num">{{ emails|length }}</div><div class="stat-label">Subscribers</div></div>
       </div>
       <div style="background:var(--black);border:1px solid #1a1a1a;border-radius:16px;padding:28px;">
-        <div style="font-family:var(--font-display);font-size:1.3em;color:var(--gold);letter-spacing:2px;margin-bottom:8px;">QUICK ACTIONS</div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+        <div style="font-family:var(--font-display);font-size:1.3em;color:var(--gold);letter-spacing:2px;margin-bottom:16px;">QUICK ACTIONS</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
           <button class="btn-add" onclick="showPage('products');openAddModal()">+ Add New Product</button>
           <button class="btn-view" style="cursor:pointer;border:1px solid rgba(255,215,0,0.2);" onclick="showPage('emails')">View Subscribers</button>
+          <a href="/links" target="_blank" class="btn-view" style="border:1px solid rgba(255,215,0,0.2);">🔗 Links Page</a>
         </div>
       </div>
     </div>
 
-    <!-- PRODUCTS PAGE -->
+    <!-- PRODUCTS -->
     <div class="page" id="page-products">
       <div class="section-head">
         <h2>PRODUCTS</h2>
         <button class="btn-add" onclick="openAddModal()">+ Add Product</button>
       </div>
       <div style="overflow-x:auto;">
-        <table class="products-table" id="productsTable">
-          <thead>
-            <tr>
-              <th>Image</th>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Category</th>
-              <th>Specs</th>
-              <th>Live</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="productsBody">
+        <table class="products-table">
+          <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Category</th><th>Specs</th><th>Live</th><th>Actions</th></tr></thead>
+          <tbody>
             {% for p in products %}
             <tr id="row-{{ p.id }}">
-              <td>
-                <div class="prod-img">
-                  {% if p.image %}<img src="{{ p.image }}" alt=""/>{% else %}
-                    {% if p.category == 'laptop' %}💻{% elif p.category == 'phone' %}📱{% else %}🔌{% endif %}
-                  {% endif %}
-                </div>
-              </td>
+              <td><div class="prod-img">{% if p.image %}<img src="{{ p.image }}" alt=""/>{% else %}{% if p.category == 'laptop' %}💻{% elif p.category == 'phone' %}📱{% else %}🔌{% endif %}{% endif %}</div></td>
               <td><strong style="color:#fff;">{{ p.name }}</strong></td>
               <td style="color:var(--gold);font-weight:700;">₦{{ "{:,}".format(p.price) }}</td>
-              <td>
-                <span class="cat-badge badge-{{ p.sub_category if p.sub_category else p.category }}">
-                  {{ p.sub_category if p.sub_category else p.category }}
-                </span>
-              </td>
+              <td><span class="cat-badge badge-{{ p.sub_category if p.sub_category else p.category }}">{{ p.sub_category if p.sub_category else p.category }}</span></td>
               <td style="color:var(--muted);font-size:0.78em;max-width:200px;">{{ p.specs }}</td>
-              <td>
-                <button class="avail-toggle {{ 'on' if p.available else 'off' }}"
-                  onclick="toggleAvailable({{ p.id }}, this)"></button>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <button class="btn-edit" onclick='openEditModal({{ p | tojson }})'>Edit</button>
-                  <button class="btn-del" onclick="deleteProduct({{ p.id }})">Delete</button>
-                </div>
-              </td>
+              <td><button class="avail-toggle {{ 'on' if p.available else 'off' }}" onclick="toggleAvailable({{ p.id }}, this)"></button></td>
+              <td><div class="row-actions"><button class="btn-edit" onclick='openEditModal({{ p | tojson }})'>Edit</button><button class="btn-del" onclick="deleteProduct({{ p.id }})">Delete</button></div></td>
             </tr>
             {% else %}
             <tr class="empty-row"><td colspan="7">No products yet. Click + Add Product to get started.</td></tr>
@@ -345,126 +169,70 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
       </div>
     </div>
 
-
-    <!-- EMAIL SENDER PAGE -->
+    <!-- EMAIL SENDER -->
     <div class="page" id="page-emailsender">
-      <div class="section-head">
-        <h2>SEND BULK EMAIL</h2>
-      </div>
+      <div class="section-head"><h2>SEND EMAIL</h2></div>
       <div style="background:var(--black);border:1px solid #1a1a1a;border-radius:16px;padding:28px;max-width:720px;">
 
-        <!-- EMAIL MODE TOGGLE -->
-<div style="margin-bottom:20px;">
-  <div style="font-size:0.7em;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Email Type</div>
-  <div style="display:flex;background:var(--black4);border:1px solid #222;border-radius:12px;padding:4px;gap:4px;">
-    <button id="mode-btn-branded" onclick="setEmailMode('branded')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:var(--font-body);font-size:0.82em;font-weight:600;cursor:pointer;background:var(--gold);color:#000;">🎨 Branded Email</button>
-    <button id="mode-btn-plain" onclick="setEmailMode('plain')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:var(--font-body);font-size:0.82em;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);">✉️ Plain Text (Lands in Primary)</button>
-  </div>
-  <div id="mode-hint-branded" style="font-size:0.75em;color:#555;margin-top:6px;">Black/gold branded template. Goes to Promotions tab.</div>
-  <div id="mode-hint-plain" style="display:none;font-size:0.75em;color:#4ade80;margin-top:6px;">Simple plain text — lands in Primary inbox with notification sound. Best for follow-ups.</div>
-</div>
-        <!-- Subject -->
+        <div style="margin-bottom:20px;">
+          <div style="font-size:0.7em;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Email Type</div>
+          <div style="display:flex;background:var(--black4);border:1px solid #222;border-radius:12px;padding:4px;gap:4px;">
+            <button id="mode-btn-branded" onclick="setEmailMode('branded')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:var(--font-body);font-size:0.82em;font-weight:600;cursor:pointer;background:var(--gold);color:#000;">🎨 Branded Email</button>
+            <button id="mode-btn-plain" onclick="setEmailMode('plain')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:var(--font-body);font-size:0.82em;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);">✉️ Plain Text (Lands in Primary)</button>
+          </div>
+          <div id="mode-hint-branded" style="font-size:0.75em;color:#555;margin-top:6px;">Black/gold branded template. Goes to Promotions tab.</div>
+          <div id="mode-hint-plain" style="display:none;font-size:0.75em;color:#4ade80;margin-top:6px;">Simple plain text — lands in Primary inbox. Best for follow-ups.</div>
+        </div>
+
         <div class="form-row">
           <label>Email Subject *</label>
           <input type="text" id="emailSubject" placeholder="e.g. New Laptops Just Arrived at Light Ideas 🔥"/>
         </div>
-
-        <!-- Message -->
         <div class="form-row">
           <label>Your Message *</label>
-          <textarea id="emailMessage" style="min-height:180px;resize:vertical;"
-            placeholder="Write your message here...
-
-Hi,
-
-We just got fresh stock of quality UK used laptops — all tested and confirmed with our 15-module diagnostic tool.
-
-Check our catalog to see available laptops and prices.
-
-To order, reply to this email or WhatsApp +234 816 944 1990.
-
-Victor
-Light Ideas Technology"></textarea>
+          <textarea id="emailMessage" style="min-height:180px;resize:vertical;" placeholder="Write your message here..."></textarea>
         </div>
-
-        <!-- Manual Emails -->
         <div class="form-row">
           <label>Manually Added Emails</label>
-          <textarea id="manualEmails" style="min-height:120px;resize:vertical;"
-            placeholder="Paste emails here — from Excel, WhatsApp, anywhere.
-
-Accepted formats (any of these work):
-john@gmail.com
-mary@company.com, paul@school.ng
-boss@business.com
-
-You can paste a whole column from Excel — one email per line."></textarea>
-          <div style="font-size:0.72em;color:#555;margin-top:6px;">Paste from Excel, copy from anywhere. One per line or separated by commas. Duplicates are removed automatically.</div>
+          <textarea id="manualEmails" style="min-height:120px;resize:vertical;" placeholder="Paste emails here — one per line or comma separated."></textarea>
+          <div style="font-size:0.72em;color:#555;margin-top:6px;">Paste from Excel, copy from anywhere. Duplicates removed automatically.</div>
         </div>
 
-        <!-- WHO TO SEND TO -->
         <div class="form-row">
           <label>Who to Send To *</label>
           <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
-
-            <label onclick="setTarget('both')" id="opt-both"
-              style="display:flex;align-items:center;gap:12px;background:rgba(255,215,0,0.08);border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.2s;">
-              <div id="radio-both" style="width:20px;height:20px;border-radius:50%;border:2px solid var(--gold);background:var(--gold);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-                <div style="width:8px;height:8px;border-radius:50%;background:#000;"></div>
-              </div>
-              <div>
-                <div style="font-weight:700;font-size:0.9em;color:#fff;">1 — Send to Everyone</div>
-                <div style="font-size:0.75em;color:#888;margin-top:2px;">All website subscribers + manually added emails combined</div>
-              </div>
+            <label onclick="setTarget('both')" id="opt-both" style="display:flex;align-items:center;gap:12px;background:rgba(255,215,0,0.08);border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;cursor:pointer;">
+              <div id="radio-both" style="width:20px;height:20px;border-radius:50%;border:2px solid var(--gold);background:var(--gold);flex-shrink:0;display:flex;align-items:center;justify-content:center;"><div style="width:8px;height:8px;border-radius:50%;background:#000;"></div></div>
+              <div><div style="font-weight:700;font-size:0.9em;color:#fff;">1 — Send to Everyone</div><div style="font-size:0.75em;color:#888;margin-top:2px;">All subscribers + manually added emails</div></div>
             </label>
-
-            <label onclick="setTarget('subscribers')" id="opt-subscribers"
-              style="display:flex;align-items:center;gap:12px;background:var(--black4);border:1.5px solid #222;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.2s;">
-              <div id="radio-subscribers" style="width:20px;height:20px;border-radius:50%;border:2px solid #333;background:transparent;flex-shrink:0;">
-              </div>
-              <div>
-                <div style="font-weight:700;font-size:0.9em;color:#fff;">2 — Subscribers Only</div>
-                <div style="font-size:0.75em;color:#888;margin-top:2px;">Only people who signed up on your website</div>
-              </div>
+            <label onclick="setTarget('subscribers')" id="opt-subscribers" style="display:flex;align-items:center;gap:12px;background:var(--black4);border:1.5px solid #222;border-radius:12px;padding:14px 16px;cursor:pointer;">
+              <div id="radio-subscribers" style="width:20px;height:20px;border-radius:50%;border:2px solid #333;background:transparent;flex-shrink:0;"></div>
+              <div><div style="font-weight:700;font-size:0.9em;color:#fff;">2 — Subscribers Only</div><div style="font-size:0.75em;color:#888;margin-top:2px;">Only people who signed up on your website</div></div>
             </label>
-
-            <label onclick="setTarget('manual')" id="opt-manual"
-              style="display:flex;align-items:center;gap:12px;background:var(--black4);border:1.5px solid #222;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.2s;">
-              <div id="radio-manual" style="width:20px;height:20px;border-radius:50%;border:2px solid #333;background:transparent;flex-shrink:0;">
-              </div>
-              <div>
-                <div style="font-weight:700;font-size:0.9em;color:#fff;">3 — Manually Added Only</div>
-                <div style="font-size:0.75em;color:#888;margin-top:2px;">Only the emails you pasted above — no subscribers</div>
-              </div>
+            <label onclick="setTarget('manual')" id="opt-manual" style="display:flex;align-items:center;gap:12px;background:var(--black4);border:1.5px solid #222;border-radius:12px;padding:14px 16px;cursor:pointer;">
+              <div id="radio-manual" style="width:20px;height:20px;border-radius:50%;border:2px solid #333;background:transparent;flex-shrink:0;"></div>
+              <div><div style="font-weight:700;font-size:0.9em;color:#fff;">3 — Manually Added Only</div><div style="font-size:0.75em;color:#888;margin-top:2px;">Only the emails you pasted above</div></div>
             </label>
-
           </div>
         </div>
 
-        <!-- Branding note -->
         <div style="background:#0a1a0a;border:1px solid #14532d;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:0.78em;color:#4ade80;">
-          ✅ Every email is sent with your Light Ideas black/gold branding — with WhatsApp and Catalog buttons automatically included.
+          ✅ Emails sent from info@lightideastechnology.com.ng
         </div>
 
-        <!-- Send button -->
-        <button class="btn-add" id="sendEmailBtn" onclick="sendBulkEmail()" style="width:100%;padding:14px;font-size:0.95em;border-radius:12px;">
-          📨 Send Email
-        </button>
+        <button class="btn-add" id="sendEmailBtn" onclick="sendBulkEmail()" style="width:100%;padding:14px;font-size:0.95em;border-radius:12px;">📨 Send Email</button>
 
-        <!-- Progress -->
         <div id="emailProgress" style="display:none;margin-top:16px;">
           <div style="background:#1a1a1a;border-radius:8px;overflow:hidden;height:8px;margin-bottom:8px;">
             <div id="emailProgressBar" style="height:100%;background:var(--gold);width:0%;transition:width 0.5s;border-radius:8px;"></div>
           </div>
           <div id="emailProgressText" style="font-size:0.78em;color:#888;text-align:center;">Sending...</div>
         </div>
-
-        <!-- Result -->
         <div id="emailResult" style="display:none;margin-top:16px;"></div>
       </div>
     </div>
 
-    <!-- EMAILS PAGE -->
+    <!-- SUBSCRIBERS -->
     <div class="page" id="page-emails">
       <div class="section-head">
         <h2>SUBSCRIBERS</h2>
@@ -473,9 +241,7 @@ You can paste a whole column from Excel — one email per line."></textarea>
       {% if emails %}
       <div class="email-list">
         {% for email in emails %}
-        <div class="email-item">
-          <span>{{ email }}</span>
-        </div>
+        <div class="email-item"><span>{{ email }}</span></div>
         {% endfor %}
       </div>
       {% else %}
@@ -483,37 +249,37 @@ You can paste a whole column from Excel — one email per line."></textarea>
       {% endif %}
     </div>
 
+    <!-- LINK STATS -->
+    <div class="page" id="page-linkstats">
+      <div class="section-head">
+        <h2>LINK CLICKS</h2>
+        <button class="btn-add" onclick="loadLinkStats()">🔄 Refresh</button>
+      </div>
+      <div style="background:#0a1a0a;border:1px solid #14532d;border-radius:10px;padding:12px 16px;margin-bottom:24px;font-size:0.78em;color:#4ade80;">
+        🔗 Your links page: <strong>lightideastechnology.com.ng/links</strong> — put this in your TikTok bio!
+      </div>
+      <div id="linkStatsContent">
+        <div style="text-align:center;padding:60px;color:var(--muted);">Click Refresh to load stats</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- ADD/EDIT PRODUCT MODAL -->
+<!-- MODAL -->
 <div class="modal-overlay" id="productModal">
   <div class="modal">
     <h3 id="modalTitle">ADD PRODUCT</h3>
-
     <input type="hidden" id="editId"/>
-
     <div class="form-row">
       <label>Product Image</label>
-      <div class="img-preview" id="imgPreview" onclick="document.getElementById('imgFile').click()">
-        <span>📷</span>
-        <span>Click to upload image</span>
-      </div>
+      <div class="img-preview" id="imgPreview" onclick="document.getElementById('imgFile').click()"><span>📷</span><span>Click to upload image</span></div>
       <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="previewImage(this)"/>
     </div>
-
-    <div class="form-row">
-      <label>Product Name *</label>
-      <input type="text" id="prodName" placeholder="e.g. HP EliteBook 840 G6"/>
-    </div>
-
+    <div class="form-row"><label>Product Name *</label><input type="text" id="prodName" placeholder="e.g. HP EliteBook 840 G6"/></div>
     <div class="form-grid">
-      <div class="form-row">
-        <label>Price (₦) *</label>
-        <input type="number" id="prodPrice" placeholder="185000" oninput="autoCategory()"/>
-      </div>
-      <div class="form-row">
-        <label>Category *</label>
+      <div class="form-row"><label>Price (₦) *</label><input type="number" id="prodPrice" placeholder="185000" oninput="autoCategory()"/></div>
+      <div class="form-row"><label>Category *</label>
         <select id="prodCategory" onchange="toggleSubCat()">
           <option value="laptop">💻 Laptop</option>
           <option value="phone">📱 Phone</option>
@@ -521,26 +287,15 @@ You can paste a whole column from Excel — one email per line."></textarea>
         </select>
       </div>
     </div>
-
-    <div class="form-row" id="subCatRow">
-      <label>Laptop Type</label>
+    <div class="form-row" id="subCatRow"><label>Laptop Type</label>
       <select id="prodSubCategory">
         <option value="budget">✅ Verified Budget (₦100k–₦250k)</option>
         <option value="pro">🏆 Pro Version (₦250k+)</option>
         <option value="gaming">🎮 Gaming Laptop</option>
       </select>
     </div>
-
-    <div class="form-row">
-      <label>Specs / Short Description</label>
-      <input type="text" id="prodSpecs" placeholder="e.g. Intel Core i5 8th Gen · 8GB RAM · 256GB SSD"/>
-    </div>
-
-    <div class="form-row">
-      <label>Full Description (optional)</label>
-      <textarea id="prodDesc" placeholder="More details about this product..."></textarea>
-    </div>
-
+    <div class="form-row"><label>Specs / Short Description</label><input type="text" id="prodSpecs" placeholder="e.g. Intel Core i5 8th Gen · 8GB RAM · 256GB SSD"/></div>
+    <div class="form-row"><label>Full Description (optional)</label><textarea id="prodDesc" placeholder="More details about this product..."></textarea></div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
       <button class="btn-save" onclick="saveProduct()">💾 Save Product</button>
@@ -551,75 +306,51 @@ You can paste a whole column from Excel — one email per line."></textarea>
 <div class="toast" id="toast"></div>
 
 <script>
-// ── PAGE NAVIGATION
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   event.currentTarget && event.currentTarget.classList.add('active');
-  // fix sidebar highlight
   document.querySelectorAll('.sidebar-item').forEach(s => {
-    if (s.getAttribute('onclick') && s.getAttribute('onclick').includes(name)) s.classList.add('active');
+    if (s.getAttribute('onclick') && s.getAttribute('onclick').includes("'" + name + "'")) s.classList.add('active');
   });
 }
 
-// ── TOAST
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast' + (type === 'error' ? ' error' : '');
-  t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 3000);
+  t.textContent = msg; t.className = 'toast' + (type === 'error' ? ' error' : '');
+  t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
 }
 
-// ── IMAGE PREVIEW
-let uploadedImageB64 = '';
-let uploadedImageExt = '';
+let uploadedImageB64 = '', uploadedImageExt = '';
 function previewImage(input) {
-  const file = input.files[0];
-  if (!file) return;
+  const file = input.files[0]; if (!file) return;
   uploadedImageExt = file.name.split('.').pop();
   const reader = new FileReader();
-  reader.onload = function(e) {
-    uploadedImageB64 = e.target.result;
-    const prev = document.getElementById('imgPreview');
-    prev.innerHTML = `<img src="${e.target.result}" alt="Preview"/>`;
-  };
+  reader.onload = e => { uploadedImageB64 = e.target.result; document.getElementById('imgPreview').innerHTML = `<img src="${e.target.result}" alt="Preview"/>`; };
   reader.readAsDataURL(file);
 }
 
-// ── AUTO CATEGORY BY PRICE
 function autoCategory() {
   const price = parseInt(document.getElementById('prodPrice').value) || 0;
-  const cat = document.getElementById('prodCategory').value;
-  if (cat !== 'laptop') return;
-  const sub = document.getElementById('prodSubCategory');
-  if (price <= 250000) sub.value = 'budget';
-  else sub.value = 'pro';
+  if (document.getElementById('prodCategory').value !== 'laptop') return;
+  document.getElementById('prodSubCategory').value = price <= 250000 ? 'budget' : 'pro';
 }
 
 function toggleSubCat() {
-  const cat = document.getElementById('prodCategory').value;
-  document.getElementById('subCatRow').style.display = cat === 'laptop' ? 'block' : 'none';
+  document.getElementById('subCatRow').style.display = document.getElementById('prodCategory').value === 'laptop' ? 'block' : 'none';
 }
 
-// ── OPEN ADD MODAL
 function openAddModal() {
   document.getElementById('modalTitle').textContent = 'ADD PRODUCT';
-  document.getElementById('editId').value = '';
-  document.getElementById('prodName').value = '';
-  document.getElementById('prodPrice').value = '';
+  ['editId','prodName','prodPrice','prodSpecs','prodDesc'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('prodCategory').value = 'laptop';
   document.getElementById('prodSubCategory').value = 'budget';
-  document.getElementById('prodSpecs').value = '';
-  document.getElementById('prodDesc').value = '';
   document.getElementById('imgPreview').innerHTML = '<span>📷</span><span>Click to upload image</span>';
-  uploadedImageB64 = '';
-  document.getElementById('subCatRow').style.display = 'block';
+  uploadedImageB64 = ''; document.getElementById('subCatRow').style.display = 'block';
   document.getElementById('productModal').classList.add('open');
 }
 
-// ── OPEN EDIT MODAL
 function openEditModal(p) {
   document.getElementById('modalTitle').textContent = 'EDIT PRODUCT';
   document.getElementById('editId').value = p.id;
@@ -629,249 +360,54 @@ function openEditModal(p) {
   document.getElementById('prodSubCategory').value = p.sub_category || 'budget';
   document.getElementById('prodSpecs').value = p.specs || '';
   document.getElementById('prodDesc').value = p.description || '';
-  const prev = document.getElementById('imgPreview');
-  if (p.image) prev.innerHTML = `<img src="${p.image}" alt=""/>`;
-  else prev.innerHTML = '<span>📷</span><span>Click to upload image</span>';
-  uploadedImageB64 = '';
-  document.getElementById('subCatRow').style.display = p.category === 'laptop' ? 'block' : 'none';
+  document.getElementById('imgPreview').innerHTML = p.image ? `<img src="${p.image}" alt=""/>` : '<span>📷</span><span>Click to upload image</span>';
+  uploadedImageB64 = ''; document.getElementById('subCatRow').style.display = p.category === 'laptop' ? 'block' : 'none';
   document.getElementById('productModal').classList.add('open');
 }
 
-function closeModal() {
-  document.getElementById('productModal').classList.remove('open');
-}
+function closeModal() { document.getElementById('productModal').classList.remove('open'); }
 
-// ── SAVE PRODUCT
 async function saveProduct() {
-  const name  = document.getElementById('prodName').value.trim();
+  const name = document.getElementById('prodName').value.trim();
   const price = parseInt(document.getElementById('prodPrice').value) || 0;
-  const cat   = document.getElementById('prodCategory').value;
+  const cat = document.getElementById('prodCategory').value;
   if (!name) { showToast('Product name is required', 'error'); return; }
   if (!price) { showToast('Price is required', 'error'); return; }
-
   let imageUrl = '';
-  // Upload image if new one selected
   if (uploadedImageB64) {
     try {
-      const upRes = await fetch('/api/upload_image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: uploadedImageB64, ext: uploadedImageExt || 'jpg' })
-      });
-      const upData = await upRes.json();
-      if (upData.success) imageUrl = upData.url;
+      const r = await fetch('/api/upload_image', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ image: uploadedImageB64, ext: uploadedImageExt || 'jpg' }) });
+      const d = await r.json(); if (d.success) imageUrl = d.url;
     } catch(e) {}
   }
-
   const editId = document.getElementById('editId').value;
-  const subCat = cat === 'laptop' ? document.getElementById('prodSubCategory').value : '';
-
-  const payload = {
-    name,
-    price,
-    category: cat,
-    sub_category: subCat,
-    specs: document.getElementById('prodSpecs').value.trim(),
-    description: document.getElementById('prodDesc').value.trim(),
-    ...(imageUrl && { image: imageUrl })
-  };
-
+  const payload = { name, price, category: cat, sub_category: cat === 'laptop' ? document.getElementById('prodSubCategory').value : '', specs: document.getElementById('prodSpecs').value.trim(), description: document.getElementById('prodDesc').value.trim(), ...(imageUrl && { image: imageUrl }) };
   try {
-    let res, data;
-    if (editId) {
-      res  = await fetch(`/api/products/${editId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-      data = await res.json();
-      if (data.success) { showToast('✅ Product updated!'); closeModal(); location.reload(); }
-    } else {
-      res  = await fetch('/api/products', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-      data = await res.json();
-      if (data.success) { showToast('✅ Product added!'); closeModal(); location.reload(); }
-    }
+    const res = await fetch(editId ? `/api/products/${editId}` : '/api/products', { method: editId ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.success) { showToast(editId ? '✅ Product updated!' : '✅ Product added!'); closeModal(); location.reload(); }
   } catch(e) { showToast('Error saving product', 'error'); }
 }
 
-// ── DELETE PRODUCT
 async function deleteProduct(id) {
-  if (!confirm('Delete this product from the website?')) return;
-  const res  = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+  if (!confirm('Delete this product?')) return;
+  const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
   const data = await res.json();
-  if (data.success) {
-    document.getElementById('row-' + id)?.remove();
-    showToast('✅ Product deleted');
-  }
+  if (data.success) { document.getElementById('row-' + id)?.remove(); showToast('✅ Product deleted'); }
 }
 
-// ── TOGGLE AVAILABLE
 async function toggleAvailable(id, btn) {
   const isOn = btn.classList.contains('on');
-  const res  = await fetch(`/api/products/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ available: !isOn })
-  });
+  const res = await fetch(`/api/products/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ available: !isOn }) });
   const data = await res.json();
-  if (data.success) {
-    btn.classList.toggle('on', !isOn);
-    btn.classList.toggle('off', isOn);
-    showToast(isOn ? 'Product hidden from website' : 'Product visible on website');
-  }
+  if (data.success) { btn.classList.toggle('on', !isOn); btn.classList.toggle('off', isOn); showToast(isOn ? 'Product hidden' : 'Product visible'); }
 }
 
-// ── COPY EMAILS
 function copyEmails() {
   const emails = Array.from(document.querySelectorAll('.email-item span')).map(e => e.textContent).join('\n');
-  navigator.clipboard.writeText(emails).then(() => showToast('✅ Emails copied to clipboard'));
+  navigator.clipboard.writeText(emails).then(() => showToast('✅ Emails copied'));
 }
 
-// ── BULK EMAIL SENDER
-let recipientOption = 'both';
-
-function setTarget(option) {
-  recipientOption = option;
-  const opts = ['both', 'subscribers', 'manual'];
-  opts.forEach(o => {
-    const radio = document.getElementById('radio-' + o);
-    const box   = document.getElementById('opt-' + o);
-    if (!radio || !box) return;
-    radio.style.background    = 'transparent';
-    radio.style.borderColor   = '#333';
-    radio.innerHTML           = '';
-    box.style.borderColor     = '#222';
-    box.style.background      = 'var(--black4)';
-  });
-  const selRadio = document.getElementById('radio-' + option);
-  const selBox   = document.getElementById('opt-' + option);
-  if (selRadio) {
-    selRadio.style.background  = 'var(--gold)';
-    selRadio.style.borderColor = 'var(--gold)';
-    selRadio.innerHTML         = '<div style="width:8px;height:8px;border-radius:50%;background:#000;"></div>';
-  }
-  if (selBox) {
-    selBox.style.borderColor = 'var(--gold)';
-    selBox.style.background  = 'rgba(255,215,0,0.08)';
-  }
-}
-
-async function loadEmailCount() {
-  try {
-    const emails = document.querySelectorAll('.email-item span');
-    const count = emails.length;
-    const el = document.getElementById('emailCountDisplay');
-    if (el) el.textContent = count + ' subscriber' + (count !== 1 ? 's' : '') + ' will receive this email';
-  } catch(e) {}
-}
-
-async function sendBulkEmail() {
-  const subject = document.getElementById('emailSubject').value.trim();
-  const message = document.getElementById('emailMessage').value.trim();
-
-  if (!subject) { showToast('Please enter a subject', 'error'); return; }
-  if (!message) { showToast('Please write a message', 'error'); return; }
-
-  // Parse manual emails - handle Excel paste, commas, semicolons, tabs
-  const rawManual = document.getElementById('manualEmails').value || '';
-  const manualList = rawManual
-    .split(/[,;\n\t\r]+/)
-    .map(e => e.trim().toLowerCase())
-    .filter(e => e.includes('@') && e.includes('.'));
-
-  if (recipientOption === 'manual' && manualList.length === 0) {
-    showToast('Please paste at least one valid email above', 'error'); return;
-  }
-
-  let targets;
-  if (recipientOption === 'subscribers') targets = 'all';
-  else if (recipientOption === 'manual') targets = manualList;
-  else targets = { mode: 'both', extra: manualList };
-
-  const btn      = document.getElementById('sendEmailBtn');
-  const progress = document.getElementById('emailProgress');
-  const bar      = document.getElementById('emailProgressBar');
-  const ptext    = document.getElementById('emailProgressText');
-  const result   = document.getElementById('emailResult');
-
-  btn.disabled     = true;
-  btn.innerHTML    = '⏳ Sending...';
-  progress.style.display = 'block';
-  result.style.display   = 'none';
-  bar.style.background   = 'var(--gold)';
-
-  let pct = 0;
-  const ticker = setInterval(() => {
-    pct = Math.min(pct + 3, 88);
-    bar.style.width = pct + '%';
-    ptext.textContent = 'Sending... ' + pct + '%';
-  }, 400);
-
-  try {
-    const payload = JSON.stringify({ subject, message, targets, mode: emailMode });
-
-    const res = await fetch('/api/send_bulk_email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload
-    });
-
-    clearInterval(ticker);
-    bar.style.width = '100%';
-
-    const rawText = await res.text();
-
-    if (!rawText || rawText.trim() === '') {
-      throw new Error('Server returned empty response. Check Render logs.');
-    }
-
-    let data;
-    try {
-      data = JSON.parse(rawText);
-    } catch(pe) {
-      throw new Error('Server error: ' + rawText.substring(0, 200));
-    }
-
-    if (data.success) {
-      bar.style.background = '#4ade80';
-      ptext.textContent    = 'Done!';
-      result.style.display = 'block';
-      result.innerHTML = `
-        <div style="background:#14532d;border:1px solid #166534;border-radius:12px;padding:20px;text-align:center;">
-          <div style="font-size:2em;margin-bottom:8px;">✅</div>
-          <div style="color:#4ade80;font-weight:700;font-size:1.05em;">Emails Sent!</div>
-          <div style="color:#888;font-size:0.82em;margin-top:8px;">
-            ${data.sent} sent &nbsp;·&nbsp; ${data.failed} failed &nbsp;·&nbsp; ${data.total} total
-          </div>
-        </div>`;
-      document.getElementById('emailSubject').value  = '';
-      document.getElementById('emailMessage').value  = '';
-      document.getElementById('manualEmails').value  = '';
-      showToast('✅ ' + data.sent + ' emails sent!');
-    } else {
-      bar.style.background = '#f87171';
-      ptext.textContent    = 'Failed';
-      result.style.display = 'block';
-      result.innerHTML = `
-        <div style="background:#450a0a;border:1px solid #7f1d1d;border-radius:12px;padding:16px;color:#f87171;text-align:center;font-size:0.85em;">
-          ❌ ${data.error || 'Unknown error'}
-        </div>`;
-      showToast('Failed: ' + (data.error || 'Unknown error'), 'error');
-    }
-
-  } catch(err) {
-    clearInterval(ticker);
-    bar.style.background = '#f87171';
-    bar.style.width = '100%';
-    ptext.textContent = 'Error';
-    result.style.display = 'block';
-    result.innerHTML = `
-      <div style="background:#450a0a;border:1px solid #7f1d1d;border-radius:12px;padding:16px;color:#f87171;font-size:0.82em;">
-        ❌ ${err.message}
-      </div>`;
-    showToast('Error: ' + err.message, 'error');
-  }
-
-  btn.disabled  = false;
-  btn.innerHTML = '📨 Send Email';
-}
-// ── EMAIL MODE
 let emailMode = 'branded';
 function setEmailMode(mode) {
   emailMode = mode;
@@ -882,13 +418,99 @@ function setEmailMode(mode) {
   document.getElementById('mode-hint-branded').style.display = mode === 'branded' ? 'block' : 'none';
   document.getElementById('mode-hint-plain').style.display = mode === 'plain' ? 'block' : 'none';
 }
-// Load email count when navigating to email sender page
-const origShowPage = showPage;
 
-// ── Close modal on overlay click
-document.getElementById('productModal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
+let recipientOption = 'both';
+function setTarget(option) {
+  recipientOption = option;
+  ['both','subscribers','manual'].forEach(o => {
+    const radio = document.getElementById('radio-' + o), box = document.getElementById('opt-' + o);
+    if (!radio || !box) return;
+    radio.style.background = 'transparent'; radio.style.borderColor = '#333'; radio.innerHTML = '';
+    box.style.borderColor = '#222'; box.style.background = 'var(--black4)';
+  });
+  const sr = document.getElementById('radio-' + option), sb = document.getElementById('opt-' + option);
+  if (sr) { sr.style.background = 'var(--gold)'; sr.style.borderColor = 'var(--gold)'; sr.innerHTML = '<div style="width:8px;height:8px;border-radius:50%;background:#000;"></div>'; }
+  if (sb) { sb.style.borderColor = 'var(--gold)'; sb.style.background = 'rgba(255,215,0,0.08)'; }
+}
+
+async function sendBulkEmail() {
+  const subject = document.getElementById('emailSubject').value.trim();
+  const message = document.getElementById('emailMessage').value.trim();
+  if (!subject) { showToast('Please enter a subject', 'error'); return; }
+  if (!message) { showToast('Please write a message', 'error'); return; }
+  const rawManual = document.getElementById('manualEmails').value || '';
+  const manualList = rawManual.split(/[,;\n\t\r]+/).map(e => e.trim().toLowerCase()).filter(e => e.includes('@') && e.includes('.'));
+  if (recipientOption === 'manual' && manualList.length === 0) { showToast('Please paste at least one valid email', 'error'); return; }
+  let targets;
+  if (recipientOption === 'subscribers') targets = 'all';
+  else if (recipientOption === 'manual') targets = manualList;
+  else targets = { mode: 'both', extra: manualList };
+  const btn = document.getElementById('sendEmailBtn'), progress = document.getElementById('emailProgress');
+  const bar = document.getElementById('emailProgressBar'), ptext = document.getElementById('emailProgressText'), result = document.getElementById('emailResult');
+  btn.disabled = true; btn.innerHTML = '⏳ Sending...'; progress.style.display = 'block'; result.style.display = 'none'; bar.style.background = 'var(--gold)';
+  let pct = 0;
+  const ticker = setInterval(() => { pct = Math.min(pct + 3, 88); bar.style.width = pct + '%'; ptext.textContent = 'Sending... ' + pct + '%'; }, 400);
+  try {
+    const res = await fetch('/api/send_bulk_email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ subject, message, targets, mode: emailMode }) });
+    clearInterval(ticker); bar.style.width = '100%';
+    const rawText = await res.text();
+    if (!rawText || rawText.trim() === '') throw new Error('Server returned empty response.');
+    let data; try { data = JSON.parse(rawText); } catch(pe) { throw new Error('Server error: ' + rawText.substring(0, 200)); }
+    if (data.success) {
+      bar.style.background = '#4ade80'; ptext.textContent = 'Done!'; result.style.display = 'block';
+      result.innerHTML = `<div style="background:#14532d;border:1px solid #166534;border-radius:12px;padding:20px;text-align:center;"><div style="font-size:2em;margin-bottom:8px;">✅</div><div style="color:#4ade80;font-weight:700;">Emails Sent!</div><div style="color:#888;font-size:0.82em;margin-top:8px;">${data.sent} sent · ${data.failed} failed · ${data.total} total</div></div>`;
+      document.getElementById('emailSubject').value = ''; document.getElementById('emailMessage').value = ''; document.getElementById('manualEmails').value = '';
+      showToast('✅ ' + data.sent + ' emails sent!');
+    } else {
+      bar.style.background = '#f87171'; ptext.textContent = 'Failed'; result.style.display = 'block';
+      result.innerHTML = `<div style="background:#450a0a;border:1px solid #7f1d1d;border-radius:12px;padding:16px;color:#f87171;text-align:center;">❌ ${data.error || 'Unknown error'}</div>`;
+      showToast('Failed: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch(err) {
+    clearInterval(ticker); bar.style.background = '#f87171'; bar.style.width = '100%'; ptext.textContent = 'Error'; result.style.display = 'block';
+    result.innerHTML = `<div style="background:#450a0a;border:1px solid #7f1d1d;border-radius:12px;padding:16px;color:#f87171;">❌ ${err.message}</div>`;
+    showToast('Error: ' + err.message, 'error');
+  }
+  btn.disabled = false; btn.innerHTML = '📨 Send Email';
+}
+
+async function loadLinkStats() {
+  const container = document.getElementById('linkStatsContent');
+  container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div>';
+  try {
+    const res = await fetch('/api/link_stats');
+    const data = await res.json();
+    const labels = { website:'🌐 Our Website', whatsapp:'💬 WhatsApp Community', telegram:'✈️ Telegram Channel', diagnostic:'🔬 Diagnostic Tool' };
+    if (!data.length) {
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);">No clicks yet. Share your links page to start tracking!</div>';
+      return;
+    }
+    const maxCount = Math.max(...data.map(d => d.count), 1);
+    const total = data.reduce((s, d) => s + d.count, 0);
+    container.innerHTML = `
+      <div style="background:var(--black);border:1px solid #1a1a1a;border-radius:14px;padding:20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+        <div><div class="stat-num">${total}</div><div class="stat-label">Total Clicks</div></div>
+      </div>
+      ${data.map(item => `
+        <div class="link-stat-card">
+          <div style="flex:1;">
+            <div style="font-size:0.95em;font-weight:600;color:#fff;margin-bottom:4px;">${labels[item.link] || item.link}</div>
+            <div class="link-stat-bar-wrap"><div class="link-stat-bar" style="width:${Math.round((item.count/maxCount)*100)}%"></div></div>
+            <div style="font-size:0.7em;color:#555;margin-top:4px;">${item.last_clicked ? 'Last clicked: ' + new Date(item.last_clicked).toLocaleDateString() : ''}</div>
+          </div>
+          <div style="margin-left:20px;text-align:right;">
+            <div class="stat-num">${item.count}</div>
+            <div class="stat-label">clicks</div>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  } catch(e) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);">Failed to load stats.</div>';
+  }
+}
+
+document.getElementById('productModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
 </script>
 </body>
 </html>
