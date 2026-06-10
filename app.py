@@ -251,5 +251,22 @@ def send_bulk_email():
         'message': f'Sending to {len(recipients)} recipient(s) via Brevo. Check inbox in 1-2 minutes.'
     })
 
+# ── Landing page
+@app.route('/links')
+def links_page():
+    return render_template('links.html')
+
+# ── API: Track link clicks
+@app.route('/api/track_click', methods=['POST'])
+def track_click():
+    data = request.json
+    link = data.get('link', '')
+    if link:
+        get_db()['link_clicks'].update_one(
+            {'link': link},
+            {'$inc': {'count': 1}, '$set': {'last_clicked': datetime.datetime.now().isoformat()}},
+            upsert=True
+        )
+    return jsonify({'success': True})
 if __name__ == '__main__':
     app.run(debug=True, port=5050)

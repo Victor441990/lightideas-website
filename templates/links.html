@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Light Ideas Technology</title>
+<meta property="og:title" content="Light Ideas Technology"/>
+<meta property="og:description" content="Tested and Confirmed — Just for Your Convenience"/>
+<meta property="og:image" content="/static/images/logo.jpg"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{
+  min-height:100%;
+  background:#000;
+  font-family:'Outfit',sans-serif;
+  color:#fff;
+}
+
+body{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  padding:48px 20px 60px;
+  min-height:100vh;
+  background: radial-gradient(ellipse at 50% 0%, rgba(197,163,20,0.12) 0%, #000 65%);
+}
+
+.card{
+  width:100%;
+  max-width:420px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0;
+}
+
+/* LOGO */
+.logo-wrap{
+  width:130px;
+  height:130px;
+  border-radius:50%;
+  overflow:hidden;
+  border:2px solid rgba(197,163,20,0.35);
+  box-shadow: 0 0 40px rgba(197,163,20,0.2);
+  margin-bottom:18px;
+  background:#000;
+}
+.logo-wrap img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+/* NAME + TAGLINE */
+.brand-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:2em;
+  letter-spacing:3px;
+  color:#fff;
+  text-align:center;
+  line-height:1;
+  margin-bottom:6px;
+}
+.brand-name span{color:#C5A314;}
+
+.tagline{
+  font-size:0.78em;
+  color:#888;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  text-align:center;
+  margin-bottom:36px;
+}
+
+/* LINKS */
+.links-section{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-bottom:32px;
+}
+
+.link-btn{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  width:100%;
+  padding:16px 22px;
+  border-radius:14px;
+  text-decoration:none;
+  border:1px solid rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.04);
+  transition:all 0.25s;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+}
+.link-btn::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg, rgba(197,163,20,0.05), transparent);
+  opacity:0;
+  transition:opacity 0.25s;
+}
+.link-btn:hover::before{opacity:1;}
+.link-btn:hover{
+  border-color:rgba(197,163,20,0.4);
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+.link-btn:active{transform:translateY(0);}
+
+.link-icon{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.3em;
+  flex-shrink:0;
+}
+.icon-website{background:rgba(197,163,20,0.15);}
+.icon-whatsapp{background:rgba(37,211,102,0.15);}
+.icon-telegram{background:rgba(41,182,246,0.15);}
+.icon-tool{background:rgba(168,85,247,0.15);}
+
+.link-text{flex:1;}
+.link-title{
+  font-weight:600;
+  font-size:0.95em;
+  color:#fff;
+  line-height:1;
+  margin-bottom:3px;
+}
+.link-sub{
+  font-size:0.72em;
+  color:#666;
+  letter-spacing:0.5px;
+}
+
+.link-arrow{
+  color:#444;
+  font-size:1em;
+  transition:color 0.2s, transform 0.2s;
+}
+.link-btn:hover .link-arrow{color:#C5A314;transform:translateX(3px);}
+
+/* LOCKED BADGE */
+.locked-badge{
+  font-size:0.6em;
+  background:rgba(168,85,247,0.15);
+  color:#a855f7;
+  border:1px solid rgba(168,85,247,0.3);
+  border-radius:50px;
+  padding:2px 8px;
+  letter-spacing:1px;
+  font-weight:700;
+  text-transform:uppercase;
+  margin-left:auto;
+  margin-right:8px;
+}
+.free-badge{
+  font-size:0.6em;
+  background:rgba(74,222,128,0.1);
+  color:#4ade80;
+  border:1px solid rgba(74,222,128,0.2);
+  border-radius:50px;
+  padding:2px 8px;
+  letter-spacing:1px;
+  font-weight:700;
+  text-transform:uppercase;
+  margin-left:auto;
+  margin-right:8px;
+}
+
+/* DIVIDER */
+.divider{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:20px;
+}
+.divider-line{flex:1;height:1px;background:#1a1a1a;}
+.divider-text{font-size:0.7em;color:#444;letter-spacing:2px;text-transform:uppercase;}
+
+/* EMAIL FORM */
+.email-form{
+  width:100%;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:16px;
+  padding:22px;
+  margin-bottom:32px;
+}
+.email-form-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.1em;
+  letter-spacing:2px;
+  color:#C5A314;
+  margin-bottom:4px;
+}
+.email-form-sub{
+  font-size:0.75em;
+  color:#555;
+  margin-bottom:16px;
+  letter-spacing:0.5px;
+}
+.email-input-row{
+  display:flex;
+  gap:8px;
+}
+.email-input{
+  flex:1;
+  background:#111;
+  border:1px solid #222;
+  border-radius:10px;
+  padding:11px 14px;
+  color:#fff;
+  font-family:'Outfit',sans-serif;
+  font-size:0.85em;
+  outline:none;
+  transition:border-color 0.2s;
+}
+.email-input:focus{border-color:rgba(197,163,20,0.4);}
+.email-input::placeholder{color:#444;}
+.email-submit{
+  background:#C5A314;
+  color:#000;
+  border:none;
+  border-radius:10px;
+  padding:11px 18px;
+  font-family:'Outfit',sans-serif;
+  font-weight:700;
+  font-size:0.82em;
+  cursor:pointer;
+  transition:all 0.2s;
+  white-space:nowrap;
+}
+.email-submit:hover{background:#fff;}
+.email-msg{font-size:0.75em;margin-top:10px;display:none;}
+.email-msg.success{color:#4ade80;}
+.email-msg.error{color:#f87171;}
+
+/* FOOTER */
+.footer{
+  font-size:0.68em;
+  color:#333;
+  letter-spacing:1px;
+  text-align:center;
+}
+.footer span{color:#555;}
+
+/* CLICK FEEDBACK */
+.click-flash{
+  position:fixed;
+  inset:0;
+  background:rgba(197,163,20,0.06);
+  pointer-events:none;
+  opacity:0;
+  transition:opacity 0.3s;
+  z-index:999;
+}
+.click-flash.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- LOGO -->
+  <div class="logo-wrap">
+    <img src="/static/images/logo.jpg" alt="Light Ideas Technology"/>
+  </div>
+
+  <!-- BRAND -->
+  <div class="brand-name">LIGHT <span>IDEAS</span></div>
+  <div class="tagline">Tested and Confirmed — Just for Your Convenience</div>
+
+  <!-- LINKS -->
+  <div class="links-section">
+
+    <!-- Website -->
+    <a class="link-btn" href="https://lightideastechnology.com.ng" target="_blank" onclick="trackClick('website')">
+      <div class="link-icon icon-website">🌐</div>
+      <div class="link-text">
+        <div class="link-title">Our Website</div>
+        <div class="link-sub">Browse & shop quality UK used laptops</div>
+      </div>
+      <span class="link-arrow">›</span>
+    </a>
+
+    <!-- WhatsApp -->
+    <a class="link-btn" href="https://chat.whatsapp.com/GwoeaA3k8Od8SJULzc3A7N" target="_blank" onclick="trackClick('whatsapp')">
+      <div class="link-icon icon-whatsapp">💬</div>
+      <div class="link-text">
+        <div class="link-title">WhatsApp Community</div>
+        <div class="link-sub">Join our community for deals & updates</div>
+      </div>
+      <span class="link-arrow">›</span>
+    </a>
+
+    <!-- Telegram -->
+    <a class="link-btn" href="https://t.me/lightideastechnology90" target="_blank" onclick="trackClick('telegram')">
+      <div class="link-icon icon-telegram">✈️</div>
+      <div class="link-text">
+        <div class="link-title">Telegram Channel</div>
+        <div class="link-sub">Latest stock, prices & announcements</div>
+      </div>
+      <span class="link-arrow">›</span>
+    </a>
+
+    <!-- Diagnostic Tool -->
+    <div class="link-btn" onclick="trackClick('diagnostic');showToolModal()" style="cursor:pointer;">
+      <div class="link-icon icon-tool">🔬</div>
+      <div class="link-text">
+        <div class="link-title">Laptop Diagnostic Tool</div>
+        <div class="link-sub">Test any laptop before you buy</div>
+      </div>
+      <span class="free-badge">Free</span>
+      <span class="link-arrow">›</span>
+    </div>
+
+  </div>
+
+  <!-- EMAIL SUBSCRIBE -->
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-text">Stay Updated</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="email-form">
+    <div class="email-form-title">GET NOTIFIED FIRST</div>
+    <div class="email-form-sub">New stock drops, exclusive deals — straight to your inbox</div>
+    <div class="email-input-row">
+      <input class="email-input" type="email" id="emailInput" placeholder="your@email.com"/>
+      <button class="email-submit" onclick="submitEmail()">Join</button>
+    </div>
+    <div class="email-msg" id="emailMsg"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    Lagos, Nigeria &nbsp;·&nbsp; <span>+234 816 944 1990</span>
+  </div>
+
+</div>
+
+<!-- TOOL MODAL -->
+<div id="toolModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:100;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#111;border:1px solid rgba(197,163,20,0.3);border-radius:20px;padding:32px;max-width:380px;width:100%;text-align:center;">
+    <div style="font-size:2.5em;margin-bottom:16px;">🔬</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6em;letter-spacing:2px;color:#fff;margin-bottom:8px;">DIAGNOSTIC TOOL</div>
+    <div style="font-size:0.82em;color:#888;margin-bottom:24px;line-height:1.6;">Our 16-module laptop diagnostic tool. Currently available modules:</div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;text-align:left;">
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:10px 14px;">
+        <span style="color:#4ade80;font-size:1em;">✅</span>
+        <span style="font-size:0.85em;color:#fff;font-weight:600;">Battery Diagnostic</span>
+        <span style="margin-left:auto;font-size:0.65em;color:#4ade80;border:1px solid rgba(74,222,128,0.3);border-radius:50px;padding:2px 8px;font-weight:700;">FREE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:10px 14px;">
+        <span style="color:#4ade80;font-size:1em;">✅</span>
+        <span style="font-size:0.85em;color:#fff;font-weight:600;">Keyboard Test</span>
+        <span style="margin-left:auto;font-size:0.65em;color:#4ade80;border:1px solid rgba(74,222,128,0.3);border-radius:50px;padding:2px 8px;font-weight:700;">FREE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.03);border:1px solid #1a1a1a;border-radius:10px;padding:10px 14px;">
+        <span style="color:#444;font-size:1em;">🔒</span>
+        <span style="font-size:0.85em;color:#555;">RAM, SSD, CPU, GPU & 10 more...</span>
+        <span style="margin-left:auto;font-size:0.65em;color:#a855f7;border:1px solid rgba(168,85,247,0.3);border-radius:50px;padding:2px 8px;font-weight:700;">COMING SOON</span>
+      </div>
+    </div>
+
+    <div style="font-size:0.75em;color:#555;margin-bottom:20px;">Download link coming soon. Join our community to be notified first.</div>
+
+    <button onclick="closeToolModal()" style="background:#C5A314;color:#000;border:none;border-radius:50px;padding:12px 32px;font-family:'Outfit',sans-serif;font-weight:700;font-size:0.88em;cursor:pointer;width:100%;">Got it</button>
+  </div>
+</div>
+
+<div class="click-flash" id="clickFlash"></div>
+
+<script>
+function trackClick(link) {
+  fetch('/api/track_click', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({link})
+  }).catch(() => {});
+  // flash
+  const f = document.getElementById('clickFlash');
+  f.classList.add('show');
+  setTimeout(() => f.classList.remove('show'), 300);
+}
+
+function showToolModal() {
+  const m = document.getElementById('toolModal');
+  m.style.display = 'flex';
+}
+
+function closeToolModal() {
+  document.getElementById('toolModal').style.display = 'none';
+}
+
+document.getElementById('toolModal').addEventListener('click', function(e) {
+  if (e.target === this) closeToolModal();
+});
+
+async function submitEmail() {
+  const email = document.getElementById('emailInput').value.trim();
+  const msg   = document.getElementById('emailMsg');
+  if (!email || !email.includes('@')) {
+    msg.textContent = 'Please enter a valid email.';
+    msg.className   = 'email-msg error';
+    msg.style.display = 'block';
+    return;
+  }
+  try {
+    const res  = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email})
+    });
+    const data = await res.json();
+    if (data.success) {
+      msg.textContent   = '✅ You\'re in! We\'ll notify you first.';
+      msg.className     = 'email-msg success';
+      msg.style.display = 'block';
+      document.getElementById('emailInput').value = '';
+    }
+  } catch(e) {
+    msg.textContent   = 'Something went wrong. Try again.';
+    msg.className     = 'email-msg error';
+    msg.style.display = 'block';
+  }
+}
+
+document.getElementById('emailInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') submitEmail();
+});
+</script>
+</body>
+</html>
