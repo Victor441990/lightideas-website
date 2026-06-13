@@ -392,5 +392,8 @@ def laptopseal_admin_data():
         'revenue': total_revenue
     })
 
+@app.route('/laptopseal/download')
+def laptopseal_download():
+    return redirect('/static/downloads/LaptopSeal_Setup.exe')
 if __name__ == '__main__':
     app.run(debug=True, port=5050)
