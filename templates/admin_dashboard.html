@@ -94,6 +94,17 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
 .link-stat-card{background:var(--black);border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
 .link-stat-bar-wrap{width:100%;background:#111;border-radius:50px;height:6px;margin-top:8px;overflow:hidden;}
 .link-stat-bar{height:100%;background:var(--gold);border-radius:50px;transition:width 0.8s ease;}
+.src-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;}
+.src-card{background:var(--black);border:1px solid #1a1a1a;border-radius:14px;padding:20px 24px;}
+.src-card .src-name{font-size:0.8em;color:#ccc;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.src-pill{font-size:0.62em;border-radius:50px;padding:2px 8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.pill-join{background:rgba(37,211,102,0.12);color:#25D366;border:1px solid rgba(37,211,102,0.3);}
+.pill-links{background:rgba(255,215,0,0.1);color:var(--gold);border:1px solid rgba(255,215,0,0.25);}
+.pill-other{background:rgba(255,255,255,0.05);color:#888;border:1px solid #2a2a2a;}
+.daybar-wrap{display:flex;align-items:flex-end;gap:6px;height:120px;padding:16px;background:var(--black);border:1px solid #1a1a1a;border-radius:14px;overflow-x:auto;}
+.daybar{flex:1;min-width:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;}
+.daybar .bar{width:100%;background:var(--gold);border-radius:4px 4px 0 0;min-height:2px;transition:height 0.6s ease;}
+.daybar .daylabel{font-size:0.58em;color:#555;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -118,6 +129,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <div class="sidebar-item" onclick="showPage('emailsender')"><span class="icon">📨</span> Send Email</div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-item" onclick="showPage('linkstats');loadLinkStats()"><span class="icon">🔗</span> Link Clicks</div>
+    <div class="sidebar-item" onclick="showPage('adtraffic');loadAdTraffic()"><span class="icon">📈</span> Ad Traffic</div>
   </div>
 
   <div class="main">
@@ -137,6 +149,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
           <button class="btn-add" onclick="showPage('products');openAddModal()">+ Add New Product</button>
           <button class="btn-view" style="cursor:pointer;border:1px solid rgba(255,215,0,0.2);" onclick="showPage('emails')">View Subscribers</button>
           <a href="/links" target="_blank" class="btn-view" style="border:1px solid rgba(255,215,0,0.2);">🔗 Links Page</a>
+          <a href="/join" target="_blank" class="btn-view" style="border:1px solid rgba(37,211,102,0.3);color:#25D366;background:rgba(37,211,102,0.08);">💬 Ad Join Page</a>
         </div>
       </div>
     </div>
@@ -260,6 +273,20 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
       </div>
       <div id="linkStatsContent">
         <div style="text-align:center;padding:60px;color:var(--muted);">Click Refresh to load stats</div>
+      </div>
+    </div>
+
+    <!-- AD TRAFFIC -->
+    <div class="page" id="page-adtraffic">
+      <div class="section-head">
+        <h2>AD TRAFFIC</h2>
+        <button class="btn-add" onclick="loadAdTraffic()">🔄 Refresh</button>
+      </div>
+      <div style="background:#0a1a0a;border:1px solid #14532d;border-radius:10px;padding:12px 16px;margin-bottom:24px;font-size:0.78em;color:#4ade80;">
+        📈 This shows where your clicks come from — your <strong>/join</strong> ad page vs your <strong>/links</strong> page. Use this to judge if your Facebook ad is working.
+      </div>
+      <div id="adTrafficContent">
+        <div style="text-align:center;padding:60px;color:var(--muted);">Click Refresh to load ad traffic</div>
       </div>
     </div>
 
@@ -480,7 +507,7 @@ async function loadLinkStats() {
   try {
     const res = await fetch('/api/link_stats');
     const data = await res.json();
-    const labels = { website:'🌐 Our Website', whatsapp:'💬 WhatsApp Community', telegram:'✈️ Telegram Channel', diagnostic:'🔬 Diagnostic Tool' };
+    const labels = { website:'🌐 Our Website', whatsapp:'💬 WhatsApp Community', telegram:'✈️ Telegram Channel', diagnostic:'🔬 Diagnostic Tool', join_whatsapp:'💬 WhatsApp (Ad Join Page)' };
     if (!data.length) {
       container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);">No clicks yet. Share your links page to start tracking!</div>';
       return;
@@ -507,6 +534,84 @@ async function loadLinkStats() {
     `;
   } catch(e) {
     container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);">Failed to load stats.</div>';
+  }
+}
+
+async function loadAdTraffic() {
+  const container = document.getElementById('adTrafficContent');
+  container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div>';
+  try {
+    const res = await fetch('/api/click_analytics');
+    const data = await res.json();
+    if (!data || !data.total) {
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);">No traffic logged yet. Once your ad runs and people click, the breakdown shows here.</div>';
+      return;
+    }
+    const srcLabels = { join_page:'Ad Join Page', links_page:'Links Page', unknown:'Other / Direct' };
+    const srcPill = { join_page:'pill-join', links_page:'pill-links', unknown:'pill-other' };
+    const linkLabels = { website:'🌐 Website', whatsapp:'💬 WhatsApp', telegram:'✈️ Telegram', diagnostic:'🔬 Diagnostic', join_whatsapp:'💬 WhatsApp Join' };
+
+    // Source cards
+    let sourceHtml = '<div class="src-grid">';
+    Object.keys(data.by_source).sort((a,b)=>data.by_source[b]-data.by_source[a]).forEach(src => {
+      sourceHtml += `
+        <div class="src-card">
+          <div class="src-name">
+            <span>${srcLabels[src] || src}</span>
+            <span class="src-pill ${srcPill[src] || 'pill-other'}">${src.replace('_',' ')}</span>
+          </div>
+          <div class="stat-num">${data.by_source[src]}</div>
+          <div class="stat-label">clicks</div>
+        </div>`;
+    });
+    sourceHtml += '</div>';
+
+    // Link x source breakdown
+    let breakdownHtml = '<div style="font-family:var(--font-display);font-size:1.2em;color:var(--gold);letter-spacing:2px;margin:8px 0 16px;">WHAT THEY CLICKED, BY SOURCE</div>';
+    const pairs = Object.keys(data.by_link_source).sort((a,b)=>data.by_link_source[b]-data.by_link_source[a]);
+    if (pairs.length) {
+      const maxPair = Math.max(...pairs.map(k=>data.by_link_source[k]), 1);
+      breakdownHtml += pairs.map(key => {
+        const [link, src] = key.split('|');
+        const count = data.by_link_source[key];
+        return `
+          <div class="link-stat-card">
+            <div style="flex:1;">
+              <div style="font-size:0.9em;font-weight:600;color:#fff;margin-bottom:4px;">
+                ${linkLabels[link] || link}
+                <span class="src-pill ${srcPill[src] || 'pill-other'}" style="margin-left:8px;">${(srcLabels[src]||src)}</span>
+              </div>
+              <div class="link-stat-bar-wrap"><div class="link-stat-bar" style="width:${Math.round((count/maxPair)*100)}%"></div></div>
+            </div>
+            <div style="margin-left:20px;text-align:right;"><div class="stat-num">${count}</div><div class="stat-label">clicks</div></div>
+          </div>`;
+      }).join('');
+    }
+
+    // Daily trend
+    let dayHtml = '';
+    const days = Object.keys(data.by_day).sort();
+    if (days.length) {
+      const maxDay = Math.max(...days.map(d=>data.by_day[d]), 1);
+      dayHtml = '<div style="font-family:var(--font-display);font-size:1.2em;color:var(--gold);letter-spacing:2px;margin:24px 0 16px;">DAILY CLICKS</div><div class="daybar-wrap">';
+      days.slice(-14).forEach(d => {
+        const h = Math.round((data.by_day[d]/maxDay)*100);
+        const label = d.slice(5); // MM-DD
+        dayHtml += `<div class="daybar"><div class="bar" style="height:${h}%" title="${data.by_day[d]} clicks"></div><div class="daylabel">${label}</div></div>`;
+      });
+      dayHtml += '</div>';
+    }
+
+    container.innerHTML = `
+      <div style="background:var(--black);border:1px solid #1a1a1a;border-radius:14px;padding:20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;">
+        <div><div class="stat-num">${data.total}</div><div class="stat-label">Total Tracked Clicks</div></div>
+      </div>
+      ${sourceHtml}
+      ${breakdownHtml}
+      ${dayHtml}
+    `;
+  } catch(e) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);">Failed to load ad traffic.</div>';
   }
 }
 

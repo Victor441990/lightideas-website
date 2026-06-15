@@ -7,6 +7,25 @@
 <meta property="og:title" content="Light Ideas Technology"/>
 <meta property="og:description" content="Tested and Confirmed — Just for Your Convenience"/>
 <meta property="og:image" content="/static/images/logo.jpg"/>
+
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '2117245859002506');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=2117245859002506&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
+
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -389,11 +408,24 @@ body{
 <div class="click-flash" id="clickFlash"></div>
 
 <script>
+// Map each link to its matching Meta Pixel event so ads can optimize per destination
+function firePixel(link) {
+  if (typeof fbq !== 'function') return;
+  if (link === 'whatsapp' || link === 'telegram') {
+    fbq('track', 'Lead', { content_name: link + '_community' });
+  } else if (link === 'website') {
+    fbq('track', 'ViewContent', { content_name: 'website' });
+  } else if (link === 'diagnostic') {
+    fbq('track', 'ViewContent', { content_name: 'diagnostic_tool' });
+  }
+}
+
 function trackClick(link) {
+  firePixel(link);
   fetch('/api/track_click', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({link})
+    body: JSON.stringify({link, source: 'links_page'})
   }).catch(() => {});
   // flash
   const f = document.getElementById('clickFlash');
@@ -431,6 +463,7 @@ async function submitEmail() {
     });
     const data = await res.json();
     if (data.success) {
+      if (typeof fbq === 'function') { fbq('track', 'Subscribe', { content_name: 'email_signup' }); }
       msg.textContent   = '✅ You\'re in! We\'ll notify you first.';
       msg.className     = 'email-msg success';
       msg.style.display = 'block';

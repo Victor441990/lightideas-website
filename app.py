@@ -253,17 +253,29 @@ def send_bulk_email():
 def links_page():
     return render_template('links.html')
 
+# ── Ad landing page (single-purpose, for Facebook ads)
+@app.route('/join')
+def join_page():
+    return render_template('join.html')
+
 # ── API: Track link clicks
 @app.route('/api/track_click', methods=['POST'])
 def track_click():
     data = request.json
     link = data.get('link', '')
+    source = data.get('source', 'unknown')
     if link:
         get_db()['link_clicks'].update_one(
             {'link': link},
             {'$inc': {'count': 1}, '$set': {'last_clicked': datetime.datetime.now().isoformat()}},
             upsert=True
         )
+        # Also log each click with its source for per-source analytics
+        get_db()['click_log'].insert_one({
+            'link': link,
+            'source': source,
+            'ts': datetime.datetime.now().isoformat()
+        })
     return jsonify({'success': True})
 
 @app.route('/api/link_stats')
@@ -272,6 +284,32 @@ def link_stats():
         return jsonify([]), 401
     stats = list(get_db()['link_clicks'].find({}, {'_id': 0}))
     return jsonify(stats)
+
+# ── API: Per-source click analytics (for dashboard)
+@app.route('/api/click_analytics')
+def click_analytics():
+    if not session.get('admin_logged_in'):
+        return jsonify({}), 401
+    logs = list(get_db()['click_log'].find({}, {'_id': 0}))
+    # Breakdown by source
+    by_source = {}
+    by_link_source = {}
+    by_day = {}
+    for l in logs:
+        src = l.get('source', 'unknown')
+        link = l.get('link', 'unknown')
+        by_source[src] = by_source.get(src, 0) + 1
+        key = link + '|' + src
+        by_link_source[key] = by_link_source.get(key, 0) + 1
+        day = (l.get('ts', '') or '')[:10]
+        if day:
+            by_day[day] = by_day.get(day, 0) + 1
+    return jsonify({
+        'total': len(logs),
+        'by_source': by_source,
+        'by_link_source': by_link_source,
+        'by_day': by_day
+    })
 
 # ─── LAPTOPSEAL ROUTES ─────────────────────────────────────────────────────
 
