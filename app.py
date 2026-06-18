@@ -38,10 +38,6 @@ ADMIN_PASSWORD = 'lightideas2026'
 def product_to_dict(p):
     p['id'] = str(p['_id'])
     del p['_id']
-    # Sanitize string fields to prevent JS syntax errors
-    for key in ['name', 'specs', 'description']:
-        if key in p and p[key]:
-            p[key] = str(p[key]).replace("'", "\\'").replace('"', '&quot;')
     return p
 def send_brevo_email(to_email, subject, html_body, text_body):
     payload = {
