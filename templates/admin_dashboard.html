@@ -171,8 +171,8 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
               <td style="color:var(--gold);font-weight:700;">₦{{ "{:,}".format(p.price) }}</td>
               <td><span class="cat-badge badge-{{ p.sub_category if p.sub_category else p.category }}">{{ p.sub_category if p.sub_category else p.category }}</span></td>
               <td style="color:var(--muted);font-size:0.78em;max-width:200px;">{{ p.specs }}</td>
-              <td><button class="avail-toggle {{ 'on' if p.available else 'off' }}" onclick="toggleAvailable({{ p.id }}, this)"></button></td>
-              <td><div class="row-actions"><button class="btn-edit" onclick='openEditModal({{ p | tojson }})'>Edit</button><button class="btn-del" onclick="deleteProduct({{ p.id }})">Delete</button></div></td>
+              <td><button class="avail-toggle {{ 'on' if p.available else 'off' }}" onclick="toggleAva<button class="btn-edit" onclick='openEditModal({{ p | tojson | e }})'>Edit</button>ilable({{ p.id }}, this)"></button></td>
+              <td><div class="row-actions"><button class="btn-del" onclick="deleteProduct({{ p.id }})">Delete</button></div></td>
             </tr>
             {% else %}
             <tr class="empty-row"><td colspan="7">No products yet. Click + Add Product to get started.</td></tr>
