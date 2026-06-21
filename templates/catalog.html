@@ -252,7 +252,7 @@ function openModal(id){
   document.getElementById("modalBadge").className    = "modal-badge " + b.cls;
   document.getElementById("modalName").textContent   = p.name;
   document.getElementById("modalPrice").textContent  = fmt(p.price);
-  document.getElementById("modalSpecs").textContent  = p.specs || "";
+  document.getElementById("modalSpecs").innerHTML = (p.specs ? '<strong style="color:#fff;">' + p.specs + '</strong><br><br>' : '') + (p.description ? p.description.replace(/\n/g, '<br>') : '');
   const waMsg = encodeURIComponent(`Hi Victor! 👋\n\nI want to order this laptop:\n\n💻 *${p.name}*\n💰 Price: ${fmt(p.price)}\n📋 Specs: ${p.specs}${p.image ? "\n📸 Photo: " + p.image : ""}\n\nPlease confirm if it's available.`);
   document.getElementById("modalWA").href = `https://wa.me/2348169441990?text=${waMsg}`;
   document.getElementById("modal").classList.add("open");
