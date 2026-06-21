@@ -19,8 +19,6 @@ html{scroll-behavior:smooth;}
 body{background:var(--black);color:var(--text);font-family:var(--font-body);min-height:100vh;}
 ::-webkit-scrollbar{width:3px;}
 ::-webkit-scrollbar-thumb{background:var(--gold2);}
-
-/* HEADER */
 .header{background:var(--black);position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,215,0,0.15);box-shadow:0 2px 20px rgba(0,0,0,0.8);}
 .header-top{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;gap:12px;}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
@@ -29,8 +27,6 @@ body{background:var(--black);color:var(--text);font-family:var(--font-body);min-
 .logo-sub{font-size:0.52em;color:#666;letter-spacing:2px;font-family:var(--font-body);}
 .header-cta{background:var(--green);color:#fff;padding:8px 16px;border-radius:50px;font-size:0.75em;font-weight:700;text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:6px;}
 .header-gold-bar{height:2px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold2),var(--gold),transparent);}
-
-/* HERO */
 .hero{background:linear-gradient(135deg,var(--dark) 0%,#1a1500 100%);padding:24px 20px;text-align:center;border-bottom:1px solid rgba(255,215,0,0.2);}
 .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:50px;padding:4px 14px;font-size:0.7em;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
 .hero-badge span{width:5px;height:5px;background:var(--gold);border-radius:50%;animation:pulse 2s infinite;}
@@ -38,25 +34,17 @@ body{background:var(--black);color:var(--text);font-family:var(--font-body);min-
 .hero h1{font-family:var(--font-display);font-size:clamp(1.8em,6vw,3em);letter-spacing:3px;color:#fff;margin-bottom:6px;line-height:1;}
 .hero h1 span{color:var(--gold);}
 .hero p{font-size:0.85em;color:#888;letter-spacing:1px;}
-
-/* SEARCH */
 .search-wrap{background:var(--dark2);padding:12px 16px;border-bottom:1px solid rgba(255,215,0,0.1);position:sticky;top:65px;z-index:99;}
 .search-box{display:flex;align-items:center;gap:10px;background:var(--dark3);border:1.5px solid rgba(255,215,0,0.2);border-radius:50px;padding:10px 16px;transition:border-color 0.2s;}
 .search-box:focus-within{border-color:var(--gold);}
 .search-box input{flex:1;border:none;background:transparent;font-family:var(--font-body);font-size:0.9em;color:#fff;outline:none;}
 .search-box input::placeholder{color:#555;}
-
-/* FILTERS */
 .filters{padding:12px 16px;background:var(--dark2);border-bottom:1px solid rgba(255,215,0,0.1);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
 .filters::-webkit-scrollbar{display:none;}
 .filter-btn{padding:7px 18px;border-radius:50px;font-family:var(--font-body);font-size:0.78em;font-weight:600;white-space:nowrap;cursor:pointer;border:1.5px solid rgba(255,215,0,0.2);color:#888;background:transparent;transition:all 0.2s;flex-shrink:0;}
 .filter-btn.active,.filter-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(255,215,0,0.08);}
-
-/* RESULTS */
 .results-info{padding:10px 16px 4px;font-size:0.78em;color:#666;display:flex;align-items:center;justify-content:space-between;}
 .results-count{font-weight:700;color:var(--gold);}
-
-/* GRID */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:12px 16px 100px;}
 .card{background:var(--dark2);border-radius:var(--r);overflow:hidden;border:1.5px solid rgba(255,255,255,0.06);transition:all 0.25s;cursor:pointer;}
 .card:hover{border-color:var(--gold);box-shadow:0 8px 30px rgba(255,215,0,0.15);transform:translateY(-3px);}
@@ -78,16 +66,12 @@ body{background:var(--black);color:var(--text);font-family:var(--font-body);min-
 .card-btn:hover{background:#1da851;transform:scale(1.02);}
 .empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:#555;}
 .empty div{font-size:2.5em;margin-bottom:12px;}
-
-/* FOOTER */
 .sticky-footer{position:fixed;bottom:0;left:0;right:0;background:var(--dark2);border-top:1px solid rgba(255,215,0,0.2);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:100;}
 .footer-info{display:flex;align-items:center;gap:8px;}
 .footer-info img{width:28px;height:28px;border-radius:50%;object-fit:contain;}
 .footer-name{font-family:var(--font-display);font-size:0.95em;letter-spacing:1px;color:var(--gold);}
 .footer-tag{font-size:0.62em;color:#555;letter-spacing:1px;}
 .footer-wa{background:var(--green);color:#fff;padding:9px 18px;border-radius:50px;font-size:0.78em;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;}
-
-/* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:500;display:none;align-items:flex-end;justify-content:center;}
 .modal-overlay.open{display:flex;}
 .modal{background:var(--dark2);border-radius:24px 24px 0 0;border-top:2px solid rgba(255,215,0,0.3);width:100%;max-width:500px;max-height:88vh;overflow-y:auto;animation:slideUp 0.3s ease;}
@@ -104,7 +88,6 @@ body{background:var(--black);color:var(--text);font-family:var(--font-body);min-
 .modal-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border-radius:14px;background:var(--green);color:#fff;font-family:var(--font-body);font-size:0.95em;font-weight:700;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,0.3);}
 .modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.1);color:#fff;border:none;font-size:1em;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
 .modal-wrap{position:relative;}
-
 @media(min-width:500px){.grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));}}
 </style>
 </head>
@@ -177,7 +160,7 @@ body{background:var(--black);color:var(--text);font-family:var(--font-body);min-
         <div class="modal-price" id="modalPrice"></div>
         <div class="modal-specs" id="modalSpecs"></div>
         <div class="modal-usps">
-          <div class="modal-usp">🔬 Passed 15-module diagnostic check</div>
+          <div class="modal-usp">🔬 Passed 16-module diagnostic check</div>
           <div class="modal-usp">⚡ FREE power surge protector included</div>
           <div class="modal-usp">🛡️ Guarantee on every laptop</div>
           <div class="modal-usp">🔧 Tech support via WhatsApp</div>
@@ -230,9 +213,9 @@ function render(){
     const imgH = p.image
       ? `<img src="${p.image}" alt="${p.name}" loading="lazy"/>`
       : `<div class="placeholder">${iconMap[p.category] || "💻"}</div>`;
-    const waMsg = encodeURIComponent(`Hi Victor! 👋\n\nI want to order this laptop:\n\n💻 *${p.name}*\n💰 Price: ${fmt(p.price)}\n📋 Specs: ${p.specs}${p.image ? "\n📸 Photo: " + p.image : ""}\n\nPlease confirm if it\'s available.`);
+    const waMsg = encodeURIComponent(`Hi Victor! 👋\n\nI want to order this laptop:\n\n💻 *${p.name}*\n💰 Price: ${fmt(p.price)}\n📋 Specs: ${p.specs}${p.image ? "\n📸 Photo: " + p.image : ""}\n\nPlease confirm if it's available.`);
     return `
-      <div class="card" onclick="openModal(${p.id})">
+      <div class="card" onclick="openModal('${p.id}')">
         <div class="card-img">${imgH}<span class="card-badge ${b.cls}">${b.label}</span></div>
         <div class="card-body">
           <div class="card-brand">${p.name.split(" ")[0]}</div>
@@ -259,7 +242,7 @@ function filterProducts(){
 }
 
 function openModal(id){
-  const p = PRODUCTS.find(x => x.id === id);
+  const p = PRODUCTS.find(x => String(x.id) === String(id));
   if(!p) return;
   const b = badgeMap[p.sub_category] || badgeMap[p.category] || {cls:"badge-budget",label:"Available"};
   document.getElementById("modalImg").innerHTML = p.image
@@ -270,7 +253,7 @@ function openModal(id){
   document.getElementById("modalName").textContent   = p.name;
   document.getElementById("modalPrice").textContent  = fmt(p.price);
   document.getElementById("modalSpecs").textContent  = p.specs || "";
-  const waMsg = encodeURIComponent(`Hi Victor! 👋\n\nI want to order this laptop:\n\n💻 *${p.name}*\n💰 Price: ${fmt(p.price)}\n📋 Specs: ${p.specs}${p.image ? "\n📸 Photo: " + p.image : ""}\n\nPlease confirm if it\'s available.`);
+  const waMsg = encodeURIComponent(`Hi Victor! 👋\n\nI want to order this laptop:\n\n💻 *${p.name}*\n💰 Price: ${fmt(p.price)}\n📋 Specs: ${p.specs}${p.image ? "\n📸 Photo: " + p.image : ""}\n\nPlease confirm if it's available.`);
   document.getElementById("modalWA").href = `https://wa.me/2348169441990?text=${waMsg}`;
   document.getElementById("modal").classList.add("open");
   document.body.style.overflow = "hidden";
@@ -280,6 +263,7 @@ function closeModal(){
   document.getElementById("modal").classList.remove("open");
   document.body.style.overflow = "";
 }
+
 function handleModalClick(e){
   if(e.target === document.getElementById("modal")) closeModal();
 }
