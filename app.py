@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from pymongo import MongoClient
 from bson import ObjectId
 import cloudinary
@@ -429,8 +429,21 @@ def laptopseal_admin_data():
         'revenue': total_revenue
     })
 
+# ── LaptopSeal installer + auto-update (hosted permanently on GitHub Releases)
+LAPTOPSEAL_LATEST_VERSION = '1.0.2'
+LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.2/LaptopSeal_Setup.exe'
+
 @app.route('/laptopseal/download')
 def laptopseal_download():
-    return redirect('/static/downloads/LaptopSeal_Setup.exe')
+    return redirect(LAPTOPSEAL_SETUP_URL)
+
+@app.route('/laptopseal/version.json')
+def laptopseal_version():
+    return jsonify({
+        'version': LAPTOPSEAL_LATEST_VERSION,
+        'url':     LAPTOPSEAL_SETUP_URL,
+        'notes':   'Battery voltage fix, SSD internal-drive scan, USB drive test, keyboard "Mark All as Pass", and clearer Office handling.'
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, port=5050)
