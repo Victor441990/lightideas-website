@@ -430,8 +430,8 @@ def laptopseal_admin_data():
     })
 
 # ── LaptopSeal installer + auto-update (hosted permanently on GitHub Releases)
-LAPTOPSEAL_LATEST_VERSION = '1.0.2'
-LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.2/LaptopSeal_Setup.exe'
+LAPTOPSEAL_LATEST_VERSION = '1.0.3'
+LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.3/LaptopSeal_Setup.exe'
 
 @app.route('/laptopseal/download')
 def laptopseal_download():
@@ -442,7 +442,7 @@ def laptopseal_version():
     return jsonify({
         'version': LAPTOPSEAL_LATEST_VERSION,
         'url':     LAPTOPSEAL_SETUP_URL,
-        'notes':   'Battery voltage fix, SSD internal-drive scan, USB drive test, keyboard "Mark All as Pass", and clearer Office handling.'
+        'notes':   'NVMe SSD temperature & stats, live battery power-draw (drain) reading, dedicated GPU temperature, and an official Microsoft Office download.'
     })
 
 if __name__ == '__main__':
