@@ -318,16 +318,9 @@ def laptopseal():
 
 @app.route('/laptopseal/tool')
 def laptopseal_tool():
-    token = request.args.get('token') or request.cookies.get('ls_token')
-    is_pro = False
-    if token:
-        license_data = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
-        if license_data:
-            if license_data.get('expires_at') and license_data['expires_at'] > datetime.datetime.utcnow():
-                is_pro = True
-            else:
-                get_db()['ls_licenses'].update_one({'token': token}, {'$set': {'active': False}})
-    return render_template('laptopseal_tool.html', is_pro=is_pro, token=token or '')
+    # LaptopSeal is now a desktop app only. The old browser tool is retired —
+    # send anyone who lands here back to the sales / download page.
+    return redirect('/laptopseal')
 
 @app.route('/laptopseal/verify_payment', methods=['POST'])
 def laptopseal_verify_payment():
@@ -341,7 +334,7 @@ def laptopseal_verify_payment():
     res = r.json()
     if res.get('status') and res['data']['status'] == 'success':
         amount_paid = res['data']['amount']
-        if amount_paid >= 500000:
+        if amount_paid >= 200000:
             token = str(uuid.uuid4()).replace('-', '')
             expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=30)
             get_db()['ls_licenses'].insert_one({
