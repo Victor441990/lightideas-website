@@ -61,7 +61,7 @@
       <div class="service-tag paid">Paid Service</div>
       <div class="service-name">DIAGNOSTIC TOOL</div>
       <div class="service-desc">Full 15-module laptop health check. Battery, SSD, CPU, GPU, RAM, Ports, Screen, WiFi and more — all in one automated scan with a full report.</div>
-      <div class="service-price">₦2,000 <span style="font-size:0.6em;color:var(--muted);font-weight:400;">/ per scan</span></div>
+      <div class="service-price">₦2,000 <span style="font-size:0.6em;color:var(--muted);font-weight:400;">/ 30 days</span></div>
       <button class="service-btn" onclick="openDiagModal()">Get Access →</button>
     </div>
 
@@ -304,14 +304,14 @@
 <div class="modal-overlay" id="diagModal">
   <div class="modal">
     <div class="modal-logo"><img src="/static/images/logo.jpg" alt="Light Ideas"/></div>
-    <h3>DIAGNOSTIC TOOL</h3>
-    <p>Complete 15-module laptop health check. Know exactly what you're buying — or confirm what you're selling.</p>
+    <h3>LAPTOPSEAL DIAGNOSTIC</h3>
+    <p>Complete 15-module Windows laptop health check. The Battery module is free — unlock all 15 modules for ₦2,000 (30 days).</p>
     <div class="modal-price">
       <div class="price">₦2,000</div>
-      <div class="price-note">One-time payment · Instant access</div>
+      <div class="price-note">Battery free · Full access 30 days · One laptop</div>
     </div>
-    <input type="email" class="modal-email-input" id="diagEmail" placeholder="Enter your email address"/>
-    <button class="btn-pay" onclick="payWithPaystack()">🔒 Pay Securely with Paystack</button>
+    <a href="/laptopseal/download" class="btn-pay" style="display:block;text-decoration:none;text-align:center;margin-bottom:10px;">⬇ Download Free (Battery)</a>
+    <a href="/laptopseal" class="btn-pay" style="display:block;text-decoration:none;text-align:center;background:transparent;color:var(--gold);border:1.5px solid var(--gold);">See Pricing & Full Details</a>
     <span class="modal-close" onclick="closeDiagModal()">✕ Close</span>
   </div>
 </div>
