@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+﻿from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from pymongo import MongoClient
 from bson import ObjectId
 import cloudinary
@@ -333,21 +333,35 @@ def laptopseal_verify_payment():
     r = requests.get('https://api.paystack.co/transaction/verify/' + reference, headers=headers)
     res = r.json()
     if res.get('status') and res['data']['status'] == 'success':
-        amount_paid = res['data']['amount']
-        if amount_paid >= 200000:
-            token = str(uuid.uuid4()).replace('-', '')
-            expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=30)
-            get_db()['ls_licenses'].insert_one({
-                'email': email,
-                'token': token,
-                'reference': reference,
-                'amount': amount_paid,
-                'active': True,
-                'created_at': datetime.datetime.utcnow(),
-                'expires_at': expires_at,
-                'hardware_id': None
-            })
-            return jsonify({'success': True, 'token': token})
+        amount_paid = res['data']['amount']  # in kobo
+        # Determine tier + laptop limit from the amount paid.
+        if amount_paid >= 6000000:      # ₦60,000
+            tier, max_devices = 'unlimited', 999999
+        elif amount_paid >= 3000000:    # ₦30,000
+            tier, max_devices = 'medium', 20
+        elif amount_paid >= 800000:     # ₦8,000
+            tier, max_devices = 'small', 5
+        elif amount_paid >= 200000:     # ₦2,000
+            tier, max_devices = 'single', 1
+        else:
+            return jsonify({'success': False, 'error': 'Amount too low for any plan'})
+
+        token = str(uuid.uuid4()).replace('-', '')
+        expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=30)
+        get_db()['ls_licenses'].insert_one({
+            'email': email,
+            'token': token,
+            'reference': reference,
+            'amount': amount_paid,
+            'tier': tier,
+            'max_devices': max_devices,
+            'devices': [],
+            'active': True,
+            'created_at': datetime.datetime.utcnow(),
+            'expires_at': expires_at,
+            'hardware_id': None  # kept for backward compatibility
+        })
+        return jsonify({'success': True, 'token': token, 'tier': tier, 'max_devices': max_devices})
     return jsonify({'success': False, 'error': 'Payment verification failed'})
 
 @app.route('/laptopseal/activate')
@@ -368,15 +382,36 @@ def laptopseal_bind_hardware():
     hardware_id = data.get('hardware_id')
     if not token or not hardware_id:
         return jsonify({'success': False, 'error': 'Missing data'})
-    license_data = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
-    if not license_data:
+    lic = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
+    if not lic:
         return jsonify({'success': False, 'error': 'Invalid license'})
-    if not license_data.get('hardware_id'):
-        get_db()['ls_licenses'].update_one({'token': token}, {'$set': {'hardware_id': hardware_id}})
-        return jsonify({'success': True, 'message': 'License activated on this device'})
-    if license_data['hardware_id'] == hardware_id:
-        return jsonify({'success': True, 'message': 'License verified'})
-    return jsonify({'success': False, 'error': 'This license is bound to a different device'})
+
+    # Backward compatibility: migrate old single-hardware_id licenses to a device list
+    devices = lic.get('devices')
+    if devices is None:
+        devices = [lic['hardware_id']] if lic.get('hardware_id') else []
+    max_devices = lic.get('max_devices', 1)
+
+    # Already registered on this laptop → fine
+    if hardware_id in devices:
+        return jsonify({'success': True, 'message': 'License verified',
+                        'tier': lic.get('tier', 'single'),
+                        'devices_used': len(devices), 'max_devices': max_devices})
+
+    # Room for another laptop?
+    if len(devices) < max_devices:
+        devices.append(hardware_id)
+        get_db()['ls_licenses'].update_one({'token': token},
+            {'$set': {'devices': devices, 'max_devices': max_devices,
+                      'hardware_id': devices[0]}})
+        return jsonify({'success': True, 'message': 'License activated on this device',
+                        'tier': lic.get('tier', 'single'),
+                        'devices_used': len(devices), 'max_devices': max_devices})
+
+    # Limit reached
+    return jsonify({'success': False,
+                    'error': 'This license has reached its limit of ' + str(max_devices) + ' laptop(s).',
+                    'devices_used': len(devices), 'max_devices': max_devices})
 
 @app.route('/laptopseal/check_license', methods=['POST'])
 def laptopseal_check_license():
@@ -385,46 +420,153 @@ def laptopseal_check_license():
     hardware_id = data.get('hardware_id')
     if not token:
         return jsonify({'valid': False, 'tier': 'free'})
-    license_data = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
-    if not license_data:
+    lic = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
+    if not lic:
         return jsonify({'valid': False, 'tier': 'free'})
-    if license_data.get('expires_at') and license_data['expires_at'] < datetime.datetime.utcnow():
+    if lic.get('expires_at') and lic['expires_at'] < datetime.datetime.utcnow():
         get_db()['ls_licenses'].update_one({'token': token}, {'$set': {'active': False}})
         return jsonify({'valid': False, 'tier': 'free', 'error': 'License expired'})
-    if license_data.get('hardware_id') and license_data['hardware_id'] != hardware_id:
-        return jsonify({'valid': False, 'tier': 'free', 'error': 'Wrong device'})
-    expires_at = license_data['expires_at']
+
+    # Backward compatibility: migrate old single-hardware_id licenses
+    devices = lic.get('devices')
+    if devices is None:
+        devices = [lic['hardware_id']] if lic.get('hardware_id') else []
+    max_devices = lic.get('max_devices', 1)
+
+    # This laptop must be one of the registered devices
+    if hardware_id and hardware_id not in devices:
+        return jsonify({'valid': False, 'tier': 'free', 'error': 'Not activated on this device',
+                        'devices_used': len(devices), 'max_devices': max_devices})
+
+    expires_at = lic['expires_at']
     days_left = (expires_at - datetime.datetime.utcnow()).days
     return jsonify({
         'valid': True,
-        'tier': 'pro',
-        'email': license_data['email'],
+        'tier': lic.get('tier', 'pro'),
+        'email': lic['email'],
         'days_left': days_left,
-        'expires_at': expires_at.strftime('%d %B %Y')
+        'expires_at': expires_at.strftime('%d %B %Y'),
+        'devices_used': len(devices),
+        'max_devices': max_devices
     })
 
 @app.route('/laptopseal/admin_data')
 def laptopseal_admin_data():
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 401
-    licenses = list(get_db()['ls_licenses'].find({}, {'_id': 0}))
-    for l in licenses:
-        if 'created_at' in l:
-            l['created_at'] = l['created_at'].strftime('%d %b %Y')
-        if 'expires_at' in l:
-            l['expires_at'] = l['expires_at'].strftime('%d %b %Y')
-    active = sum(1 for l in licenses if l.get('active'))
-    total_revenue = sum(l.get('amount', 0) for l in licenses) / 100
+    now = datetime.datetime.utcnow()
+    raw = list(get_db()['ls_licenses'].find({}, {'_id': 0}))
+    # Newest first (sort on the real datetime before formatting)
+    raw.sort(key=lambda l: l.get('created_at') or datetime.datetime.min, reverse=True)
+
+    licenses = []
+    active = 0
+    expired = 0
+    total_revenue = 0
+    for l in raw:
+        amount = l.get('amount', 0)
+        total_revenue += amount
+        exp = l.get('expires_at')
+        is_active_flag = bool(l.get('active'))
+        days_left = None
+        status = 'expired'
+        if exp:
+            days_left = (exp - now).days
+            if is_active_flag and exp > now:
+                status = 'active'
+            else:
+                status = 'expired'
+        elif is_active_flag:
+            status = 'active'
+
+        if status == 'active':
+            active += 1
+        else:
+            expired += 1
+
+        # Device usage (with backward compatibility)
+        devices = l.get('devices')
+        if devices is None:
+            devices = [l['hardware_id']] if l.get('hardware_id') else []
+        max_devices = l.get('max_devices', 1)
+        tier = l.get('tier', 'single')
+
+        licenses.append({
+            'email':       l.get('email', '—'),
+            'token':       l.get('token', ''),
+            'amount':      amount,
+            'tier':        tier,
+            'devices_used': len(devices),
+            'max_devices': max_devices,
+            'hardware_id': (devices[0] if devices else ''),
+            'activated':   len(devices) > 0,
+            'created_at':  l['created_at'].strftime('%d %b %Y') if l.get('created_at') else '—',
+            'expires_at':  exp.strftime('%d %b %Y') if exp else '—',
+            'days_left':   days_left if days_left is not None else '—',
+            'status':      status
+        })
+
     return jsonify({
         'licenses': licenses,
-        'total': len(licenses),
-        'active': active,
-        'revenue': total_revenue
+        'total':    len(licenses),
+        'active':   active,
+        'expired':  expired,
+        'revenue':  total_revenue / 100
     })
 
+@app.route('/victor-admin/laptopseal')
+def laptopseal_admin_page():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    return render_template('laptopseal_admin.html')
+
+
+@app.route('/laptopseal/apps.json')
+def laptopseal_apps():
+    # Curated app list for the LaptopSeal App Store. Edit a link here and every
+    # laptop gets the fix instantly — no app rebuild needed.
+    apps = [
+        {"id":"chrome","icon":"&#127760;","name":"Google Chrome","cat":"browser","desc":"Fast and secure web browser","size":"~90MB","url":"https://dl.google.com/tag/s/dl/chrome/install/googlechromestandaloneenterprise64.msi","installer":"GoogleChrome.msi","silent":"/quiet"},
+        {"id":"firefox","icon":"&#129418;","name":"Mozilla Firefox","cat":"browser","desc":"Free and open source browser","size":"~55MB","url":"https://download.mozilla.org/?product=firefox-latest-ssl&os=win64&lang=en-US","installer":"FirefoxSetup.exe","silent":"/S"},
+        {"id":"brave","icon":"&#129409;","name":"Brave Browser","cat":"browser","desc":"Privacy browser with ad blocking","size":"~90MB","url":"https://laptop-updates.brave.com/latest/winx64","installer":"BraveSetup.exe","silent":"--silent"},
+        {"id":"opera","icon":"&#128308;","name":"Opera Browser","cat":"browser","desc":"Feature-rich browser with free VPN","size":"~80MB","url":"https://net.geo.opera.com/opera/stable/windows","installer":"OperaSetup.exe","silent":"/silent /launchopera 0"},
+        {"id":"vlc","icon":"&#127916;","name":"VLC Media Player","cat":"media","desc":"Plays all video and audio formats","size":"~40MB","url":"https://get.videolan.org/vlc/3.0.21/win64/vlc-3.0.21-win64.exe","installer":"vlc-setup.exe","silent":"/S"},
+        {"id":"spotify","icon":"&#127925;","name":"Spotify","cat":"media","desc":"Music streaming app","size":"~75MB","url":"https://download.scdn.co/SpotifySetup.exe","installer":"SpotifySetup.exe","silent":"/silent"},
+        {"id":"libreoffice","icon":"&#128196;","name":"LibreOffice","cat":"productivity","desc":"Free office suite - Writer, Calc, Impress","size":"~350MB","url":"https://mirror.ufs.ac.za/tdf/libreoffice/stable/24.8.5/win/x86_64/LibreOffice_24.8.5_Win_x86-64.msi","installer":"LibreOffice.msi","silent":"/quiet"},
+        {"id":"foxit","icon":"&#128203;","name":"Foxit PDF Reader","cat":"productivity","desc":"Lightweight PDF reader","size":"~60MB","url":"https://cdn07.foxitsoftware.com/pub/foxit/reader/desktop/win/2.x/2.4/en_us/FoxitReader251_Setup_Prom_IS.exe","installer":"FoxitReader.exe","silent":"/quiet"},
+        {"id":"notepadpp","icon":"&#128221;","name":"Notepad++","cat":"productivity","desc":"Advanced text and code editor","size":"~4MB","url":"https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.7/npp.8.6.7.Installer.x64.exe","installer":"npp.installer.exe","silent":"/S"},
+        {"id":"7zip","icon":"&#128476;","name":"7-Zip","cat":"utility","desc":"Free file archiver - best compression","size":"~1.5MB","url":"https://www.7-zip.org/a/7z2401-x64.exe","installer":"7z-setup.exe","silent":"/S"},
+        {"id":"winrar","icon":"&#128230;","name":"WinRAR","cat":"utility","desc":"File archiver and extractor","size":"~3MB","url":"https://www.win-rar.com/fileadmin/winrar-versions/winrar/winrar-x64-701.exe","installer":"winrar-setup.exe","silent":"/S"},
+        {"id":"ccleaner","icon":"&#129529;","name":"CCleaner Free","cat":"utility","desc":"PC cleaner and optimizer","size":"~25MB","url":"https://download.ccleaner.com/ccsetup.exe","installer":"ccsetup.exe","silent":"/S"},
+        {"id":"cpu-z","icon":"&#9889;","name":"CPU-Z","cat":"utility","desc":"Detailed CPU and hardware info","size":"~2MB","url":"https://download.cpuid.com/cpu-z/cpu-z_2.09-en.exe","installer":"cpuz.exe","silent":"/S"},
+        {"id":"hwmonitor","icon":"&#127777;","name":"HWMonitor","cat":"utility","desc":"Hardware temperature monitor","size":"~2MB","url":"https://download.cpuid.com/hwmonitor/hwmonitor_1.53.exe","installer":"hwmonitor.exe","silent":"/S"},
+        {"id":"teamviewer","icon":"&#128421;","name":"TeamViewer","cat":"utility","desc":"Remote desktop and support tool","size":"~50MB","url":"https://download.teamviewer.com/download/TeamViewer_Setup_x64.exe","installer":"TeamViewerSetup.exe","silent":"/S"},
+        {"id":"anydesk","icon":"&#128279;","name":"AnyDesk","cat":"utility","desc":"Fast remote desktop application","size":"~4MB","url":"https://download.anydesk.com/AnyDesk.exe","installer":"AnyDesk.exe","silent":"--install C:\\AnyDesk --start-with-win --silent"},
+        {"id":"zoom","icon":"&#128249;","name":"Zoom","cat":"communication","desc":"Video meetings and conferencing","size":"~10MB","url":"https://zoom.us/client/latest/ZoomInstaller.exe","installer":"ZoomInstaller.exe","silent":"/quiet /norestart"},
+        {"id":"telegram","icon":"&#9992;","name":"Telegram Desktop","cat":"communication","desc":"Fast and secure messaging app","size":"~50MB","url":"https://telegram.org/dl/desktop/win64","installer":"tsetup-x64.exe","silent":"/VERYSILENT"},
+        {"id":"discord","icon":"&#128172;","name":"Discord","cat":"communication","desc":"Voice, video and text chat","size":"~90MB","url":"https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64","installer":"DiscordSetup.exe","silent":"/S"}
+    ]
+    return jsonify({'apps': apps})
+
+
+@app.route('/terms')
+def terms_page():
+    return render_template('terms.html')
+
+
+@app.route('/laptopseal/userguide')
+def laptopseal_userguide():
+    return render_template('guide.html')
+
+
+@app.route('/guide')
+def guide_alias():
+    return render_template('guide.html')
+
+
 # ── LaptopSeal installer + auto-update (hosted permanently on GitHub Releases)
-LAPTOPSEAL_LATEST_VERSION = '1.0.4'
-LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.4/LaptopSeal_Setup.exe'
+LAPTOPSEAL_LATEST_VERSION = '1.0.6'
+LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.6/LaptopSeal_Setup.exe'
 @app.route('/laptopseal/download')
 def laptopseal_download():
     return redirect(LAPTOPSEAL_SETUP_URL)
@@ -434,7 +576,7 @@ def laptopseal_version():
     return jsonify({
         'version': LAPTOPSEAL_LATEST_VERSION,
         'url':     LAPTOPSEAL_SETUP_URL,
-        'notes':   'NVMe SSD temperature & stats, live battery power-draw (drain) reading, dedicated GPU temperature, and an official Microsoft Office download.'
+        'notes':   'Reseller licenses (5, 20 or unlimited laptops), one-click Microsoft Office 2021 install, live WiFi monitoring, fixed WiFi and ports detection, softer CPU stress test, and a self-updating App Store.'
     })
 
 if __name__ == '__main__':

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LaptopSeal Dashboard — Light Ideas Technology</title>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#000; color:#FFD700; font-family:'Segoe UI',sans-serif; padding:24px; min-height:100vh; }
+    .top { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:24px; }
+    .top h1 { font-size:1.4em; letter-spacing:2px; }
+    .top .sub { font-size:0.75em; color:#666; margin-top:2px; letter-spacing:1px; }
+    .top-links a { color:#888; text-decoration:none; font-size:0.8em; margin-left:16px; }
+    .top-links a:hover { color:#FFD700; }
+
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:26px; }
+    .stat { background:#0d0d0d; border:1.5px solid #1a1a1a; border-radius:14px; padding:20px; text-align:center; }
+    .stat.gold { border-color:#FFD700; }
+    .stat .num { font-size:2em; font-weight:900; color:#FFD700; }
+    .stat .lbl { font-size:0.7em; color:#777; letter-spacing:1px; text-transform:uppercase; margin-top:6px; }
+    .stat.green .num { color:#4ade80; }
+    .stat.red .num { color:#f87171; }
+
+    .panel { background:#0d0d0d; border:1.5px solid #1a1a1a; border-radius:14px; padding:20px; }
+    .panel-title { font-size:0.78em; color:#FFD700; letter-spacing:2px; text-transform:uppercase; font-weight:700; margin-bottom:16px; }
+    table { width:100%; border-collapse:collapse; font-size:0.8em; }
+    th { text-align:left; color:#666; font-size:0.72em; text-transform:uppercase; letter-spacing:1px; padding:10px 12px; border-bottom:1px solid #222; }
+    td { padding:12px; border-bottom:1px solid #161616; color:#ddd; }
+    tr:hover td { background:#111; }
+    .badge { display:inline-block; padding:3px 12px; border-radius:20px; font-size:0.7em; font-weight:bold; letter-spacing:0.5px; }
+    .b-active { background:#14532d; color:#4ade80; }
+    .b-expired { background:#450a0a; color:#f87171; }
+    .b-trial { background:#78350f; color:#fbbf24; }
+    .email { color:#FFD700; font-weight:600; }
+    .hwid { font-family:monospace; font-size:0.85em; color:#666; }
+    .keybtn { background:transparent; border:1px solid #333; color:#888; border-radius:6px; padding:4px 10px; font-size:0.72em; cursor:pointer; }
+    .keybtn:hover { border-color:#FFD700; color:#FFD700; }
+    .keyval { font-family:monospace; font-size:0.82em; color:#4ade80; word-break:break-all; }
+    .empty { text-align:center; color:#555; padding:50px; font-size:0.9em; }
+    .loading { text-align:center; color:#666; padding:50px; }
+    .spin { display:inline-block; width:18px; height:18px; border:2px solid #333; border-top-color:#FFD700; border-radius:50%; animation:s 0.7s linear infinite; }
+    @keyframes s { to { transform:rotate(360deg); } }
+    .refresh { background:#FFD700; color:#000; border:none; border-radius:40px; padding:8px 20px; font-weight:bold; font-size:0.78em; cursor:pointer; letter-spacing:1px; }
+    .refresh:hover { background:#e6b800; }
+    @media(max-width:700px){ .stats{grid-template-columns:repeat(2,1fr);} table{font-size:0.7em;} .hide-sm{display:none;} }
+</style>
+</head>
+<body>
+
+<div class="top">
+    <div>
+        <h1>🔬 LAPTOPSEAL DASHBOARD</h1>
+        <div class="sub">Every laptop running LaptopSeal</div>
+    </div>
+    <div class="top-links">
+        <button class="refresh" onclick="load()">↻ Refresh</button>
+        <a href="/victor-admin/dashboard">← Main Admin</a>
+        <a href="/victor-admin/logout">Logout</a>
+    </div>
+</div>
+
+<div class="stats">
+    <div class="stat gold"><div class="num" id="s-total">—</div><div class="lbl">Total Laptops</div></div>
+    <div class="stat green"><div class="num" id="s-active">—</div><div class="lbl">Active (Paid)</div></div>
+    <div class="stat red"><div class="num" id="s-expired">—</div><div class="lbl">Expired</div></div>
+    <div class="stat gold"><div class="num" id="s-revenue">—</div><div class="lbl">Total Revenue</div></div>
+</div>
+
+<div class="panel">
+    <div class="panel-title">All Licenses</div>
+    <div id="tableWrap">
+        <div class="loading"><span class="spin"></span> Loading...</div>
+    </div>
+</div>
+
+<script>
+async function load() {
+    const wrap = document.getElementById('tableWrap');
+    wrap.innerHTML = '<div class="loading"><span class="spin"></span> Loading...</div>';
+    try {
+        const res = await fetch('/laptopseal/admin_data');
+        if (res.status === 401) { window.location.href = '/victor-admin'; return; }
+        const d = await res.json();
+
+        document.getElementById('s-total').textContent   = d.total || 0;
+        document.getElementById('s-active').textContent  = d.active || 0;
+        document.getElementById('s-expired').textContent = d.expired || 0;
+        document.getElementById('s-revenue').textContent = '₦' + (d.revenue || 0).toLocaleString();
+
+        if (!d.licenses || d.licenses.length === 0) {
+            wrap.innerHTML = '<div class="empty">No licenses yet. When customers buy LaptopSeal, they will appear here.</div>';
+            return;
+        }
+
+        let rows = '';
+        d.licenses.forEach((l, i) => {
+            const badge = l.status === 'active'
+                ? '<span class="badge b-active">● Active</span>'
+                : '<span class="badge b-expired">● Expired</span>';
+            const tierLabels = { single:'Single', small:'Reseller 5', medium:'Reseller 20', unlimited:'Unlimited' };
+            const tierName = tierLabels[l.tier] || l.tier || 'Single';
+            const maxShow = (l.max_devices >= 999999) ? '∞' : l.max_devices;
+            const usage = (l.devices_used || 0) + ' / ' + maxShow + ' laptops';
+            const hw = l.hardware_id ? l.hardware_id : '<span style="color:#444;">— not activated —</span>';
+            rows += `<tr>
+                <td class="email">${l.email}</td>
+                <td><span class="badge b-trial">${tierName}</span></td>
+                <td>${badge}</td>
+                <td>${usage}</td>
+                <td>${l.days_left}${l.days_left !== '—' ? ' days' : ''}</td>
+                <td class="hide-sm">${l.created_at}</td>
+                <td class="hide-sm">${l.expires_at}</td>
+                <td><button class="keybtn" onclick="revealKey(${i}, this)">Show Key</button>
+                    <span class="keyval" id="key-${i}" style="display:none;">${l.token}</span></td>
+            </tr>`;
+        });
+
+        wrap.innerHTML = `<table>
+            <thead><tr>
+                <th>Email</th><th>Plan</th><th>Status</th><th>Laptops</th><th>Days Left</th>
+                <th class="hide-sm">Bought</th><th class="hide-sm">Expires</th><th>License Key</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+    } catch (e) {
+        wrap.innerHTML = '<div class="empty">Could not load data: ' + e + '</div>';
+    }
+}
+
+function revealKey(i, btn) {
+    const el = document.getElementById('key-' + i);
+    if (el.style.display === 'none') {
+        el.style.display = 'inline';
+        btn.style.display = 'none';
+    }
+}
+
+load();
+</script>
+</body>
+</html>
