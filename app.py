@@ -123,6 +123,7 @@ def add_product():
     }
     result = get_products_col().insert_one(product)
     product['id'] = str(result.inserted_id)
+    product.pop('_id', None)
     return jsonify({'success': True, 'product': product})
 
 # ── API: Update product
@@ -158,6 +159,7 @@ def upload_image():
         )
         return jsonify({'success': True, 'url': result['secure_url']})
     except Exception as e:
+        app.logger.error(f'Cloudinary upload failed: {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ── API: Email subscribe
