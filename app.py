@@ -567,8 +567,8 @@ def guide_alias():
 
 
 # ── LaptopSeal installer + auto-update (hosted permanently on GitHub Releases)
-LAPTOPSEAL_LATEST_VERSION = '1.0.6'
-LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.6/LaptopSeal_Setup.exe'
+LAPTOPSEAL_LATEST_VERSION = '1.0.7'
+LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.7/LaptopSeal_Setup.exe'
 @app.route('/laptopseal/download')
 def laptopseal_download():
     return redirect(LAPTOPSEAL_SETUP_URL)
@@ -578,7 +578,7 @@ def laptopseal_version():
     return jsonify({
         'version': LAPTOPSEAL_LATEST_VERSION,
         'url':     LAPTOPSEAL_SETUP_URL,
-        'notes':   'Reseller licenses (5, 20 or unlimited laptops), one-click Microsoft Office 2021 install, live WiFi monitoring, fixed WiFi and ports detection, softer CPU stress test, and a self-updating App Store.'
+        'notes':   'LibreHardwareMonitor fallback for Temperature module, headphone jack detection fix, background install for antivirus/App Store apps, and a fix for the auto-updater install race condition.'
     })
 
 if __name__ == '__main__':
