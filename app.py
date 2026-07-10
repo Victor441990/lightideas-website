@@ -24,7 +24,7 @@ def get_emails_col():
 # ── Cloudinary
 cloudinary.config(
     cloud_name = 'dfkdvznkp',
-    api_key    = '519772916967931',
+    api_key    = '318817292118594',
     api_secret = os.environ.get('CLOUDINARY_API_SECRET')
 )
 
