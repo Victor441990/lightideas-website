@@ -6,10 +6,10 @@ import cloudinary.uploader
 import datetime, json, requests, threading, os, uuid
 
 app = Flask(__name__)
-app.secret_key = 'lightideas_secret_2026_victor'
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
 # ── MongoDB
-MONGO_URI = "mongodb+srv://enema910_db_user:MsHwrG1k3TNCCcAr@cluster0.b0rxo4f.mongodb.net/?appName=Cluster0"
+MONGO_URI = os.environ.get('MONGO_URI')
 
 def get_db():
     client = MongoClient(MONGO_URI)
@@ -25,7 +25,7 @@ def get_emails_col():
 cloudinary.config(
     cloud_name = 'dfkdvznkp',
     api_key    = '519772916967931',
-    api_secret = 'a-tRq7QYepp6jxEx9TFlk10OMpQ'
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET')
 )
 
 # ── Brevo email config
@@ -33,7 +33,7 @@ BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 EMAIL_SENDER  = {'name': 'Light Ideas Technology', 'email': 'info@lightideastechnology.com.ng'}
 
-ADMIN_PASSWORD = 'lightideas2026'
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
 def product_to_dict(p):
     p['id'] = str(p['_id'])
