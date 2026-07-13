@@ -94,6 +94,11 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
 .link-stat-card{background:var(--black);border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
 .link-stat-bar-wrap{width:100%;background:#111;border-radius:50px;height:6px;margin-top:8px;overflow:hidden;}
 .link-stat-bar{height:100%;background:var(--gold);border-radius:50px;transition:width 0.8s ease;}
+.media-card{position:relative;height:140px;border-radius:12px;overflow:hidden;background:var(--black4);border:1px solid #1a1a1a;}
+.media-card img,.media-card video{width:100%;height:100%;object-fit:cover;display:block;}
+.media-del{position:absolute;top:6px;right:6px;padding:3px 9px;font-size:0.65em;}
+.review-card{display:flex;align-items:center;gap:14px;background:var(--black);border:1px solid #1a1a1a;border-radius:12px;padding:14px 18px;}
+.review-card img{width:52px;height:52px;border-radius:10px;object-fit:cover;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -113,6 +118,8 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
   <div class="sidebar">
     <div class="sidebar-item active" onclick="showPage('overview')"><span class="icon">📊</span> Overview</div>
     <div class="sidebar-item" onclick="showPage('products')"><span class="icon">📦</span> Products</div>
+    <div class="sidebar-item" onclick="showPage('heromedia')"><span class="icon">🎬</span> Hero Media</div>
+    <div class="sidebar-item" onclick="showPage('reviews')"><span class="icon">⭐</span> Reviews</div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-item" onclick="showPage('emails')"><span class="icon">📧</span> Subscribers</div>
     <div class="sidebar-item" onclick="showPage('emailsender')"><span class="icon">📨</span> Send Email</div>
@@ -166,6 +173,69 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
             {% endfor %}
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- HERO MEDIA -->
+    <div class="page" id="page-heromedia">
+      <div class="section-head"><h2>HERO MEDIA</h2></div>
+
+      <div style="margin-bottom:32px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-family:var(--font-display);font-size:1.15em;letter-spacing:1.5px;color:var(--gold);">📸 PHOTOS</div>
+          <button class="btn-add" onclick="document.getElementById('photoFile').click()">+ Upload Photo</button>
+          <input type="file" id="photoFile" accept="image/*" style="display:none" onchange="uploadHeroMedia(this, 'photo')"/>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;">
+          {% for m in hero_media if m.type == 'photo' %}
+          <div class="media-card" id="media-{{ m.id }}">
+            <img src="{{ m.url }}" alt=""/>
+            <button class="btn-del media-del" onclick="deleteHeroMedia('{{ m.id }}')">✕</button>
+          </div>
+          {% else %}
+          <div style="color:var(--muted);font-size:0.85em;">No photos yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-family:var(--font-display);font-size:1.15em;letter-spacing:1.5px;color:var(--gold);">🎬 VIDEOS</div>
+          <button class="btn-add" onclick="document.getElementById('videoFile').click()">+ Upload Video</button>
+          <input type="file" id="videoFile" accept="video/*" style="display:none" onchange="uploadHeroMedia(this, 'video')"/>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
+          {% for m in hero_media if m.type == 'video' %}
+          <div class="media-card" id="media-{{ m.id }}">
+            <video src="{{ m.url }}" controls></video>
+            <button class="btn-del media-del" onclick="deleteHeroMedia('{{ m.id }}')">✕</button>
+          </div>
+          {% else %}
+          <div style="color:var(--muted);font-size:0.85em;">No videos yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div class="page" id="page-reviews">
+      <div class="section-head">
+        <h2>CUSTOMER REVIEWS</h2>
+        <button class="btn-add" onclick="openReviewModal()">+ Add Review</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        {% for r in reviews %}
+        <div class="review-card" id="review-{{ r.id }}">
+          {% if r.image %}<img src="{{ r.image }}" alt=""/>{% endif %}
+          <div style="flex:1;">
+            <div style="font-weight:700;color:#fff;margin-bottom:4px;">{{ r.name }}</div>
+            <div style="color:#aaa;font-size:0.85em;line-height:1.5;">{{ r.feedback }}</div>
+          </div>
+          <button class="btn-del" onclick="deleteReview('{{ r.id }}')">Delete</button>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:60px;color:var(--muted);">No reviews yet. Click + Add Review to get started.</div>
+        {% endfor %}
       </div>
     </div>
 
@@ -299,6 +369,24 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
       <button class="btn-save" onclick="saveProduct()">💾 Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- REVIEW MODAL -->
+<div class="modal-overlay" id="reviewModal">
+  <div class="modal">
+    <h3>ADD REVIEW</h3>
+    <div class="form-row">
+      <label>Customer Screenshot / Photo (optional)</label>
+      <div class="img-preview" id="reviewImgPreview" onclick="document.getElementById('reviewImgFile').click()"><span>📷</span><span>Click to upload (optional)</span></div>
+      <input type="file" id="reviewImgFile" accept="image/*" style="display:none" onchange="previewReviewImage(this)"/>
+    </div>
+    <div class="form-row"><label>Customer Name *</label><input type="text" id="reviewName" placeholder="e.g. Emeka O."/></div>
+    <div class="form-row"><label>Feedback *</label><textarea id="reviewFeedback" placeholder="What did they say about their laptop / experience?"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeReviewModal()">Cancel</button>
+      <button class="btn-save" onclick="saveReview()">💾 Save Review</button>
     </div>
   </div>
 </div>
@@ -511,6 +599,80 @@ async function loadLinkStats() {
 }
 
 document.getElementById('productModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+// ── HERO MEDIA ──
+async function uploadHeroMedia(input, type) {
+  const file = input.files[0]; if (!file) return;
+  showToast('Uploading...');
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('type', type);
+  try {
+    const r = await fetch('/api/upload_media', { method:'POST', body: formData });
+    const d = await r.json();
+    if (!d.success) { showToast(d.error || 'Upload failed', 'error'); input.value = ''; return; }
+    const res = await fetch('/api/hero_media', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type, url: d.url }) });
+    const data = await res.json();
+    if (data.success) { showToast('✅ ' + (type === 'video' ? 'Video' : 'Photo') + ' uploaded!'); location.reload(); }
+  } catch(e) { showToast('Upload failed', 'error'); }
+  input.value = '';
+}
+
+async function deleteHeroMedia(id) {
+  if (!confirm('Delete this media?')) return;
+  const res = await fetch(`/api/hero_media/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) { document.getElementById('media-' + id)?.remove(); showToast('✅ Deleted'); }
+}
+
+// ── REVIEWS ──
+let uploadedReviewImgB64 = '', uploadedReviewImgExt = '';
+function previewReviewImage(input) {
+  const file = input.files[0]; if (!file) return;
+  uploadedReviewImgExt = file.name.split('.').pop();
+  const reader = new FileReader();
+  reader.onload = e => { uploadedReviewImgB64 = e.target.result; document.getElementById('reviewImgPreview').innerHTML = `<img src="${e.target.result}" alt="Preview"/>`; };
+  reader.readAsDataURL(file);
+}
+
+function openReviewModal() {
+  document.getElementById('reviewName').value = '';
+  document.getElementById('reviewFeedback').value = '';
+  document.getElementById('reviewImgPreview').innerHTML = '<span>📷</span><span>Click to upload (optional)</span>';
+  uploadedReviewImgB64 = '';
+  document.getElementById('reviewModal').classList.add('open');
+}
+
+function closeReviewModal() { document.getElementById('reviewModal').classList.remove('open'); }
+
+async function saveReview() {
+  const name = document.getElementById('reviewName').value.trim();
+  const feedback = document.getElementById('reviewFeedback').value.trim();
+  if (!name) { showToast('Customer name is required', 'error'); return; }
+  if (!feedback) { showToast('Feedback is required', 'error'); return; }
+  let imageUrl = '';
+  if (uploadedReviewImgB64) {
+    try {
+      const r = await fetch('/api/upload_image', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ image: uploadedReviewImgB64, ext: uploadedReviewImgExt || 'jpg' }) });
+      const d = await r.json(); if (d.success) imageUrl = d.url;
+    } catch(e) {}
+  }
+  try {
+    const res = await fetch('/api/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, feedback, image: imageUrl }) });
+    const data = await res.json();
+    if (data.success) { showToast('✅ Review added!'); closeReviewModal(); location.reload(); }
+    else { showToast(data.error || 'Error saving review', 'error'); }
+  } catch(e) { showToast('Error saving review', 'error'); }
+}
+
+async function deleteReview(id) {
+  if (!confirm('Delete this review?')) return;
+  const res = await fetch(`/api/reviews/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) { document.getElementById('review-' + id)?.remove(); showToast('✅ Review deleted'); }
+}
+
+document.getElementById('reviewModal').addEventListener('click', function(e) { if (e.target === this) closeReviewModal(); });
 </script>
 </body>
 </html>

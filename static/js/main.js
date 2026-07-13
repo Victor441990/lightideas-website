@@ -216,3 +216,22 @@ function addTyping() {
 document.getElementById('aiInput')?.addEventListener('keypress', function(e) {
   if (e.key === 'Enter') sendAI();
 });
+
+// ── REVIEWS SLIDER
+let reviewIndex = 0;
+function goToReview(i) {
+  const slides = document.querySelectorAll('.review-slide');
+  const dots = document.querySelectorAll('.review-dot');
+  if (!slides.length) return;
+  slides[reviewIndex]?.classList.remove('active');
+  dots[reviewIndex]?.classList.remove('active');
+  reviewIndex = i;
+  slides[reviewIndex]?.classList.add('active');
+  dots[reviewIndex]?.classList.add('active');
+}
+(function() {
+  const total = document.querySelectorAll('.review-slide').length;
+  if (total > 1) {
+    setInterval(() => goToReview((reviewIndex + 1) % total), 5000);
+  }
+})();

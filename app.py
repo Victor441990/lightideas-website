@@ -21,6 +21,12 @@ def get_products_col():
 def get_emails_col():
     return get_db()['emails']
 
+def get_hero_media_col():
+    return get_db()['hero_media']
+
+def get_reviews_col():
+    return get_db()['reviews']
+
 # ── Cloudinary
 cloudinary.config(
     cloud_name = 'dfkdvznkp',
@@ -42,6 +48,16 @@ def product_to_dict(p):
     p['id'] = str(p['_id'])
     del p['_id']
     return p
+
+def hero_media_to_dict(m):
+    m['id'] = str(m['_id'])
+    del m['_id']
+    return m
+
+def review_to_dict(r):
+    r['id'] = str(r['_id'])
+    del r['_id']
+    return r
 def send_brevo_email(to_email, subject, html_body, text_body):
     payload = {
         'sender':      EMAIL_SENDER,
@@ -99,8 +115,12 @@ Be warm, helpful, and concise. Always guide users to Victor on WhatsApp for purc
 # ── MAIN WEBSITE
 @app.route('/')
 def index():
-    products = [product_to_dict(p) for p in get_products_col().find({'available': True})]
-    return render_template('index.html', products=products)
+    products   = [product_to_dict(p) for p in get_products_col().find({'available': True})]
+    hero_media = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', 1)]
+    reviews    = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', 1)]
+    hero_photos = [m for m in hero_media if m['type'] == 'photo']
+    hero_videos = [m for m in hero_media if m['type'] == 'video']
+    return render_template('index.html', products=products, hero_photos=hero_photos, hero_videos=hero_videos, reviews=reviews)
 
 # ── CATALOG
 @app.route('/catalog')
@@ -127,9 +147,11 @@ def admin_login():
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    products = [product_to_dict(p) for p in get_products_col().find()]
-    emails   = [e['email'] for e in get_emails_col().find()]
-    return render_template('admin_dashboard.html', products=products, emails=emails)
+    products   = [product_to_dict(p) for p in get_products_col().find()]
+    emails     = [e['email'] for e in get_emails_col().find()]
+    hero_media = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', -1)]
+    reviews    = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', -1)]
+    return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, reviews=reviews)
 
 # ── ADMIN LOGOUT
 @app.route('/victor-admin/logout')
@@ -203,6 +225,95 @@ def upload_image():
     except Exception as e:
         app.logger.error(f'Cloudinary upload failed: {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# ── API: Upload hero photo/video to Cloudinary
+@app.route('/api/upload_media', methods=['POST'])
+def upload_media():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    try:
+        file       = request.files.get('file')
+        media_type = request.form.get('type', 'photo')
+        if not file:
+            return jsonify({'success': False, 'error': 'No file provided'}), 400
+        result = cloudinary.uploader.upload(
+            file,
+            folder='lightideas-hero',
+            resource_type='video' if media_type == 'video' else 'image'
+        )
+        return jsonify({'success': True, 'url': result['secure_url']})
+    except Exception as e:
+        app.logger.error(f'Hero media upload failed: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ── API: Get hero media (photos + videos for the homepage slider)
+@app.route('/api/hero_media', methods=['GET'])
+def get_hero_media():
+    items = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', 1)]
+    return jsonify(items)
+
+# ── API: Add hero media record
+@app.route('/api/hero_media', methods=['POST'])
+def add_hero_media():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data = request.json
+    url  = data.get('url', '')
+    if not url:
+        return jsonify({'success': False, 'error': 'Missing url'}), 400
+    item = {
+        'type':       data.get('type', 'photo'),
+        'url':        url,
+        'caption':    data.get('caption', ''),
+        'created_at': datetime.datetime.now().isoformat()
+    }
+    result = get_hero_media_col().insert_one(item)
+    item['id'] = str(result.inserted_id)
+    item.pop('_id', None)
+    return jsonify({'success': True, 'item': item})
+
+# ── API: Delete hero media
+@app.route('/api/hero_media/<media_id>', methods=['DELETE'])
+def delete_hero_media(media_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    get_hero_media_col().delete_one({'_id': ObjectId(media_id)})
+    return jsonify({'success': True})
+
+# ── API: Get customer reviews
+@app.route('/api/reviews', methods=['GET'])
+def get_reviews():
+    items = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', 1)]
+    return jsonify(items)
+
+# ── API: Add customer review
+@app.route('/api/reviews', methods=['POST'])
+def add_review():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data     = request.json
+    name     = data.get('name', '').strip()
+    feedback = data.get('feedback', '').strip()
+    if not name or not feedback:
+        return jsonify({'success': False, 'error': 'Name and feedback are required'}), 400
+    item = {
+        'name':       name,
+        'feedback':   feedback,
+        'image':      data.get('image', ''),
+        'created_at': datetime.datetime.now().isoformat()
+    }
+    result = get_reviews_col().insert_one(item)
+    item['id'] = str(result.inserted_id)
+    item.pop('_id', None)
+    return jsonify({'success': True, 'review': item})
+
+# ── API: Delete customer review
+@app.route('/api/reviews/<review_id>', methods=['DELETE'])
+def delete_review(review_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    get_reviews_col().delete_one({'_id': ObjectId(review_id)})
+    return jsonify({'success': True})
 
 # ── API: Email subscribe
 @app.route('/api/subscribe', methods=['POST'])

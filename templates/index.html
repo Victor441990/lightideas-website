@@ -179,6 +179,33 @@
 </div>
 </div>
 
+<!-- ── GALLERY ── -->
+{% if hero_photos or hero_videos %}
+<div class="section-divider" id="gallery">
+<div class="section-wrap">
+  <div class="section-label">Take a Look</div>
+  <h2 class="section-title">SEE IT FOR YOURSELF</h2>
+  <p class="section-desc">Real laptops, real testing, real results — straight from our workshop.</p>
+
+  {% if hero_photos %}
+  <div class="gallery-row">
+    {% for m in hero_photos %}
+    <div class="gallery-item"><img src="{{ m.url }}" alt="{{ m.caption or 'Light Ideas Technology' }}" loading="lazy"/></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if hero_videos %}
+  <div class="gallery-row" style="margin-top:24px;">
+    {% for m in hero_videos %}
+    <div class="gallery-item gallery-video"><video src="{{ m.url }}" controls playsinline preload="metadata"></video></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+</div>
+{% endif %}
+
 <!-- ── TRUST ── -->
 <div class="section-bg-alt section-wrap-full" id="trust">
 <div class="inner">
@@ -256,6 +283,35 @@
   </div>
 </div>
 </div>
+
+<!-- ── REVIEWS ── -->
+{% if reviews %}
+<div class="section-bg-alt section-wrap-full" id="reviews">
+<div class="inner" style="text-align:center;">
+  <div class="section-label" style="justify-content:center;">Customer Love</div>
+  <h2 class="section-title">WHAT PEOPLE ARE SAYING</h2>
+  <p class="section-desc" style="margin:0 auto;">Real feedback from real customers.</p>
+
+  <div class="reviews-slider" id="reviewsSlider">
+    {% for r in reviews %}
+    <div class="review-slide{{ ' active' if loop.first else '' }}">
+      {% if r.image %}<img src="{{ r.image }}" class="review-slide-img" alt="{{ r.name }}"/>{% else %}<div class="review-slide-avatar">👤</div>{% endif %}
+      <p class="review-slide-text">"{{ r.feedback }}"</p>
+      <div class="review-slide-name">— {{ r.name }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if reviews|length > 1 %}
+  <div class="reviews-dots" id="reviewsDots">
+    {% for r in reviews %}
+    <span class="review-dot{{ ' active' if loop.first else '' }}" onclick="goToReview({{ loop.index0 }})"></span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+</div>
+{% endif %}
 
 <!-- ── FOOTER ── -->
 <footer>
