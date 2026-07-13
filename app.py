@@ -35,6 +35,9 @@ EMAIL_SENDER  = {'name': 'Light Ideas Technology', 'email': 'info@lightideastech
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
+# ── Anthropic (AI chat widget)
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+
 def product_to_dict(p):
     p['id'] = str(p['_id'])
     del p['_id']
@@ -53,6 +56,45 @@ def send_brevo_email(to_email, subject, html_body, text_body):
     }
     res = requests.post(BREVO_API_URL, json=payload, headers=headers, timeout=15)
     return res.status_code in [200, 201]
+
+def build_ai_system_prompt():
+    products = list(get_products_col().find({'available': True}))
+    lines = []
+    for p in products:
+        bits = [p.get('name', 'Unnamed')]
+        price = p.get('price')
+        if price:
+            bits.append('₦{:,}'.format(int(price)))
+        sub = p.get('sub_category', '')
+        cat = p.get('category', '')
+        if sub or cat:
+            bits.append('(' + ' '.join(x for x in [sub, cat] if x) + ')')
+        if p.get('specs'):
+            bits.append('— ' + p['specs'])
+        lines.append('- ' + ' '.join(bits))
+    products_block = '\n'.join(lines) if lines else 'No live inventory available right now — tell the user to check /catalog or ask Victor on WhatsApp.'
+
+    return '''You are Light, the AI assistant for Light Ideas Technology — a premium laptop refurbishing business in Lagos, Nigeria, owned by Victor.
+
+CURRENT LIVE INVENTORY (straight from the database — this is exactly what's in stock right now):
+''' + products_block + '''
+
+Services:
+1. LaptopSeal Diagnostic Tool (desktop app) — full 15-module laptop health check: Battery, Keyboard, RAM, SSD, CPU, GPU, Temperature, Ports, WiFi, Screen, Webcam, Mic, Speakers, Windows, Final Report. Pricing tiers (all last 30 days):
+   - ₦2,000 — Single: 1 laptop
+   - ₦8,000 — Small: up to 5 laptops
+   - ₦30,000 — Medium: up to 20 laptops
+   - ₦60,000 — Unlimited laptops
+2. Windows Activation — contact Victor on WhatsApp.
+3. MS Office Activation — contact Victor on WhatsApp.
+
+Key pages: /catalog (browse all laptops), /laptopseal (buy & download LaptopSeal), /guide (LaptopSeal user guide), /terms (Terms & Conditions).
+
+Contact: WhatsApp +2348169441990
+Group: https://chat.whatsapp.com/GwoeaA3k8Od8SJULzc3A7N
+Slogan: "Tested and Confirmed — Just for Your Convenience"
+
+Be warm, helpful, and concise. Always guide users to Victor on WhatsApp for purchases. Only mention products and prices listed above under CURRENT LIVE INVENTORY — never invent availability or prices that aren't listed there. Keep responses short (under 80 words).'''
 
 # ── MAIN WEBSITE
 @app.route('/')
@@ -172,6 +214,46 @@ def subscribe():
     if not get_emails_col().find_one({'email': email}):
         get_emails_col().insert_one({'email': email, 'created_at': datetime.datetime.now().isoformat()})
     return jsonify({'success': True})
+
+# ── API: AI chat (Light widget) — server-side so the Anthropic key never reaches the browser
+@app.route('/api/ai-chat', methods=['POST'])
+def ai_chat():
+    if not ANTHROPIC_API_KEY:
+        return jsonify({'error': 'AI is not configured'}), 503
+
+    data = request.get_json(force=True, silent=True) or {}
+    messages = data.get('messages', [])
+    if not isinstance(messages, list) or not messages:
+        return jsonify({'error': 'No messages provided'}), 400
+
+    # Keep the payload sane regardless of what the client sends
+    messages = messages[-20:]
+
+    try:
+        r = requests.post(
+            'https://api.anthropic.com/v1/messages',
+            headers={
+                'x-api-key':         ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01',
+                'Content-Type':      'application/json'
+            },
+            json={
+                'model':      'claude-sonnet-4-20250514',
+                'max_tokens': 300,
+                'system':     build_ai_system_prompt(),
+                'messages':   messages
+            },
+            timeout=20
+        )
+        result = r.json()
+        if r.status_code != 200:
+            app.logger.error(f'Anthropic API error: {result}')
+            return jsonify({'error': 'AI request failed'}), 502
+        reply = result['content'][0]['text']
+        return jsonify({'reply': reply})
+    except Exception as e:
+        app.logger.error(f'AI chat failed: {e}')
+        return jsonify({'error': 'AI request failed'}), 500
 
 # ── API: Send bulk email via Brevo
 @app.route('/api/send_bulk_email', methods=['POST'])
@@ -571,6 +653,10 @@ LAPTOPSEAL_LATEST_VERSION = '1.0.7'
 LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.7/LaptopSeal_Setup.exe'
 @app.route('/laptopseal/download')
 def laptopseal_download():
+    user_agent = request.headers.get('User-Agent', '').lower()
+    mobile_keywords = ['android', 'iphone', 'ipad', 'ipod', 'mobile', 'blackberry', 'windows phone']
+    if any(kw in user_agent for kw in mobile_keywords):
+        return render_template('laptopseal_mobile_notice.html')
     return redirect(LAPTOPSEAL_SETUP_URL)
 
 @app.route('/laptopseal/version.json')

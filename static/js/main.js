@@ -144,25 +144,6 @@ function showToast(msg, type = 'success') {
 
 // ── AI GREETER
 let aiOpen = false;
-const AI_SYSTEM = `You are Light, the AI assistant for Light Ideas Technology — a premium laptop refurbishing business in Lagos, Nigeria, owned by Victor.
-
-Services:
-1. Diagnostic Tool — ₦2,000 per scan. Full 15-module laptop health check (Battery, Keyboard, RAM, SSD, CPU, GPU, Temperature, Ports, WiFi, Screen, Webcam, Mic, Speakers, Windows, Final Report).
-2. Windows Activation — Contact Victor on WhatsApp.
-3. MS Office Activation — Contact Victor on WhatsApp.
-
-Products:
-- Verified Budget Laptops: ₦100,000 – ₦250,000
-- Pro Version Laptops: ₦250,000 and above
-- Gaming Laptops (tagged separately)
-- Phones and Accessories
-
-Contact: WhatsApp +2348169441990
-Group: https://chat.whatsapp.com/GwoeaA3k8Od8SJULzc3A7N
-Slogan: "Tested and Confirmed — Just for Your Convenience"
-
-Be warm, helpful, and concise. Always guide users to Victor on WhatsApp for purchases. Never make up specific product availability or prices. Keep responses short (under 80 words).`;
-
 let aiHistory = [];
 
 function toggleAI() {
@@ -195,21 +176,16 @@ async function sendAI() {
   aiHistory.push({ role: 'user', content: msg });
   const typing = addTyping();
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/ai-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 300,
-        system: AI_SYSTEM,
-        messages: aiHistory
-      })
+      body: JSON.stringify({ messages: aiHistory })
     });
     const data = await res.json();
     typing.remove();
-    const reply = data.content[0].text;
-    aiHistory.push({ role: 'assistant', content: reply });
-    addAIMsg(reply, 'bot');
+    if (!res.ok || !data.reply) throw new Error(data.error || 'AI request failed');
+    aiHistory.push({ role: 'assistant', content: data.reply });
+    addAIMsg(data.reply, 'bot');
   } catch (e) {
     typing.remove();
     addAIMsg('Sorry, I had a hiccup! Chat with Victor directly on WhatsApp 📲', 'bot');
