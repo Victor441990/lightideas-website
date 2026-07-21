@@ -48,6 +48,20 @@
   <div class="hero-scroll"><div class="scroll-line"></div>SCROLL</div>
 </div>
 
+<!-- ── PHOTO SLIDER (top) ── -->
+{% if hero_photos %}
+<div class="hero-photo-slider-wrap">
+  <div class="hero-slider" id="photoSlider">
+    {% for m in hero_photos %}
+    <div class="hero-slide">
+      <div class="hero-slide-bg" style="background-image:url('{{ m.url }}')"></div>
+      <img class="hero-slide-fg" src="{{ m.url }}" alt="{{ m.caption or 'Light Ideas Technology' }}" loading="lazy"/>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- ── SERVICES ── -->
 <div class="section-divider" id="services">
 <div class="section-wrap">
@@ -179,29 +193,25 @@
 </div>
 </div>
 
-<!-- ── GALLERY ── -->
-{% if hero_photos or hero_videos %}
+<!-- ── GALLERY / VIDEO SLIDER (middle) ── -->
+{% if hero_videos %}
 <div class="section-divider" id="gallery">
 <div class="section-wrap">
   <div class="section-label">Take a Look</div>
   <h2 class="section-title">SEE IT FOR YOURSELF</h2>
   <p class="section-desc">Real laptops, real testing, real results — straight from our workshop.</p>
 
-  {% if hero_photos %}
-  <div class="gallery-row">
-    {% for m in hero_photos %}
-    <div class="gallery-item"><img src="{{ m.url }}" alt="{{ m.caption or 'Light Ideas Technology' }}" loading="lazy"/></div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  {% if hero_videos %}
-  <div class="gallery-row" style="margin-top:24px;">
+  <div class="hero-slider" id="videoSlider">
     {% for m in hero_videos %}
-    <div class="gallery-item gallery-video"><video src="{{ m.url }}" controls playsinline preload="metadata"></video></div>
+    <div class="hero-slide">
+      <div class="hero-slide-bg" style="background-image:url('{{ m.poster }}')"></div>
+      <div class="hero-slide-video-wrap" onclick="toggleHeroSound(this.querySelector('video'))">
+        <video class="hero-slide-video" src="{{ m.url }}" muted playsinline preload="metadata"></video>
+        <div class="hero-mute-icon">🔇</div>
+      </div>
+    </div>
     {% endfor %}
   </div>
-  {% endif %}
 </div>
 </div>
 {% endif %}
@@ -309,9 +319,24 @@
     {% endfor %}
   </div>
   {% endif %}
+
+  <button class="btn-outline" style="margin-top:32px;" onclick="openPublicReviewModal()">✍️ Share Your Experience</button>
 </div>
 </div>
 {% endif %}
+
+<!-- ── PUBLIC REVIEW MODAL ── -->
+<div class="modal-overlay" id="publicReviewModal">
+  <div class="modal">
+    <h3>SHARE YOUR EXPERIENCE</h3>
+    <p>Tell other customers about your experience with Light Ideas Technology. Submitted reviews are checked by Victor before they appear on the site.</p>
+    <input type="text" class="modal-email-input" id="pubReviewName" placeholder="Your name"/>
+    <textarea class="modal-email-input modal-textarea" id="pubReviewFeedback" placeholder="Your feedback..."></textarea>
+    <div id="pubReviewNotice" style="font-size:0.78em;text-align:center;margin-bottom:12px;"></div>
+    <a href="#" class="btn-pay" style="display:block;text-align:center;" onclick="submitPublicReview(); return false;">Submit Review</a>
+    <span class="modal-close" onclick="closePublicReviewModal()">✕ Close</span>
+  </div>
+</div>
 
 <!-- ── FOOTER ── -->
 <footer>

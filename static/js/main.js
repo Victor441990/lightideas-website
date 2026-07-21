@@ -217,6 +217,103 @@ document.getElementById('aiInput')?.addEventListener('keypress', function(e) {
   if (e.key === 'Enter') sendAI();
 });
 
+// ── PHOTO SLIDER (top, auto-advances every 10s)
+let photoIndex = 0;
+let photoTimer = null;
+
+function showPhotoSlide(i) {
+  const slides = document.querySelectorAll('#photoSlider .hero-slide');
+  if (!slides.length) return;
+  clearTimeout(photoTimer);
+  slides.forEach(s => s.classList.remove('active'));
+  photoIndex = ((i % slides.length) + slides.length) % slides.length;
+  slides[photoIndex].classList.add('active');
+  if (slides.length > 1) photoTimer = setTimeout(() => showPhotoSlide(photoIndex + 1), 10000);
+}
+
+(function initPhotoSlider() {
+  if (document.querySelectorAll('#photoSlider .hero-slide').length) showPhotoSlide(0);
+})();
+
+// ── VIDEO SLIDER (middle) — always auto-playing muted; tap to hear sound;
+// advances to the next video only once the current one finishes.
+let videoIndex = 0;
+
+function showVideoSlide(i) {
+  const slides = document.querySelectorAll('#videoSlider .hero-slide');
+  if (!slides.length) return;
+  slides.forEach(s => {
+    s.classList.remove('active');
+    const v = s.querySelector('video');
+    if (v) { v.pause(); v.currentTime = 0; v.onended = null; }
+  });
+  videoIndex = ((i % slides.length) + slides.length) % slides.length;
+  const slide = slides[videoIndex];
+  slide.classList.add('active');
+  const video = slide.querySelector('video');
+  video.muted = true;
+  const icon = slide.querySelector('.hero-mute-icon');
+  if (icon) icon.textContent = '🔇';
+  video.play().catch(() => {});
+  video.onended = slides.length > 1
+    ? () => showVideoSlide(videoIndex + 1)
+    : () => { video.currentTime = 0; video.play().catch(() => {}); };
+}
+
+function toggleHeroSound(videoEl) {
+  videoEl.muted = !videoEl.muted;
+  const icon = videoEl.closest('.hero-slide-video-wrap')?.querySelector('.hero-mute-icon');
+  if (icon) icon.textContent = videoEl.muted ? '🔇' : '🔊';
+}
+
+(function initVideoSlider() {
+  if (document.querySelectorAll('#videoSlider .hero-slide').length) showVideoSlide(0);
+})();
+
+// ── PUBLIC REVIEW SUBMISSION
+function openPublicReviewModal() {
+  document.getElementById('pubReviewName').value = '';
+  document.getElementById('pubReviewFeedback').value = '';
+  document.getElementById('pubReviewNotice').textContent = '';
+  document.getElementById('publicReviewModal').classList.add('open');
+}
+function closePublicReviewModal() { document.getElementById('publicReviewModal').classList.remove('open'); }
+
+async function submitPublicReview() {
+  const name = document.getElementById('pubReviewName').value.trim();
+  const feedback = document.getElementById('pubReviewFeedback').value.trim();
+  const notice = document.getElementById('pubReviewNotice');
+  if (!name || !feedback) {
+    notice.style.color = '#f87171';
+    notice.textContent = 'Please enter your name and feedback.';
+    return;
+  }
+  try {
+    const res = await fetch('/api/reviews/public', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, feedback })
+    });
+    const data = await res.json();
+    if (data.success) {
+      notice.style.color = '#4ade80';
+      notice.textContent = '✅ Thank you! Your review will appear after Victor checks it.';
+      document.getElementById('pubReviewName').value = '';
+      document.getElementById('pubReviewFeedback').value = '';
+    } else {
+      notice.style.color = '#f87171';
+      notice.textContent = data.error || 'Something went wrong. Try again.';
+    }
+  } catch (e) {
+    notice.style.color = '#f87171';
+    notice.textContent = 'Something went wrong. Try again.';
+  }
+}
+
+document.getElementById('publicReviewModal')?.addEventListener('click', function(e) {
+  if (e.target === this) closePublicReviewModal();
+});
+
 // ── REVIEWS SLIDER
 let reviewIndex = 0;
 function goToReview(i) {
@@ -232,6 +329,6 @@ function goToReview(i) {
 (function() {
   const total = document.querySelectorAll('.review-slide').length;
   if (total > 1) {
-    setInterval(() => goToReview((reviewIndex + 1) % total), 5000);
+    setInterval(() => goToReview((reviewIndex + 1) % total), 10000);
   }
 })();

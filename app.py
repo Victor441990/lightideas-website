@@ -52,6 +52,10 @@ def product_to_dict(p):
 def hero_media_to_dict(m):
     m['id'] = str(m['_id'])
     del m['_id']
+    if m.get('type') == 'video' and m.get('url'):
+        # Cloudinary serves a frame of the video as a static image when the
+        # extension is swapped to .jpg — used as the blurred slide background.
+        m['poster'] = m['url'].rsplit('.', 1)[0] + '.jpg'
     return m
 
 def review_to_dict(r):
@@ -115,11 +119,11 @@ Be warm, helpful, and concise. Always guide users to Victor on WhatsApp for purc
 # ── MAIN WEBSITE
 @app.route('/')
 def index():
-    products   = [product_to_dict(p) for p in get_products_col().find({'available': True})]
-    hero_media = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', 1)]
-    reviews    = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', 1)]
+    products    = [product_to_dict(p) for p in get_products_col().find({'available': True})]
+    hero_media  = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', 1)]
     hero_photos = [m for m in hero_media if m['type'] == 'photo']
     hero_videos = [m for m in hero_media if m['type'] == 'video']
+    reviews     = [review_to_dict(r) for r in get_reviews_col().find({'status': {'$ne': 'pending'}}).sort('created_at', 1)]
     return render_template('index.html', products=products, hero_photos=hero_photos, hero_videos=hero_videos, reviews=reviews)
 
 # ── CATALOG
@@ -286,7 +290,7 @@ def get_reviews():
     items = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', 1)]
     return jsonify(items)
 
-# ── API: Add customer review
+# ── API: Add customer review (from admin dashboard — published immediately)
 @app.route('/api/reviews', methods=['POST'])
 def add_review():
     if not session.get('admin_logged_in'):
@@ -300,12 +304,41 @@ def add_review():
         'name':       name,
         'feedback':   feedback,
         'image':      data.get('image', ''),
+        'status':     'approved',
+        'source':     'admin',
         'created_at': datetime.datetime.now().isoformat()
     }
     result = get_reviews_col().insert_one(item)
     item['id'] = str(result.inserted_id)
     item.pop('_id', None)
     return jsonify({'success': True, 'review': item})
+
+# ── API: Submit a review from the public site — held for admin approval
+@app.route('/api/reviews/public', methods=['POST'])
+def add_public_review():
+    data     = request.json
+    name     = data.get('name', '').strip()[:100]
+    feedback = data.get('feedback', '').strip()[:1000]
+    if not name or not feedback:
+        return jsonify({'success': False, 'error': 'Name and feedback are required'}), 400
+    item = {
+        'name':       name,
+        'feedback':   feedback,
+        'image':      '',
+        'status':     'pending',
+        'source':     'customer',
+        'created_at': datetime.datetime.now().isoformat()
+    }
+    get_reviews_col().insert_one(item)
+    return jsonify({'success': True})
+
+# ── API: Approve a pending customer review
+@app.route('/api/reviews/<review_id>/approve', methods=['POST'])
+def approve_review(review_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    get_reviews_col().update_one({'_id': ObjectId(review_id)}, {'$set': {'status': 'approved'}})
+    return jsonify({'success': True})
 
 # ── API: Delete customer review
 @app.route('/api/reviews/<review_id>', methods=['DELETE'])
