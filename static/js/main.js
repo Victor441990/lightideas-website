@@ -60,6 +60,55 @@ function renderProducts() {
   });
 }
 
+// ── PRODUCT DETAIL MODAL
+const catEmoji = { laptop: '💻', phone: '📱', accessory: '🔌' };
+const badgeLabels = { budget: '✅ Budget', pro: '🏆 Pro', gaming: '🎮 Gaming', phone: '📱 Phone', accessory: '🔌 Accessory' };
+
+let currentPdMedia = [];
+function showPdMedia(media, idx) {
+  currentPdMedia = media;
+  const m = media[idx];
+  const imgWrap = document.getElementById('pdImgWrap');
+  imgWrap.innerHTML = !m
+    ? '🔌'
+    : m.type === 'video'
+      ? `<video src="${m.url}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video>`
+      : `<img src="${m.url}" alt="" style="width:100%;height:100%;object-fit:cover;"/>`;
+  document.querySelectorAll('#pdThumbs .pd-thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
+}
+
+function openProductModal(product) {
+  const media = (product.media && product.media.length) ? product.media : (product.image ? [{ type: 'photo', url: product.image }] : []);
+  const imgWrap = document.getElementById('pdImgWrap');
+  if (!media.length) imgWrap.innerHTML = catEmoji[product.category] || '🔌';
+
+  const thumbsBox = document.getElementById('pdThumbs');
+  thumbsBox.innerHTML = media.length > 1 ? media.map((m, i) => `
+    <div class="pd-thumb${i === 0 ? ' active' : ''}" style="width:56px;height:56px;border-radius:8px;overflow:hidden;cursor:pointer;flex-shrink:0;background:var(--black4);" onclick="showPdMedia(currentPdMedia, ${i})">
+      ${m.type === 'video' ? `<video src="${m.url}" muted style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${m.url}" alt="" style="width:100%;height:100%;object-fit:cover;"/>`}
+    </div>`).join('') : '';
+  if (media.length) showPdMedia(media, 0);
+
+  const badgeKey = product.sub_category || product.category;
+  const badge = document.getElementById('pdBadge');
+  badge.textContent = badgeLabels[badgeKey] || '🔌 Accessory';
+  badge.className = 'product-cat-badge badge-' + badgeKey;
+
+  document.getElementById('pdName').textContent = product.name;
+  document.getElementById('pdPrice').textContent = '₦' + Number(product.price).toLocaleString();
+  document.getElementById('pdSpecs').textContent = product.specs || '';
+  document.getElementById('pdDesc').textContent = product.description || '';
+  document.getElementById('pdWaBtn').href = 'https://wa.me/2348169441990?text=' + encodeURIComponent("Hi Victor, I'm interested in the " + product.name);
+
+  document.getElementById('productDetailModal').classList.add('open');
+}
+
+function closeProductModal() { document.getElementById('productDetailModal').classList.remove('open'); }
+
+document.getElementById('productDetailModal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeProductModal();
+});
+
 // ── EMAIL SUBSCRIBE
 async function subscribeEmail() {
   const input = document.getElementById('emailInput');
@@ -222,7 +271,7 @@ let photoIndex = 0;
 let photoTimer = null;
 
 function showPhotoSlide(i) {
-  const slides = document.querySelectorAll('#photoSlider .hero-slide');
+  const slides = document.querySelectorAll('#photoSlider .promo-slide');
   if (!slides.length) return;
   clearTimeout(photoTimer);
   slides.forEach(s => s.classList.remove('active'));
@@ -232,7 +281,7 @@ function showPhotoSlide(i) {
 }
 
 (function initPhotoSlider() {
-  if (document.querySelectorAll('#photoSlider .hero-slide').length) showPhotoSlide(0);
+  if (document.querySelectorAll('#photoSlider .promo-slide').length) showPhotoSlide(0);
 })();
 
 // ── VIDEO SLIDER (middle) — always auto-playing muted; tap to hear sound;

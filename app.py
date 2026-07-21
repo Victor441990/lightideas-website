@@ -10,10 +10,10 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
 # ── MongoDB
 MONGO_URI = os.environ.get('MONGO_URI')
+_mongo_client = MongoClient(MONGO_URI)
 
 def get_db():
-    client = MongoClient(MONGO_URI)
-    return client['lightideas']
+    return _mongo_client['lightideas']
 
 def get_products_col():
     return get_db()['products']
@@ -186,6 +186,7 @@ def add_product():
         'specs':        data.get('specs', ''),
         'description':  data.get('description', ''),
         'image':        data.get('image', ''),
+        'media':        data.get('media', []),
         'available':    True,
         'created_at':   datetime.datetime.now().isoformat()
     }

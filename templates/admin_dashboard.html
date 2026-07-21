@@ -54,6 +54,10 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
 .badge-gaming{background:rgba(168,85,247,0.1);color:#a855f7;border:1px solid rgba(168,85,247,0.2);}
 .badge-phone{background:rgba(96,165,250,0.1);color:#60a5fa;border:1px solid rgba(96,165,250,0.2);}
 .badge-accessory{background:rgba(251,191,36,0.1);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);}
+.badge-tablet{background:rgba(45,212,191,0.1);color:#2dd4bf;border:1px solid rgba(45,212,191,0.2);}
+.badge-audio{background:rgba(244,114,182,0.1);color:#f472b6;border:1px solid rgba(244,114,182,0.2);}
+.badge-smart_home{background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.2);}
+.badge-wearable{background:rgba(251,146,60,0.1);color:#fb923c;border:1px solid rgba(251,146,60,0.2);}
 .avail-toggle{width:40px;height:22px;border-radius:50px;border:none;cursor:pointer;position:relative;transition:background 0.3s;}
 .avail-toggle.on{background:#166534;}
 .avail-toggle.off{background:#450a0a;}
@@ -363,9 +367,14 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <h3 id="modalTitle">ADD PRODUCT</h3>
     <input type="hidden" id="editId"/>
     <div class="form-row">
-      <label>Product Image</label>
-      <div class="img-preview" id="imgPreview" onclick="document.getElementById('imgFile').click()"><span>📷</span><span>Click to upload image</span></div>
-      <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="previewImage(this)"/>
+      <label>Product Photos & Videos</label>
+      <div id="mediaThumbs" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn-add" onclick="document.getElementById('prodPhotoFile').click()">+ Add Photo</button>
+        <button type="button" class="btn-add" onclick="document.getElementById('prodVideoFile').click()">+ Add Video</button>
+      </div>
+      <input type="file" id="prodPhotoFile" accept="image/*" style="display:none" onchange="uploadProductMedia(this, 'photo')"/>
+      <input type="file" id="prodVideoFile" accept="video/*" style="display:none" onchange="uploadProductMedia(this, 'video')"/>
     </div>
     <div class="form-row"><label>Product Name *</label><input type="text" id="prodName" placeholder="e.g. HP EliteBook 840 G6"/></div>
     <div class="form-grid">
@@ -373,8 +382,13 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
       <div class="form-row"><label>Category *</label>
         <select id="prodCategory" onchange="toggleSubCat()">
           <option value="laptop">💻 Laptop</option>
-          <option value="phone">📱 Phone</option>
+          <option value="phone">📱 Smartphone</option>
+          <option value="tablet">📓 Tablet</option>
+          <option value="audio">🎧 Audio</option>
+          <option value="gaming">🎮 Gaming</option>
           <option value="accessory">🔌 Accessory</option>
+          <option value="smart_home">🏠 Smart Home</option>
+          <option value="wearable">⌚ Wearable</option>
         </select>
       </div>
     </div>
@@ -431,13 +445,37 @@ function showToast(msg, type = 'success') {
   t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
 }
 
-let uploadedImageB64 = '', uploadedImageExt = '';
-function previewImage(input) {
+let productMediaList = [];
+
+function renderMediaThumbs() {
+  const box = document.getElementById('mediaThumbs');
+  box.innerHTML = productMediaList.map((m, i) => `
+    <div class="media-card" style="width:100px;height:100px;">
+      ${m.type === 'video' ? `<video src="${m.url}"></video>` : `<img src="${m.url}" alt=""/>`}
+      <button type="button" class="btn-del media-del" onclick="removeProductMedia(${i})">✕</button>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:0.85em;">No photos or videos added yet.</div>';
+}
+
+function removeProductMedia(i) {
+  productMediaList.splice(i, 1);
+  renderMediaThumbs();
+}
+
+async function uploadProductMedia(input, type) {
   const file = input.files[0]; if (!file) return;
-  uploadedImageExt = file.name.split('.').pop();
-  const reader = new FileReader();
-  reader.onload = e => { uploadedImageB64 = e.target.result; document.getElementById('imgPreview').innerHTML = `<img src="${e.target.result}" alt="Preview"/>`; };
-  reader.readAsDataURL(file);
+  showToast('Uploading...');
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('type', type);
+  try {
+    const r = await fetch('/api/upload_media', { method:'POST', body: formData });
+    const d = await r.json();
+    if (!d.success) { showToast(d.error || 'Upload failed', 'error'); input.value = ''; return; }
+    productMediaList.push({ type, url: d.url });
+    renderMediaThumbs();
+    showToast('✅ ' + (type === 'video' ? 'Video' : 'Photo') + ' added!');
+  } catch(e) { showToast('Upload failed', 'error'); }
+  input.value = '';
 }
 
 function autoCategory() {
@@ -455,8 +493,8 @@ function openAddModal() {
   ['editId','prodName','prodPrice','prodSpecs','prodDesc'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('prodCategory').value = 'laptop';
   document.getElementById('prodSubCategory').value = 'budget';
-  document.getElementById('imgPreview').innerHTML = '<span>📷</span><span>Click to upload image</span>';
-  uploadedImageB64 = ''; document.getElementById('subCatRow').style.display = 'block';
+  productMediaList = []; renderMediaThumbs();
+  document.getElementById('subCatRow').style.display = 'block';
   document.getElementById('productModal').classList.add('open');
 }
 
@@ -469,8 +507,9 @@ function openEditModal(p) {
   document.getElementById('prodSubCategory').value = p.sub_category || 'budget';
   document.getElementById('prodSpecs').value = p.specs || '';
   document.getElementById('prodDesc').value = p.description || '';
-  document.getElementById('imgPreview').innerHTML = p.image ? `<img src="${p.image}" alt=""/>` : '<span>📷</span><span>Click to upload image</span>';
-  uploadedImageB64 = ''; document.getElementById('subCatRow').style.display = p.category === 'laptop' ? 'block' : 'none';
+  productMediaList = (p.media && p.media.length) ? p.media.slice() : (p.image ? [{ type: 'photo', url: p.image }] : []);
+  renderMediaThumbs();
+  document.getElementById('subCatRow').style.display = p.category === 'laptop' ? 'block' : 'none';
   document.getElementById('productModal').classList.add('open');
 }
 
@@ -482,15 +521,9 @@ async function saveProduct() {
   const cat = document.getElementById('prodCategory').value;
   if (!name) { showToast('Product name is required', 'error'); return; }
   if (!price) { showToast('Price is required', 'error'); return; }
-  let imageUrl = '';
-  if (uploadedImageB64) {
-    try {
-      const r = await fetch('/api/upload_image', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ image: uploadedImageB64, ext: uploadedImageExt || 'jpg' }) });
-      const d = await r.json(); if (d.success) imageUrl = d.url;
-    } catch(e) {}
-  }
+  const firstPhoto = productMediaList.find(m => m.type === 'photo');
   const editId = document.getElementById('editId').value;
-  const payload = { name, price, category: cat, sub_category: cat === 'laptop' ? document.getElementById('prodSubCategory').value : '', specs: document.getElementById('prodSpecs').value.trim(), description: document.getElementById('prodDesc').value.trim(), ...(imageUrl && { image: imageUrl }) };
+  const payload = { name, price, category: cat, sub_category: cat === 'laptop' ? document.getElementById('prodSubCategory').value : '', specs: document.getElementById('prodSpecs').value.trim(), description: document.getElementById('prodDesc').value.trim(), media: productMediaList, image: firstPhoto ? firstPhoto.url : '' };
   try {
     const res = await fetch(editId ? `/api/products/${editId}` : '/api/products', { method: editId ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
     const data = await res.json();

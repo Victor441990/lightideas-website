@@ -48,19 +48,59 @@
   <div class="hero-scroll"><div class="scroll-line"></div>SCROLL</div>
 </div>
 
-<!-- ── PHOTO SLIDER (top) ── -->
-{% if hero_photos %}
-<div class="hero-photo-slider-wrap">
-  <div class="hero-slider" id="photoSlider">
-    {% for m in hero_photos %}
-    <div class="hero-slide">
-      <div class="hero-slide-bg" style="background-image:url('{{ m.url }}')"></div>
-      <img class="hero-slide-fg" src="{{ m.url }}" alt="{{ m.caption or 'Light Ideas Technology' }}" loading="lazy"/>
+<!-- ── PROMO HERO (split layout, top) ── -->
+<div class="promo-hero">
+  <div class="promo-hero-inner">
+    <div class="promo-text">
+      <div class="promo-badge">✦ Shop With Confidence · Chat With Us</div>
+      <h2 class="promo-title">Original Laptops.<br/>Tested. Trusted.<br/>Guaranteed.</h2>
+      <p class="promo-desc">Buy with confidence. We supply quality laptops and electronics for students, business owners, and professionals.</p>
+      <div class="promo-btns">
+        <a href="#products" class="btn-primary">Shop Now</a>
+        <a href="/catalog" class="btn-outline">View All</a>
+      </div>
     </div>
-    {% endfor %}
+    {% if hero_photos %}
+    <div class="promo-photo-wrap">
+      {% if hero_photos|length > 1 %}
+      <button class="promo-arrow promo-arrow-left" onclick="showPhotoSlide(photoIndex - 1)">‹</button>
+      <button class="promo-arrow promo-arrow-right" onclick="showPhotoSlide(photoIndex + 1)">›</button>
+      {% endif %}
+      <div id="photoSlider">
+        {% for m in hero_photos %}
+        <div class="promo-slide">
+          <img src="{{ m.url }}" alt="{{ m.caption or 'Light Ideas Technology' }}" loading="lazy"/>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="trust-row">
+    <div class="trust-item"><span class="trust-icon">📦</span><div><div class="trust-title">Genuine Products</div><div class="trust-sub">100% authentic electronics</div></div></div>
+    <div class="trust-item"><span class="trust-icon">⚡</span><div><div class="trust-title">Fast Delivery</div><div class="trust-sub">2-5 days nationwide</div></div></div>
+    <div class="trust-item"><span class="trust-icon">🔒</span><div><div class="trust-title">Secure Payment</div><div class="trust-sub">Paystack protected</div></div></div>
   </div>
 </div>
-{% endif %}
+
+<!-- ── SHOP BY CATEGORY ── -->
+<div class="section-divider" id="shop-by-category">
+<div class="section-wrap">
+  <div class="section-label">Browse</div>
+  <h2 class="section-title">SHOP BY CATEGORY</h2>
+  <p class="section-desc">Find the perfect gadget for your needs.</p>
+  <div class="category-grid">
+    <div class="category-tile" onclick="filterCat('laptop', document.querySelector('[data-tab=laptop]'))"><div class="category-tile-icon">💻</div><div class="category-tile-name">Laptops</div><div class="category-tile-sub">Business, Gaming &amp; Ultrabook</div></div>
+    <div class="category-tile" onclick="filterCat('phone', document.querySelector('[data-tab=phone]'))"><div class="category-tile-icon">📱</div><div class="category-tile-name">Smartphones</div><div class="category-tile-sub">Latest Android &amp; iOS Phones</div></div>
+    <div class="category-tile" onclick="filterCat('tablet', document.querySelector('[data-tab=tablet]'))"><div class="category-tile-icon">📓</div><div class="category-tile-name">Tablets</div><div class="category-tile-sub">iPads &amp; Android Tablets</div></div>
+    <div class="category-tile" onclick="filterCat('audio', document.querySelector('[data-tab=audio]'))"><div class="category-tile-icon">🎧</div><div class="category-tile-name">Audio</div><div class="category-tile-sub">Headphones, Speakers &amp; Sound</div></div>
+    <div class="category-tile" onclick="filterCat('gaming', document.querySelector('[data-tab=gaming]'))"><div class="category-tile-icon">🎮</div><div class="category-tile-name">Gaming</div><div class="category-tile-sub">Consoles &amp; Accessories</div></div>
+    <div class="category-tile" onclick="filterCat('accessory', document.querySelector('[data-tab=accessory]'))"><div class="category-tile-icon">🔌</div><div class="category-tile-name">Accessories</div><div class="category-tile-sub">Chargers, Cases &amp; More</div></div>
+    <div class="category-tile" onclick="filterCat('smart_home', document.querySelector('[data-tab=smart_home]'))"><div class="category-tile-icon">🏠</div><div class="category-tile-name">Smart Home</div><div class="category-tile-sub">Smart Devices &amp; Automation</div></div>
+    <div class="category-tile" onclick="filterCat('wearable', document.querySelector('[data-tab=wearable]'))"><div class="category-tile-icon">⌚</div><div class="category-tile-name">Wearables</div><div class="category-tile-sub">Smartwatches &amp; Fitness Trackers</div></div>
+  </div>
+</div>
+</div>
 
 <!-- ── SERVICES ── -->
 <div class="section-divider" id="services">
@@ -111,10 +151,15 @@
   <p class="section-desc">Every product is tested, verified, and confirmed before it reaches you.</p>
 
   <div class="cat-tabs">
-    <button class="cat-tab active" onclick="filterCat('all', this)">All Products</button>
-    <button class="cat-tab" onclick="filterCat('laptop', this)">💻 Laptops</button>
-    <button class="cat-tab" onclick="filterCat('phone', this)">📱 Phones</button>
-    <button class="cat-tab" onclick="filterCat('accessory', this)">🔌 Accessories</button>
+    <button class="cat-tab active" data-tab="all" onclick="filterCat('all', this)">All Products</button>
+    <button class="cat-tab" data-tab="laptop" onclick="filterCat('laptop', this)">💻 Laptops</button>
+    <button class="cat-tab" data-tab="phone" onclick="filterCat('phone', this)">📱 Smartphones</button>
+    <button class="cat-tab" data-tab="tablet" onclick="filterCat('tablet', this)">📓 Tablets</button>
+    <button class="cat-tab" data-tab="audio" onclick="filterCat('audio', this)">🎧 Audio</button>
+    <button class="cat-tab" data-tab="gaming" onclick="filterCat('gaming', this)">🎮 Gaming</button>
+    <button class="cat-tab" data-tab="accessory" onclick="filterCat('accessory', this)">🔌 Accessories</button>
+    <button class="cat-tab" data-tab="smart_home" onclick="filterCat('smart_home', this)">🏠 Smart Home</button>
+    <button class="cat-tab" data-tab="wearable" onclick="filterCat('wearable', this)">⌚ Wearables</button>
   </div>
 
   <div class="sub-tabs" id="subTabs" style="display:none;">
@@ -128,7 +173,8 @@
     {% for product in products %}
     <div class="product-card"
          data-cat="{{ product.category }}"
-         data-sub="{{ product.sub_category }}">
+         data-sub="{{ product.sub_category }}"
+         onclick='openProductModal({{ product | tojson | forceescape }})' style="cursor:pointer;">
       <div class="product-img-wrap">
         {% if product.image %}
           <img src="{{ product.image }}" alt="{{ product.name }}"/>
@@ -150,7 +196,7 @@
         <div class="product-spec">{{ product.specs }}</div>
         <div class="product-price">₦{{ "{:,}".format(product.price) }}</div>
         <a href="https://wa.me/2348169441990?text=Hi%20Victor%2C%20I%27m%20interested%20in%20the%20{{ product.name | urlencode }}"
-           class="product-cta" target="_blank">📲 Enquire on WhatsApp</a>
+           class="product-cta" target="_blank" onclick="event.stopPropagation()">📲 Enquire on WhatsApp</a>
       </div>
     </div>
     {% else %}
@@ -394,6 +440,24 @@
     <a href="/laptopseal/download" class="btn-pay" style="display:block;text-decoration:none;text-align:center;margin-bottom:10px;">⬇ Download Free (Battery)</a>
     <a href="/laptopseal" class="btn-pay" style="display:block;text-decoration:none;text-align:center;background:transparent;color:var(--gold);border:1.5px solid var(--gold);">See Pricing & Full Details</a>
     <span class="modal-close" onclick="closeDiagModal()">✕ Close</span>
+  </div>
+</div>
+
+<!-- ── PRODUCT DETAIL MODAL ── -->
+<div class="modal-overlay" id="productDetailModal">
+  <div class="modal" style="max-width:520px;">
+    <div id="pdImgWrap" style="height:220px;border-radius:16px;overflow:hidden;margin-bottom:10px;background:var(--black4);display:flex;align-items:center;justify-content:center;font-size:3em;">
+    </div>
+    <div id="pdThumbs" style="display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;"></div>
+    <span class="product-cat-badge" id="pdBadge" style="display:inline-block;margin-bottom:10px;"></span>
+    <h3 id="pdName" style="text-align:left;"></h3>
+    <div class="modal-price" style="text-align:left;">
+      <div class="price" id="pdPrice"></div>
+    </div>
+    <p id="pdSpecs" style="text-align:left;color:#ddd;font-weight:600;margin-bottom:10px;"></p>
+    <p id="pdDesc" style="text-align:left;"></p>
+    <a href="#" id="pdWaBtn" class="btn-pay" style="display:block;text-decoration:none;text-align:center;margin-top:10px;" target="_blank">📲 Enquire on WhatsApp</a>
+    <span class="modal-close" onclick="closeProductModal()">✕ Close</span>
   </div>
 </div>
 
