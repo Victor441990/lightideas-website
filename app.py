@@ -169,6 +169,14 @@ def get_products():
     products = [product_to_dict(p) for p in get_products_col().find({'available': True})]
     return jsonify(products)
 
+# ── API: Read-only catalog feed for the LightIdeas native (Android) app.
+# Dedicated endpoint, separate from /api/products, so the app's contract
+# doesn't break if the website's own internal API ever changes shape.
+@app.route('/api/catalog', methods=['GET'])
+def api_catalog():
+    products = [product_to_dict(p) for p in get_products_col().find({'available': True})]
+    return jsonify(products)
+
 # ── API: Add product
 @app.route('/api/products', methods=['POST'])
 def add_product():
@@ -241,11 +249,18 @@ def upload_media():
         media_type = request.form.get('type', 'photo')
         if not file:
             return jsonify({'success': False, 'error': 'No file provided'}), 400
-        result = cloudinary.uploader.upload(
-            file,
-            folder='lightideas-hero',
-            resource_type='video' if media_type == 'video' else 'image'
-        )
+        if media_type == 'video':
+            # Videos use Cloudinary's chunked upload — the plain upload() call
+            # reads the whole file into memory at once and times out/fails on
+            # anything but small clips.
+            result = cloudinary.uploader.upload_large(
+                file,
+                folder='lightideas-hero',
+                resource_type='video',
+                chunk_size=6000000
+            )
+        else:
+            result = cloudinary.uploader.upload(file, folder='lightideas-hero', resource_type='image')
         return jsonify({'success': True, 'url': result['secure_url']})
     except Exception as e:
         app.logger.error(f'Hero media upload failed: {e}')

@@ -513,6 +513,10 @@ footer { background: var(--black); border-top: 1px solid var(--black4); padding:
 .modal-textarea { resize: vertical; min-height: 100px; font-family: var(--font-body); }
 .pd-thumb { border: 2px solid transparent; transition: border-color 0.2s; }
 .pd-thumb.active { border-color: var(--gold); }
+.pd-spec-list { list-style: none; margin-bottom: 16px; }
+.pd-spec-list li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--black4); color: #ddd; font-size: 0.88em; }
+.pd-spec-list li:last-child { border-bottom: none; }
+.pd-spec-list li::before { content: '✓'; color: var(--gold); font-weight: 700; flex-shrink: 0; }
 .btn-pay { width: 100%; background: var(--gold); color: #000; padding: 14px; border-radius: 50px; border: none; font-family: var(--font-body); font-weight: 700; font-size: 0.95em; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.3s; }
 .btn-pay:hover { background: #fff; }
 .modal-close { display: block; text-align: center; margin-top: 16px; color: var(--muted); font-size: 0.78em; cursor: pointer; transition: color 0.2s; }

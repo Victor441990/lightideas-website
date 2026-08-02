@@ -445,8 +445,8 @@
 
 <!-- ── PRODUCT DETAIL MODAL ── -->
 <div class="modal-overlay" id="productDetailModal">
-  <div class="modal" style="max-width:520px;">
-    <div id="pdImgWrap" style="height:220px;border-radius:16px;overflow:hidden;margin-bottom:10px;background:var(--black4);display:flex;align-items:center;justify-content:center;font-size:3em;">
+  <div class="modal" style="max-width:640px;">
+    <div id="pdImgWrap" style="height:340px;border-radius:16px;overflow:hidden;margin-bottom:10px;background:#000;display:flex;align-items:center;justify-content:center;font-size:3em;">
     </div>
     <div id="pdThumbs" style="display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;"></div>
     <span class="product-cat-badge" id="pdBadge" style="display:inline-block;margin-bottom:10px;"></span>
@@ -454,7 +454,7 @@
     <div class="modal-price" style="text-align:left;">
       <div class="price" id="pdPrice"></div>
     </div>
-    <p id="pdSpecs" style="text-align:left;color:#ddd;font-weight:600;margin-bottom:10px;"></p>
+    <ul id="pdSpecs" class="pd-spec-list"></ul>
     <p id="pdDesc" style="text-align:left;"></p>
     <a href="#" id="pdWaBtn" class="btn-pay" style="display:block;text-decoration:none;text-align:center;margin-top:10px;" target="_blank">📲 Enquire on WhatsApp</a>
     <span class="modal-close" onclick="closeProductModal()">✕ Close</span>

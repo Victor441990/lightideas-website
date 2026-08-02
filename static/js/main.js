@@ -61,8 +61,8 @@ function renderProducts() {
 }
 
 // ── PRODUCT DETAIL MODAL
-const catEmoji = { laptop: '💻', phone: '📱', accessory: '🔌' };
-const badgeLabels = { budget: '✅ Budget', pro: '🏆 Pro', gaming: '🎮 Gaming', phone: '📱 Phone', accessory: '🔌 Accessory' };
+const catEmoji = { laptop: '💻', phone: '📱', accessory: '🔌', tablet: '📓', audio: '🎧', gaming: '🎮', smart_home: '🏠', wearable: '⌚' };
+const badgeLabels = { budget: '✅ Budget', pro: '🏆 Pro', gaming: '🎮 Gaming', phone: '📱 Smartphone', accessory: '🔌 Accessory', tablet: '📓 Tablet', audio: '🎧 Audio', smart_home: '🏠 Smart Home', wearable: '⌚ Wearable' };
 
 let currentPdMedia = [];
 function showPdMedia(media, idx) {
@@ -72,8 +72,8 @@ function showPdMedia(media, idx) {
   imgWrap.innerHTML = !m
     ? '🔌'
     : m.type === 'video'
-      ? `<video src="${m.url}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video>`
-      : `<img src="${m.url}" alt="" style="width:100%;height:100%;object-fit:cover;"/>`;
+      ? `<video src="${m.url}" controls playsinline style="width:100%;height:100%;object-fit:contain;"></video>`
+      : `<img src="${m.url}" alt="" style="width:100%;height:100%;object-fit:contain;"/>`;
   document.querySelectorAll('#pdThumbs .pd-thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
 }
 
@@ -96,7 +96,11 @@ function openProductModal(product) {
 
   document.getElementById('pdName').textContent = product.name;
   document.getElementById('pdPrice').textContent = '₦' + Number(product.price).toLocaleString();
-  document.getElementById('pdSpecs').textContent = product.specs || '';
+
+  const specsList = document.getElementById('pdSpecs');
+  const specItems = (product.specs || '').split('·').map(s => s.trim()).filter(Boolean);
+  specsList.innerHTML = specItems.map(s => `<li>${s}</li>`).join('');
+
   document.getElementById('pdDesc').textContent = product.description || '';
   document.getElementById('pdWaBtn').href = 'https://wa.me/2348169441990?text=' + encodeURIComponent("Hi Victor, I'm interested in the " + product.name);
 
