@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Light Ideas Technology — Laptop Catalog</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 :root{
   --gold:#FFD700;--gold2:#C8A415;--gold3:rgba(255,215,0,0.1);
@@ -76,30 +76,45 @@ body{background:var(--black);color:var(--text);font-family:var(--font-body);min-
 .footer-name{font-family:var(--font-display);font-size:0.95em;letter-spacing:1px;color:var(--gold);}
 .footer-tag{font-size:0.62em;color:#555;letter-spacing:1px;}
 .footer-wa{background:var(--green);color:#fff;padding:9px 18px;border-radius:50px;font-size:0.78em;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;}
+
+/* ── PRODUCT DETAIL POPUP — matches the Android app's product page ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:500;display:none;align-items:flex-end;justify-content:center;}
 .modal-overlay.open{display:flex;}
-.modal{background:var(--dark2);border-radius:24px 24px 0 0;border-top:2px solid rgba(255,215,0,0.3);width:100%;max-width:560px;max-height:88vh;overflow-y:auto;animation:slideUp 0.3s ease;}
+.modal{background:var(--dark2);border-radius:24px 24px 0 0;border-top:2px solid rgba(255,215,0,0.3);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;animation:slideUp 0.3s ease;}
 @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
-.modal-img{width:100%;height:320px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;font-size:4em;}
-.modal-img img,.modal-img video{width:100%;height:100%;object-fit:contain;}
-.modal-thumbs{display:flex;gap:8px;padding:10px 20px 0;overflow-x:auto;}
+.modal-wrap{position:relative;}
+.modal-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.65);color:var(--gold);border:1px solid rgba(255,215,0,0.35);font-size:1em;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
+
+/* Swipeable gallery — slide sideways, exactly like the app */
+.modal-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;background:#000;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.modal-gallery::-webkit-scrollbar{display:none;}
+.modal-slide{min-width:100%;scroll-snap-align:center;height:360px;display:flex;align-items:center;justify-content:center;font-size:4em;background:#000;}
+.modal-slide img,.modal-slide video{width:100%;height:100%;object-fit:contain;}
+.modal-dots{display:flex;justify-content:center;align-items:center;gap:7px;padding:12px 0 0;}
+.modal-dot{width:7px;height:7px;border-radius:50%;background:#333;transition:all 0.25s;}
+.modal-dot.active{background:var(--gold);width:22px;border-radius:50px;}
+.modal-thumbs{display:flex;gap:8px;padding:12px 20px 0;overflow-x:auto;scrollbar-width:none;}
+.modal-thumbs::-webkit-scrollbar{display:none;}
 .modal-thumb{width:56px;height:56px;border-radius:8px;overflow:hidden;border:2px solid transparent;cursor:pointer;flex-shrink:0;background:var(--dark3);}
 .modal-thumb.active{border-color:var(--gold);}
 .modal-thumb img,.modal-thumb video{width:100%;height:100%;object-fit:cover;display:block;}
+
 .modal-body{padding:20px;}
-.modal-badge{display:inline-block;padding:3px 12px;border-radius:50px;font-size:0.7em;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
-.modal-name{font-size:1.3em;font-weight:700;color:#ffffff;margin-bottom:6px;}
-.modal-price{font-size:1.5em;font-weight:700;color:var(--gold);margin-bottom:12px;}
-.modal-specs{margin-bottom:16px;list-style:none;}
-.modal-specs li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--dark3);color:#ddd;font-size:0.85em;}
-.modal-specs li:last-child{border-bottom:none;}
-.modal-specs li::before{content:'✓';color:var(--gold);font-weight:700;flex-shrink:0;}
-.modal-desc{font-size:0.85em;color:#aaa;line-height:1.7;margin-bottom:16px;}
-.modal-usps{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.modal-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.modal-badge{display:inline-block;padding:4px 13px;border-radius:50px;font-size:0.7em;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.modal-name{font-size:1.55em;font-weight:800;color:#ffffff;line-height:1.25;}
+.modal-specline{font-size:0.8em;color:#888;margin-top:5px;}
+.modal-price{font-size:1.85em;font-weight:800;color:var(--gold);margin-top:12px;}
+.modal-divider{height:1px;background:var(--dark3);margin:22px 0;}
+.modal-section-title{font-size:1.05em;font-weight:800;color:#fff;letter-spacing:0.3px;margin-bottom:16px;}
+.modal-specs{list-style:none;display:flex;flex-direction:column;gap:12px;}
+.modal-specs li{display:flex;align-items:flex-start;gap:11px;color:#fff;font-size:0.98em;font-weight:700;line-height:1.45;}
+.modal-specs li::before{content:'✓';color:var(--gold);font-weight:800;flex-shrink:0;font-size:1.05em;line-height:1.4;}
+.modal-nospecs{color:#555;font-size:0.85em;}
+.modal-slogan{font-size:0.82em;color:#888;font-style:italic;text-align:center;line-height:1.6;}
+.modal-usps{display:flex;flex-direction:column;gap:8px;margin:20px 0;}
 .modal-usp{display:flex;align-items:center;gap:10px;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:9px 14px;font-size:0.82em;font-weight:600;color:#fff;}
-.modal-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border-radius:14px;background:var(--green);color:#fff;font-family:var(--font-body);font-size:0.95em;font-weight:700;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,0.3);}
-.modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.1);color:#fff;border:none;font-size:1em;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
-.modal-wrap{position:relative;}
+.modal-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border-radius:50px;background:var(--green);color:#fff;font-family:var(--font-body);font-size:0.95em;font-weight:800;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,0.3);}
 @media(min-width:500px){.grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));}}
 </style>
 </head>
@@ -130,7 +145,7 @@ body{background:var(--black);color:var(--text);font-family:var(--font-body);min-
 <div class="search-wrap">
   <div class="search-box">
     <span style="color:#555;">🔍</span>
-    <input type="text" id="searchInput" placeholder="Search laptop name or brand..." oninput="filterProducts()"/>
+    <input type="text" id="searchInput" placeholder="Search laptop name or specs..." oninput="filterProducts()"/>
   </div>
 </div>
 
@@ -174,14 +189,29 @@ body{background:var(--black);color:var(--text);font-family:var(--font-body);min-
   <div class="modal" id="modalBox">
     <div class="modal-wrap">
       <button class="modal-close" onclick="closeModal()">✕</button>
-      <div class="modal-img" id="modalImg"></div>
+
+      <div class="modal-gallery" id="modalGallery"></div>
+      <div class="modal-dots" id="modalDots"></div>
       <div class="modal-thumbs" id="modalThumbs"></div>
+
       <div class="modal-body">
-        <div id="modalBadge" class="modal-badge"></div>
+        <div class="modal-badges" id="modalBadges"></div>
         <div class="modal-name" id="modalName"></div>
+        <div class="modal-specline" id="modalSpecLine"></div>
         <div class="modal-price" id="modalPrice"></div>
+
+        <div class="modal-divider"></div>
+
+        <div class="modal-section-title">Full Specification</div>
         <ul class="modal-specs" id="modalSpecs"></ul>
-        <div class="modal-desc" id="modalDesc"></div>
+        <div class="modal-nospecs" id="modalNoSpecs" style="display:none;">
+          No details written for this product yet.
+        </div>
+
+        <div class="modal-divider"></div>
+
+        <div class="modal-slogan">Tested and Confirmed — Just for Your Convenience</div>
+
         <div class="modal-usps">
           <div class="modal-usp">🔬 Passed 16-module diagnostic check</div>
           <div class="modal-usp">⚡ FREE power surge protector included</div>
@@ -189,6 +219,7 @@ body{background:var(--black);color:var(--text);font-family:var(--font-body);min-
           <div class="modal-usp">🔧 Tech support via WhatsApp</div>
           <div class="modal-usp">✅ Windows and Office activated</div>
         </div>
+
         <a class="modal-wa" id="modalWA" href="#" target="_blank">📲 Order This on WhatsApp</a>
       </div>
     </div>
@@ -209,18 +240,35 @@ const badgeMap = {
   smart_home:{cls:"badge-smart_home",label:"🏠 Smart Home"},
   wearable: {cls:"badge-wearable",label:"⌚ Wearable"},
 };
+const catMap = {
+  laptop:{cls:"badge-pro",label:"💻 Laptop"}, phone:{cls:"badge-phone",label:"📱 Smartphone"},
+  tablet:{cls:"badge-tablet",label:"📓 Tablet"}, audio:{cls:"badge-audio",label:"🎧 Audio"},
+  gaming:{cls:"badge-gaming",label:"🎮 Gaming"}, accessory:{cls:"badge-accessory",label:"🔌 Accessory"},
+  smart_home:{cls:"badge-smart_home",label:"🏠 Smart Home"}, wearable:{cls:"badge-wearable",label:"⌚ Wearable"},
+};
 const iconMap = {laptop:"💻", phone:"📱", accessory:"🔌", gaming:"🎮", tablet:"📓", audio:"🎧", smart_home:"🏠", wearable:"⌚"};
 
 let activeFilter = "all", activeSubFilter = "all", searchQuery = "";
 
-function fmt(n){ return "₦" + n.toLocaleString("en-NG"); }
+function fmt(n){ return "₦" + Number(n || 0).toLocaleString("en-NG"); }
+
+// Stops a stray < or & in a product description from breaking the page.
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
 
 function filtered(){
   return PRODUCTS.filter(p => {
     const mf  = activeFilter==="all" || p.category===activeFilter;
     const ms2 = activeFilter!=="laptop" || activeSubFilter==="all" || p.sub_category===activeSubFilter;
     const q   = searchQuery.toLowerCase();
-    const ms  = !q || p.name.toLowerCase().includes(q) || (p.specs||"").toLowerCase().includes(q);
+    // `specs` is only a short line like "Dell · Laptops", so the real spec sheet
+    // in `description` is searched too — that is what makes "8gb" or
+    // "touchscreen" actually find something.
+    const hay = (p.name + " " + (p.specs||"") + " " + (p.description||"")).toLowerCase();
+    const ms  = !q || hay.includes(q);
     return mf && ms2 && ms;
   });
 }
@@ -239,16 +287,16 @@ function render(){
   grid.innerHTML = list.map(p => {
     const b   = badgeMap[p.sub_category] || badgeMap[p.category] || {cls:"badge-budget",label:"Available"};
     const imgH = p.image
-      ? `<img src="${p.image}" alt="${p.name}" loading="lazy"/>`
+      ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy"/>`
       : `<div class="placeholder">${iconMap[p.category] || "💻"}</div>`;
     const waMsg = encodeURIComponent(`Hi Victor! 👋\n\nI want to order this laptop:\n\n💻 *${p.name}*\n💰 Price: ${fmt(p.price)}\n📋 Specs: ${p.specs}${p.image ? "\n📸 Photo: " + p.image : ""}\n\nPlease confirm if it's available.`);
     return `
-      <div class="card" onclick="openModal('${p.id}')">
+      <div class="card" onclick="openModal('${esc(p.id)}')">
         <div class="card-img">${imgH}<span class="card-badge ${b.cls}">${b.label}</span></div>
         <div class="card-body">
-          <div class="card-brand">${p.name.split(" ")[0]}</div>
-          <div class="card-name">${p.name}</div>
-          <div class="card-specs">${p.specs || ""}</div>
+          <div class="card-brand">${esc(p.name.split(" ")[0])}</div>
+          <div class="card-name">${esc(p.name)}</div>
+          <div class="card-specs">${esc(p.specs || "")}</div>
           <div class="card-price">${fmt(p.price)}</div>
           <a class="card-btn" href="https://wa.me/2348169441990?text=${waMsg}"
              target="_blank" onclick="event.stopPropagation()">📲 Order on WhatsApp</a>
@@ -278,49 +326,111 @@ function filterProducts(){
   render();
 }
 
-let currentModalMedia = [];
-function showModalMedia(media, idx){
-  currentModalMedia = media;
-  const m = media[idx];
-  const imgBox = document.getElementById("modalImg");
-  imgBox.innerHTML = !m ? (iconMap["laptop"] || "💻")
-    : m.type === "video" ? `<video src="${m.url}" controls playsinline></video>`
-    : `<img src="${m.url}" alt=""/>`;
-  document.querySelectorAll(".modal-thumb").forEach((t,i) => t.classList.toggle("active", i===idx));
+/* ── PRODUCT DETAIL POPUP ─────────────────────────────────────────────── */
+
+function syncGalleryIndicators(){
+  const g = document.getElementById("modalGallery");
+  if(!g.clientWidth) return;
+  const i = Math.round(g.scrollLeft / g.clientWidth);
+  document.querySelectorAll("#modalDots .modal-dot").forEach((d,j) => d.classList.toggle("active", j===i));
+  document.querySelectorAll("#modalThumbs .modal-thumb").forEach((t,j) => t.classList.toggle("active", j===i));
+}
+
+function goToSlide(i){
+  const g = document.getElementById("modalGallery");
+  g.scrollTo({ left: i * g.clientWidth, behavior: "smooth" });
 }
 
 function openModal(id){
   const p = PRODUCTS.find(x => String(x.id) === String(id));
   if(!p) return;
-  const b = badgeMap[p.sub_category] || badgeMap[p.category] || {cls:"badge-budget",label:"Available"};
-  const media = (p.media && p.media.length) ? p.media : (p.image ? [{type:"photo", url:p.image}] : []);
-  const thumbsBox = document.getElementById("modalThumbs");
-  thumbsBox.innerHTML = media.length > 1 ? media.map((m,i) => `
-    <div class="modal-thumb${i===0?' active':''}" onclick="showModalMedia(currentModalMedia, ${i})">
-      ${m.type === "video" ? `<video src="${m.url}" muted></video>` : `<img src="${m.url}" alt=""/>`}
-    </div>`).join("") : "";
-  showModalMedia(media, 0);
-  document.getElementById("modalBadge").textContent  = b.label;
-  document.getElementById("modalBadge").className    = "modal-badge " + b.cls;
-  document.getElementById("modalName").textContent   = p.name;
-  document.getElementById("modalPrice").textContent  = fmt(p.price);
-  const specItems = (p.specs || "").split("·").map(s => s.trim()).filter(Boolean);
-  document.getElementById("modalSpecs").innerHTML = specItems.map(s => `<li>${s}</li>`).join("");
-  document.getElementById("modalDesc").innerHTML = p.description ? p.description.replace(/\n/g, "<br>") : "";
+
+  // Gallery rule: use `media` when it exists, otherwise fall back to the single
+  // `image`. Never both — on several products media[0] is the same file as image.
+  const media = (p.media && p.media.length) ? p.media
+              : (p.image ? [{type:"photo", url:p.image}] : []);
+
+  const gallery = document.getElementById("modalGallery");
+  const dots    = document.getElementById("modalDots");
+  const thumbs  = document.getElementById("modalThumbs");
+
+  if(!media.length){
+    gallery.innerHTML = `<div class="modal-slide">${iconMap[p.category] || "💻"}</div>`;
+    dots.innerHTML = "";
+    thumbs.innerHTML = "";
+  } else {
+    gallery.innerHTML = media.map(m =>
+      `<div class="modal-slide">${
+        m.type === "video"
+          ? `<video src="${esc(m.url)}" controls playsinline></video>`
+          : `<img src="${esc(m.url)}" alt="" loading="lazy"/>`
+      }</div>`).join("");
+
+    dots.innerHTML = media.length > 1
+      ? media.map((m,i) => `<span class="modal-dot${i===0?' active':''}"></span>`).join("")
+      : "";
+
+    thumbs.innerHTML = media.length > 1
+      ? media.map((m,i) => `
+          <div class="modal-thumb${i===0?' active':''}" onclick="goToSlide(${i})">
+            ${m.type === "video"
+              ? `<video src="${esc(m.url)}" muted></video>`
+              : `<img src="${esc(m.url)}" alt=""/>`}
+          </div>`).join("")
+      : "";
+  }
+  gallery.scrollLeft = 0;
+
+  // Badges: category, plus the budget/pro/gaming tier when it is a laptop.
+  const cat = catMap[p.category] || {cls:"badge-budget", label:"Available"};
+  let badgesHtml = `<span class="modal-badge ${cat.cls}">${cat.label}</span>`;
+  if(p.sub_category && badgeMap[p.sub_category]){
+    const sub = badgeMap[p.sub_category];
+    badgesHtml += `<span class="modal-badge ${sub.cls}">${sub.label}</span>`;
+  }
+  document.getElementById("modalBadges").innerHTML = badgesHtml;
+
+  document.getElementById("modalName").textContent  = p.name;
+  document.getElementById("modalPrice").textContent = fmt(p.price);
+
+  const specLineEl = document.getElementById("modalSpecLine");
+  specLineEl.textContent = p.specs || "";
+  specLineEl.style.display = p.specs ? "block" : "none";
+
+  // The real spec sheet lives in `description`, one item per line. The short
+  // `specs` field ("Dell · Laptops") is only a fallback for older products.
+  let items = String(p.description || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  if(!items.length){
+    items = String(p.specs || "").split("·").map(s => s.trim()).filter(Boolean);
+  }
+
+  const specsEl   = document.getElementById("modalSpecs");
+  const noSpecsEl = document.getElementById("modalNoSpecs");
+  specsEl.innerHTML = items.map(s => `<li>${esc(s)}</li>`).join("");
+  specsEl.style.display   = items.length ? "flex"  : "none";
+  noSpecsEl.style.display = items.length ? "none"  : "block";
+
   const waMsg = encodeURIComponent(`Hi Victor! 👋\n\nI want to order this laptop:\n\n💻 *${p.name}*\n💰 Price: ${fmt(p.price)}\n📋 Specs: ${p.specs}${p.image ? "\n📸 Photo: " + p.image : ""}\n\nPlease confirm if it's available.`);
   document.getElementById("modalWA").href = `https://wa.me/2348169441990?text=${waMsg}`;
+
   document.getElementById("modal").classList.add("open");
+  document.getElementById("modalBox").scrollTop = 0;
   document.body.style.overflow = "hidden";
 }
 
 function closeModal(){
   document.getElementById("modal").classList.remove("open");
   document.body.style.overflow = "";
+  // Stop any video that is still playing behind the closed popup.
+  document.querySelectorAll("#modalGallery video").forEach(v => v.pause());
 }
 
 function handleModalClick(e){
   if(e.target === document.getElementById("modal")) closeModal();
 }
+
+document.getElementById("modalGallery").addEventListener("scroll", syncGalleryIndicators, {passive:true});
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
 
 render();
 </script>
