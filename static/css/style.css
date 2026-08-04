@@ -541,3 +541,77 @@ footer { background: var(--black); border-top: 1px solid var(--black4); padding:
   .ai-panel { width: 290px; }
   .hero-btns { flex-direction: column; align-items: center; }
 }
+
+/* ── PRODUCT DETAIL POPUP ──────────────────────────────────────────────────
+   Matches the Android app and the /catalog page: a big swipeable gallery, then
+   the full spec sheet as bold ticked lines.
+   These rules sit last on purpose — .pd-modal and .pd-spec-list override the
+   shared .modal / .pd-spec-list rules defined earlier in this file. Only the
+   product popup carries the .pd-* classes, so the Paystack, diagnostic and
+   review modals are left exactly as they were. */
+.pd-overlay { padding: 0; align-items: flex-end; }
+.pd-modal {
+  padding: 0; max-width: 560px; width: 100%; max-height: 92vh;
+  overflow-y: auto; border-radius: 24px 24px 0 0; position: relative;
+}
+@media (min-width: 640px) {
+  .pd-overlay { align-items: center; padding: 20px; }
+  .pd-modal { border-radius: 24px; max-height: 88vh; }
+}
+.pd-close {
+  position: absolute; top: 14px; right: 14px; width: 36px; height: 36px;
+  border-radius: 50%; background: rgba(0,0,0,0.65); color: var(--gold);
+  border: 1px solid rgba(255,215,0,0.35); font-size: 0.95em; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; z-index: 10;
+}
+
+.pd-gallery {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+  background: #000; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.pd-gallery::-webkit-scrollbar { display: none; }
+.pd-slide {
+  min-width: 100%; scroll-snap-align: center; height: 340px; background: #000;
+  display: flex; align-items: center; justify-content: center; font-size: 3em;
+}
+.pd-slide img, .pd-slide video { width: 100%; height: 100%; object-fit: contain; }
+
+.pd-dots { display: flex; justify-content: center; align-items: center; gap: 7px; padding: 12px 0 0; }
+.pd-dot { width: 7px; height: 7px; border-radius: 50%; background: #333; transition: all 0.25s; }
+.pd-dot.active { background: var(--gold); width: 22px; border-radius: 50px; }
+
+.pd-thumbs { display: flex; gap: 8px; padding: 12px 20px 0; overflow-x: auto; scrollbar-width: none; }
+.pd-thumbs::-webkit-scrollbar { display: none; }
+.pd-thumb {
+  width: 56px; height: 56px; border-radius: 8px; overflow: hidden;
+  cursor: pointer; flex-shrink: 0; background: var(--black4);
+}
+.pd-thumb img, .pd-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.pd-body { padding: 20px; }
+.pd-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.pd-badges .product-cat-badge { margin-bottom: 0; }
+.pd-name { font-size: 1.5em; font-weight: 800; color: #fff; line-height: 1.25; text-align: left; }
+.pd-specline { font-size: 0.8em; color: #888; margin-top: 5px; text-align: left; }
+.pd-price { font-size: 1.8em; font-weight: 800; color: var(--gold); margin-top: 12px; text-align: left; }
+.pd-divider { height: 1px; background: var(--black4); margin: 22px 0; }
+.pd-section-title { font-size: 1.02em; font-weight: 800; color: #fff; margin-bottom: 16px; text-align: left; }
+
+.pd-spec-list { list-style: none; margin-bottom: 0; display: flex; flex-direction: column; gap: 12px; }
+.pd-spec-list li {
+  display: flex; align-items: flex-start; gap: 11px; padding: 0; border-bottom: none;
+  color: #fff; font-size: 0.97em; font-weight: 700; line-height: 1.45; text-align: left;
+}
+.pd-spec-list li::before {
+  content: '✓'; color: var(--gold); font-weight: 800;
+  flex-shrink: 0; font-size: 1.05em; line-height: 1.4;
+}
+.pd-nospecs { color: #555; font-size: 0.85em; }
+.pd-slogan { font-size: 0.82em; color: #888; font-style: italic; text-align: center; line-height: 1.6; }
+.pd-wa {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 15px; margin-top: 20px; border-radius: 50px;
+  background: #25D366; color: #fff; font-family: var(--font-body);
+  font-size: 0.95em; font-weight: 800; text-decoration: none;
+  box-shadow: 0 4px 20px rgba(37,211,102,0.3);
+}

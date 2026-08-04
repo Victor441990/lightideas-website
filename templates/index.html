@@ -444,20 +444,34 @@
 </div>
 
 <!-- ── PRODUCT DETAIL MODAL ── -->
-<div class="modal-overlay" id="productDetailModal">
-  <div class="modal" style="max-width:640px;">
-    <div id="pdImgWrap" style="height:340px;border-radius:16px;overflow:hidden;margin-bottom:10px;background:#000;display:flex;align-items:center;justify-content:center;font-size:3em;">
+<div class="modal-overlay pd-overlay" id="productDetailModal">
+  <div class="modal pd-modal">
+    <button class="pd-close" onclick="closeProductModal()">✕</button>
+
+    <div class="pd-gallery" id="pdGallery"></div>
+    <div class="pd-dots" id="pdDots"></div>
+    <div class="pd-thumbs" id="pdThumbs"></div>
+
+    <div class="pd-body">
+      <div class="pd-badges" id="pdBadges"></div>
+      <div class="pd-name" id="pdName"></div>
+      <div class="pd-specline" id="pdSpecLine"></div>
+      <div class="pd-price" id="pdPrice"></div>
+
+      <div class="pd-divider"></div>
+
+      <div class="pd-section-title">Full Specification</div>
+      <ul id="pdSpecs" class="pd-spec-list"></ul>
+      <div class="pd-nospecs" id="pdNoSpecs" style="display:none;">
+        No details written for this product yet.
+      </div>
+
+      <div class="pd-divider"></div>
+
+      <div class="pd-slogan">Tested and Confirmed — Just for Your Convenience</div>
+
+      <a href="#" id="pdWaBtn" class="pd-wa" target="_blank">📲 Enquire on WhatsApp</a>
     </div>
-    <div id="pdThumbs" style="display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;"></div>
-    <span class="product-cat-badge" id="pdBadge" style="display:inline-block;margin-bottom:10px;"></span>
-    <h3 id="pdName" style="text-align:left;"></h3>
-    <div class="modal-price" style="text-align:left;">
-      <div class="price" id="pdPrice"></div>
-    </div>
-    <ul id="pdSpecs" class="pd-spec-list"></ul>
-    <p id="pdDesc" style="text-align:left;"></p>
-    <a href="#" id="pdWaBtn" class="btn-pay" style="display:block;text-decoration:none;text-align:center;margin-top:10px;" target="_blank">📲 Enquire on WhatsApp</a>
-    <span class="modal-close" onclick="closeProductModal()">✕ Close</span>
   </div>
 </div>
 

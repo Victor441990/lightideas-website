@@ -64,53 +64,128 @@ function renderProducts() {
 const catEmoji = { laptop: '💻', phone: '📱', accessory: '🔌', tablet: '📓', audio: '🎧', gaming: '🎮', smart_home: '🏠', wearable: '⌚' };
 const badgeLabels = { budget: '✅ Budget', pro: '🏆 Pro', gaming: '🎮 Gaming', phone: '📱 Smartphone', accessory: '🔌 Accessory', tablet: '📓 Tablet', audio: '🎧 Audio', smart_home: '🏠 Smart Home', wearable: '⌚ Wearable' };
 
+// Category badge styling. There is no .badge-laptop class in style.css, so
+// laptops reuse the Pro colour — check style.css before adding a category here.
+const catBadgeMap = {
+  laptop:     { cls: 'badge-pro',        label: '💻 Laptop' },
+  phone:      { cls: 'badge-phone',      label: '📱 Smartphone' },
+  tablet:     { cls: 'badge-tablet',     label: '📓 Tablet' },
+  audio:      { cls: 'badge-audio',      label: '🎧 Audio' },
+  gaming:     { cls: 'badge-gaming',     label: '🎮 Gaming' },
+  accessory:  { cls: 'badge-accessory',  label: '🔌 Accessory' },
+  smart_home: { cls: 'badge-smart_home', label: '🏠 Smart Home' },
+  wearable:   { cls: 'badge-wearable',   label: '⌚ Wearable' }
+};
+
 let currentPdMedia = [];
-function showPdMedia(media, idx) {
-  currentPdMedia = media;
-  const m = media[idx];
-  const imgWrap = document.getElementById('pdImgWrap');
-  imgWrap.innerHTML = !m
-    ? '🔌'
-    : m.type === 'video'
-      ? `<video src="${m.url}" controls playsinline style="width:100%;height:100%;object-fit:contain;"></video>`
-      : `<img src="${m.url}" alt="" style="width:100%;height:100%;object-fit:contain;"/>`;
-  document.querySelectorAll('#pdThumbs .pd-thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
+
+// Stops a stray < or & in a product description from breaking the page.
+function pdEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Keeps the dots and thumbnails in step with whichever slide is showing.
+function pdSyncIndicators() {
+  const g = document.getElementById('pdGallery');
+  if (!g || !g.clientWidth) return;
+  const i = Math.round(g.scrollLeft / g.clientWidth);
+  document.querySelectorAll('#pdDots .pd-dot').forEach((d, j) => d.classList.toggle('active', j === i));
+  document.querySelectorAll('#pdThumbs .pd-thumb').forEach((t, j) => t.classList.toggle('active', j === i));
+}
+
+function pdGoToSlide(i) {
+  const g = document.getElementById('pdGallery');
+  g.scrollTo({ left: i * g.clientWidth, behavior: 'smooth' });
 }
 
 function openProductModal(product) {
-  const media = (product.media && product.media.length) ? product.media : (product.image ? [{ type: 'photo', url: product.image }] : []);
-  const imgWrap = document.getElementById('pdImgWrap');
-  if (!media.length) imgWrap.innerHTML = catEmoji[product.category] || '🔌';
+  // Gallery rule: use `media` when it exists, otherwise fall back to the single
+  // `image`. Never both — on several products media[0] is the same file as image.
+  const media = (product.media && product.media.length) ? product.media
+              : (product.image ? [{ type: 'photo', url: product.image }] : []);
+  currentPdMedia = media;
 
-  const thumbsBox = document.getElementById('pdThumbs');
-  thumbsBox.innerHTML = media.length > 1 ? media.map((m, i) => `
-    <div class="pd-thumb${i === 0 ? ' active' : ''}" style="width:56px;height:56px;border-radius:8px;overflow:hidden;cursor:pointer;flex-shrink:0;background:var(--black4);" onclick="showPdMedia(currentPdMedia, ${i})">
-      ${m.type === 'video' ? `<video src="${m.url}" muted style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${m.url}" alt="" style="width:100%;height:100%;object-fit:cover;"/>`}
-    </div>`).join('') : '';
-  if (media.length) showPdMedia(media, 0);
+  const gallery = document.getElementById('pdGallery');
+  const dots    = document.getElementById('pdDots');
+  const thumbs  = document.getElementById('pdThumbs');
 
-  const badgeKey = product.sub_category || product.category;
-  const badge = document.getElementById('pdBadge');
-  badge.textContent = badgeLabels[badgeKey] || '🔌 Accessory';
-  badge.className = 'product-cat-badge badge-' + badgeKey;
+  if (!media.length) {
+    gallery.innerHTML = `<div class="pd-slide">${catEmoji[product.category] || '🔌'}</div>`;
+    dots.innerHTML   = '';
+    thumbs.innerHTML = '';
+  } else {
+    gallery.innerHTML = media.map(m =>
+      `<div class="pd-slide">${m.type === 'video'
+        ? `<video src="${pdEsc(m.url)}" controls playsinline></video>`
+        : `<img src="${pdEsc(m.url)}" alt="" loading="lazy"/>`}</div>`).join('');
 
-  document.getElementById('pdName').textContent = product.name;
-  document.getElementById('pdPrice').textContent = '₦' + Number(product.price).toLocaleString();
+    dots.innerHTML = media.length > 1
+      ? media.map((m, i) => `<span class="pd-dot${i === 0 ? ' active' : ''}"></span>`).join('')
+      : '';
 
-  const specsList = document.getElementById('pdSpecs');
-  const specItems = (product.specs || '').split('·').map(s => s.trim()).filter(Boolean);
-  specsList.innerHTML = specItems.map(s => `<li>${s}</li>`).join('');
+    thumbs.innerHTML = media.length > 1
+      ? media.map((m, i) =>
+          `<div class="pd-thumb${i === 0 ? ' active' : ''}" onclick="pdGoToSlide(${i})">${
+            m.type === 'video'
+              ? `<video src="${pdEsc(m.url)}" muted></video>`
+              : `<img src="${pdEsc(m.url)}" alt=""/>`
+          }</div>`).join('')
+      : '';
+  }
+  gallery.scrollLeft = 0;
 
-  document.getElementById('pdDesc').textContent = product.description || '';
-  document.getElementById('pdWaBtn').href = 'https://wa.me/2348169441990?text=' + encodeURIComponent("Hi Victor, I'm interested in the " + product.name);
+  // Category badge, plus the budget/pro/gaming tier when it is a laptop.
+  const cat = catBadgeMap[product.category] || { cls: 'badge-accessory', label: '🔌 Accessory' };
+  let badgesHtml = `<span class="product-cat-badge ${cat.cls}">${cat.label}</span>`;
+  if (product.sub_category && badgeLabels[product.sub_category]) {
+    badgesHtml += `<span class="product-cat-badge badge-${pdEsc(product.sub_category)}">${badgeLabels[product.sub_category]}</span>`;
+  }
+  document.getElementById('pdBadges').innerHTML = badgesHtml;
+
+  document.getElementById('pdName').textContent  = product.name;
+  document.getElementById('pdPrice').textContent = '₦' + Number(product.price || 0).toLocaleString('en-NG');
+
+  const specLine = document.getElementById('pdSpecLine');
+  specLine.textContent   = product.specs || '';
+  specLine.style.display = product.specs ? 'block' : 'none';
+
+  // The real spec sheet lives in `description`, one item per line. The short
+  // `specs` field ("Dell · Laptops") is only a fallback for older products.
+  let items = String(product.description || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  if (!items.length) {
+    items = String(product.specs || '').split('·').map(s => s.trim()).filter(Boolean);
+  }
+
+  const specsEl   = document.getElementById('pdSpecs');
+  const noSpecsEl = document.getElementById('pdNoSpecs');
+  specsEl.innerHTML       = items.map(s => `<li>${pdEsc(s)}</li>`).join('');
+  specsEl.style.display   = items.length ? 'flex' : 'none';
+  noSpecsEl.style.display = items.length ? 'none' : 'block';
+
+  document.getElementById('pdWaBtn').href =
+    'https://wa.me/2348169441990?text=' + encodeURIComponent("Hi Victor, I'm interested in the " + product.name);
 
   document.getElementById('productDetailModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
-function closeProductModal() { document.getElementById('productDetailModal').classList.remove('open'); }
+function closeProductModal() {
+  document.getElementById('productDetailModal').classList.remove('open');
+  document.body.style.overflow = '';
+  // Stop any video still playing behind the closed popup.
+  document.querySelectorAll('#pdGallery video').forEach(v => v.pause());
+}
 
 document.getElementById('productDetailModal')?.addEventListener('click', function(e) {
   if (e.target === this) closeProductModal();
+});
+document.getElementById('pdGallery')?.addEventListener('scroll', pdSyncIndicators, { passive: true });
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('productDetailModal')?.classList.contains('open')) {
+    closeProductModal();
+  }
 });
 
 // ── EMAIL SUBSCRIBE
