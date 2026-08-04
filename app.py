@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+﻿from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response
 from pymongo import MongoClient
 from bson import ObjectId
 import cloudinary
@@ -796,6 +796,31 @@ def laptopseal_apps():
 @app.route('/terms')
 def terms_page():
     return render_template('terms.html')
+
+
+@app.route('/save')
+def save_contact_page():
+    return render_template('save.html')
+
+
+@app.route('/save-contact.vcf')
+def save_contact_vcf():
+    vcard = (
+        "BEGIN:VCARD\r\n"
+        "VERSION:3.0\r\n"
+        "N:Light Ideas Technology;;;;\r\n"
+        "FN:Light Ideas Technology\r\n"
+        "ORG:Light Ideas Technology\r\n"
+        "TEL;TYPE=CELL:+2348169441990\r\n"
+        "URL:https://lightideastechnology.com.ng\r\n"
+        "NOTE:Tested & Confirmed laptops — Just for your convenience\r\n"
+        "END:VCARD\r\n"
+    )
+    return Response(
+        vcard,
+        mimetype='text/vcard',
+        headers={'Content-Disposition': 'attachment; filename="LightIdeasTechnology.vcf"'}
+    )
 
 
 @app.route('/laptopseal/userguide')

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Save Light Ideas Technology</title>
+<link rel="icon" href="/static/images/logo.jpg" type="image/jpeg"/>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+        background:#000; color:#e8e8e8;
+        font-family:'Segoe UI', Arial, sans-serif;
+        min-height:100vh;
+        display:flex; align-items:center; justify-content:center;
+        padding:32px 20px;
+    }
+    .card {
+        max-width:420px; width:100%; text-align:center;
+    }
+    .logo {
+        width:100px; height:100px; border-radius:50%;
+        object-fit:cover; border:3px solid #FFD700;
+        margin:0 auto 24px; display:block;
+        box-shadow:0 0 30px rgba(255,215,0,0.25);
+    }
+    .title { color:#fff; font-size:1.6em; font-weight:900; letter-spacing:0.5px; margin-bottom:12px; }
+    .title span { color:#FFD700; }
+    .desc { color:#aaa; font-size:0.95em; line-height:1.7; margin-bottom:32px; }
+    .save-btn {
+        display:inline-flex; align-items:center; justify-content:center; gap:10px;
+        width:100%; background:#FFD700; color:#000;
+        padding:18px; border-radius:50px; border:none;
+        font-size:1.05em; font-weight:800; letter-spacing:0.5px;
+        text-decoration:none; cursor:pointer;
+        box-shadow:0 4px 24px rgba(255,215,0,0.3);
+        transition:transform 0.15s ease;
+    }
+    .save-btn:active { transform:scale(0.97); }
+    .note { color:#666; font-size:0.8em; margin-top:24px; line-height:1.6; }
+    .slogan { color:#555; font-size:0.72em; letter-spacing:2px; text-transform:uppercase; margin-top:36px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+    <img src="/static/images/logo.jpg" alt="Light Ideas Technology" class="logo"/>
+    <div class="title">Save <span>Light Ideas Technology</span></div>
+    <div class="desc">Tap below to save our number and never miss our tested &amp; confirmed laptop deals.</div>
+
+    <a href="/save-contact.vcf" class="save-btn">📌 Save Our Number</a>
+
+    <div class="note">After saving, check our WhatsApp status daily for new laptops.</div>
+    <div class="slogan">✦ Tested and Confirmed ✦</div>
+</div>
+
+</body>
+</html>
