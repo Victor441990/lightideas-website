@@ -794,9 +794,10 @@ def laptopseal_checkin():
     now = datetime.datetime.utcnow()
 
     set_fields = {
-        'device_name': data.get('device_name', ''),
-        'app_version': data.get('app_version', ''),
-        'last_seen':   now
+        'device_name':  data.get('device_name', ''),
+        'device_model': data.get('device_model', ''),
+        'app_version':  data.get('app_version', ''),
+        'last_seen':    now
     }
 
     activation_key = data.get('activation_key')

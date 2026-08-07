@@ -887,7 +887,9 @@ async function loadLaptopSeal() {
       <table class="products-table"><thead><tr><th>Device</th><th>Version</th><th>Activated</th><th>Last Seen</th></tr></thead><tbody>`;
       if (rows.length) {
         rows.forEach(i => {
-          t += `<tr><td>${i.device_name || i.device_id}</td><td>${i.app_version || '—'}</td><td>${(i.activated_at||i.first_seen||'').slice(0,10) || '—'}</td><td>${(i.last_seen||'').slice(0,10)}</td></tr>`;
+          const mainLabel = i.device_model || i.device_name || i.device_id;
+          const subLabel  = i.device_model && i.device_name ? `<div style="font-size:0.78em;color:var(--muted);margin-top:2px;">${i.device_name}</div>` : '';
+          t += `<tr><td>${mainLabel}${subLabel}</td><td>${i.app_version || '—'}</td><td>${(i.activated_at||i.first_seen||'').slice(0,10) || '—'}</td><td>${(i.last_seen||'').slice(0,10)}</td></tr>`;
         });
       } else {
         t += `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px;">${emptyMsg}</td></tr>`;
