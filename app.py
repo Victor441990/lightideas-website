@@ -45,6 +45,10 @@ BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 EMAIL_SENDER  = {'name': 'Light Ideas Technology', 'email': 'info@lightideastechnology.com.ng'}
 
+# ── LaptopSeal masterkey (Victor's own fixed key — must match the desktop app's
+# MASTER_KEY constant exactly). Used only to classify check-ins server-side.
+LAPTOPSEAL_MASTERKEY = os.environ.get('MASTERKEY', '')
+
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
 # ── Anthropic (AI chat widget)
@@ -79,7 +83,7 @@ def announcement_to_dict(a):
 def install_to_dict(i):
     i['id'] = str(i['_id'])
     del i['_id']
-    for f in ('first_seen', 'last_seen'):
+    for f in ('first_seen', 'last_seen', 'activated_at'):
         if i.get(f) and not isinstance(i[f], str):
             i[f] = i[f].isoformat()
     return i
@@ -777,6 +781,10 @@ def laptopseal_check_license():
 
 # ── API: Public — the desktop app calls this on launch (and periodically) so
 # Victor can see who's actually using LaptopSeal, not just who bought a license.
+# On activation, the desktop app should also send `activation_key` — the exact key
+# the user entered (masterkey or a paid token) — so this device can be classified.
+# The raw key itself is never stored, only the true/false result of comparing it
+# to MASTERKEY, so the key value doesn't sit in the database long-term.
 @app.route('/api/laptopseal/checkin', methods=['POST'])
 def laptopseal_checkin():
     data = request.get_json(silent=True) or {}
@@ -784,14 +792,23 @@ def laptopseal_checkin():
     if not device_id:
         return jsonify({'success': False, 'error': 'Missing device_id'}), 400
     now = datetime.datetime.utcnow()
+
+    set_fields = {
+        'device_name': data.get('device_name', ''),
+        'app_version': data.get('app_version', ''),
+        'last_seen':   now
+    }
+
+    activation_key = data.get('activation_key')
+    if activation_key:
+        if LAPTOPSEAL_MASTERKEY:
+            set_fields['is_masterkey'] = (activation_key == LAPTOPSEAL_MASTERKEY)
+        set_fields['activated_at'] = now
+
     get_ls_installs_col().update_one(
         {'device_id': device_id},
         {
-            '$set': {
-                'device_name': data.get('device_name', ''),
-                'app_version': data.get('app_version', ''),
-                'last_seen':   now
-            },
+            '$set': set_fields,
             '$setOnInsert': {'first_seen': now}
         },
         upsert=True

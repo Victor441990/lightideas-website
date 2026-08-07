@@ -872,18 +872,43 @@ async function loadLaptopSeal() {
     } else {
       html += `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px;">No licenses yet.</td></tr>`;
     }
-    html += `</tbody></table></div>
-      <div style="font-family:var(--font-display);font-size:1.1em;letter-spacing:1.5px;color:var(--gold);margin-bottom:14px;">INSTALLS / CHECK-INS</div>
-      <div style="overflow-x:auto;">
-      <table class="products-table"><thead><tr><th>Device</th><th>Version</th><th>First Seen</th><th>Last Seen</th></tr></thead><tbody>`;
-    if (ins.installs && ins.installs.length) {
-      ins.installs.forEach(i => {
-        html += `<tr><td>${i.device_name || i.device_id}</td><td>${i.app_version || '—'}</td><td>${(i.first_seen||'').slice(0,10)}</td><td>${(i.last_seen||'').slice(0,10)}</td></tr>`;
-      });
-    } else {
-      html += `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px;">No check-ins yet — this fills in once the desktop app starts calling /api/laptopseal/checkin.</td></tr>`;
-    }
     html += `</tbody></table></div>`;
+
+    const installs = ins.installs || [];
+    const masterGroup = installs.filter(i => i.is_masterkey === true);
+    const paidGroup    = installs.filter(i => i.is_masterkey === false);
+    const unclassified = installs.filter(i => i.is_masterkey !== true && i.is_masterkey !== false);
+
+    function activationTable(title, note, rows, emptyMsg) {
+      let t = `
+      <div style="font-family:var(--font-display);font-size:1.1em;letter-spacing:1.5px;color:var(--gold);margin-bottom:6px;">${title} (${rows.length})</div>
+      ${note ? `<div style="font-size:0.75em;color:var(--muted);margin-bottom:12px;">${note}</div>` : ''}
+      <div style="overflow-x:auto;margin-bottom:32px;">
+      <table class="products-table"><thead><tr><th>Device</th><th>Version</th><th>Activated</th><th>Last Seen</th></tr></thead><tbody>`;
+      if (rows.length) {
+        rows.forEach(i => {
+          t += `<tr><td>${i.device_name || i.device_id}</td><td>${i.app_version || '—'}</td><td>${(i.activated_at||i.first_seen||'').slice(0,10) || '—'}</td><td>${(i.last_seen||'').slice(0,10)}</td></tr>`;
+        });
+      } else {
+        t += `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px;">${emptyMsg}</td></tr>`;
+      }
+      t += `</tbody></table></div>`;
+      return t;
+    }
+
+    html += activationTable(
+      '🔑 ACTIVATED WITH MASTERKEY (MY ACTIVATIONS)', '',
+      masterGroup, 'None yet.'
+    );
+    html += activationTable(
+      '💳 PAID ACTIVATIONS (CUSTOMERS)', '',
+      paidGroup, 'None yet.'
+    );
+    html += activationTable(
+      '⏳ NOT YET CLASSIFIED', 'Check-ins that haven\'t reported an activation key yet — either old data from before this feature, or the desktop app hasn\'t been updated to send it.',
+      unclassified, 'None — everything is classified.'
+    );
+
     box.innerHTML = html;
   } catch (e) {
     box.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);">Failed to load LaptopSeal data.</div>';
