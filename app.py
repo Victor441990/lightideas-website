@@ -27,6 +27,12 @@ def get_hero_media_col():
 def get_reviews_col():
     return get_db()['reviews']
 
+def get_announcements_col():
+    return get_db()['announcements']
+
+def get_ls_installs_col():
+    return get_db()['ls_installs']
+
 # ── Cloudinary
 cloudinary.config(
     cloud_name = 'dfkdvznkp',
@@ -62,6 +68,21 @@ def review_to_dict(r):
     r['id'] = str(r['_id'])
     del r['_id']
     return r
+
+def announcement_to_dict(a):
+    a['id'] = str(a['_id'])
+    del a['_id']
+    if a.get('created_at') and not isinstance(a['created_at'], str):
+        a['created_at'] = a['created_at'].isoformat()
+    return a
+
+def install_to_dict(i):
+    i['id'] = str(i['_id'])
+    del i['_id']
+    for f in ('first_seen', 'last_seen'):
+        if i.get(f) and not isinstance(i[f], str):
+            i[f] = i[f].isoformat()
+    return i
 def send_brevo_email(to_email, subject, html_body, text_body):
     payload = {
         'sender':      EMAIL_SENDER,
@@ -151,11 +172,12 @@ def admin_login():
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    products   = [product_to_dict(p) for p in get_products_col().find()]
-    emails     = [e['email'] for e in get_emails_col().find()]
-    hero_media = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', -1)]
-    reviews    = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', -1)]
-    return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, reviews=reviews)
+    products      = [product_to_dict(p) for p in get_products_col().find()]
+    emails        = [e['email'] for e in get_emails_col().find()]
+    hero_media    = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', -1)]
+    reviews       = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', -1)]
+    announcements = [announcement_to_dict(a) for a in get_announcements_col().find().sort('created_at', -1)]
+    return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, reviews=reviews, announcements=announcements)
 
 # ── ADMIN LOGOUT
 @app.route('/victor-admin/logout')
@@ -363,6 +385,65 @@ def delete_review(review_id):
         return jsonify({'success': False}), 401
     get_reviews_col().delete_one({'_id': ObjectId(review_id)})
     return jsonify({'success': True})
+
+# ── API: Add announcement (admin)
+@app.route('/api/announcements', methods=['POST'])
+def add_announcement():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data  = request.json
+    title = data.get('title', '').strip()
+    body  = data.get('body', '').strip()
+    if not title or not body:
+        return jsonify({'success': False, 'error': 'Title and body are required'}), 400
+    item = {
+        'title':      title,
+        'body':       body,
+        'link':       data.get('link', '').strip(),
+        'type':       data.get('type', 'update'),
+        'active':     bool(data.get('active', True)),
+        'created_at': datetime.datetime.utcnow()
+    }
+    result = get_announcements_col().insert_one(item)
+    item['id'] = str(result.inserted_id)
+    item.pop('_id', None)
+    item['created_at'] = item['created_at'].isoformat()
+    return jsonify({'success': True, 'announcement': item})
+
+# ── API: Update announcement (admin) — edit fields and/or toggle active
+@app.route('/api/announcements/<announcement_id>', methods=['PUT'])
+def update_announcement(announcement_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data = request.json
+    data.pop('id', None)
+    data.pop('created_at', None)
+    get_announcements_col().update_one({'_id': ObjectId(announcement_id)}, {'$set': data})
+    return jsonify({'success': True})
+
+# ── API: Delete announcement (admin)
+@app.route('/api/announcements/<announcement_id>', methods=['DELETE'])
+def delete_announcement(announcement_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    get_announcements_col().delete_one({'_id': ObjectId(announcement_id)})
+    return jsonify({'success': True})
+
+# ── API: Public — current active announcement, polled by the LaptopSeal desktop app.
+# "version" is the announcement's own id — the desktop app remembers the last id it
+# showed and only pops up a new notification when this id changes.
+@app.route('/api/laptopseal/notification', methods=['GET'])
+def laptopseal_notification():
+    a = get_announcements_col().find_one({'active': True}, sort=[('created_at', -1)])
+    if not a:
+        return jsonify({})
+    return jsonify({
+        'version': str(a['_id']),
+        'title':   a.get('title', ''),
+        'body':    a.get('body', ''),
+        'link':    a.get('link', ''),
+        'type':    a.get('type', 'update')
+    })
 
 # ── API: Email subscribe
 @app.route('/api/subscribe', methods=['POST'])
@@ -693,6 +774,41 @@ def laptopseal_check_license():
         'devices_used': len(devices),
         'max_devices': max_devices
     })
+
+# ── API: Public — the desktop app calls this on launch (and periodically) so
+# Victor can see who's actually using LaptopSeal, not just who bought a license.
+@app.route('/api/laptopseal/checkin', methods=['POST'])
+def laptopseal_checkin():
+    data = request.get_json(silent=True) or {}
+    device_id = data.get('device_id')
+    if not device_id:
+        return jsonify({'success': False, 'error': 'Missing device_id'}), 400
+    now = datetime.datetime.utcnow()
+    get_ls_installs_col().update_one(
+        {'device_id': device_id},
+        {
+            '$set': {
+                'device_name': data.get('device_name', ''),
+                'app_version': data.get('app_version', ''),
+                'last_seen':   now
+            },
+            '$setOnInsert': {'first_seen': now}
+        },
+        upsert=True
+    )
+    return jsonify({'success': True})
+
+# ── API: LaptopSeal installs list (admin) — fetched by the dashboard's LaptopSeal tab
+@app.route('/api/laptopseal/installs')
+def laptopseal_installs():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    raw = list(get_ls_installs_col().find().sort('last_seen', -1))
+    installs = []
+    for i in raw:
+        i = install_to_dict(i)
+        installs.append(i)
+    return jsonify({'installs': installs, 'total': len(installs)})
 
 @app.route('/laptopseal/admin_data')
 def laptopseal_admin_data():

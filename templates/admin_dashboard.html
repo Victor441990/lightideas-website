@@ -124,11 +124,13 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <div class="sidebar-item" onclick="showPage('products')"><span class="icon">📦</span> Products</div>
     <div class="sidebar-item" onclick="showPage('heromedia')"><span class="icon">🎬</span> Hero Media</div>
     <div class="sidebar-item" onclick="showPage('reviews')"><span class="icon">⭐</span> Reviews</div>
+    <div class="sidebar-item" onclick="showPage('announcements')"><span class="icon">📢</span> Announcements</div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-item" onclick="showPage('emails')"><span class="icon">📧</span> Subscribers</div>
     <div class="sidebar-item" onclick="showPage('emailsender')"><span class="icon">📨</span> Send Email</div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-item" onclick="showPage('linkstats');loadLinkStats()"><span class="icon">🔗</span> Link Clicks</div>
+    <div class="sidebar-item" onclick="showPage('laptopseal');loadLaptopSeal()"><span class="icon">🔬</span> LaptopSeal</div>
   </div>
 
   <div class="main">
@@ -261,6 +263,45 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
         {% else %}
         <div style="text-align:center;padding:60px;color:var(--muted);">No published reviews yet. Click + Add Review to get started.</div>
         {% endfor %}
+      </div>
+    </div>
+
+    <!-- ANNOUNCEMENTS -->
+    <div class="page" id="page-announcements">
+      <div class="section-head">
+        <h2>ANNOUNCEMENTS</h2>
+        <button class="btn-add" onclick="openAnnouncementModal()">+ New Announcement</button>
+      </div>
+      <div style="background:#0a1a0a;border:1px solid #14532d;border-radius:10px;padding:12px 16px;margin-bottom:24px;font-size:0.78em;color:#4ade80;">
+        📡 The LaptopSeal desktop app polls <strong>/api/laptopseal/notification</strong> and shows whichever announcement is currently marked Active.
+        Only the newest Active one is sent — turn off an old one before turning on a new one if you don't want overlap.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        {% for a in announcements %}
+        <div class="review-card" id="announcement-{{ a.id }}" style="align-items:flex-start;{{ 'border:1px solid var(--gold);' if a.active else '' }}">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              <span style="font-weight:700;color:#fff;">{{ a.title }}</span>
+              <span class="product-cat-badge badge-{{ 'pro' if a.type == 'promo' else ('gaming' if a.type == 'update' else 'accessory') }}">{{ a.type }}</span>
+              {% if a.active %}<span style="color:#4ade80;font-size:0.75em;font-weight:700;">● ACTIVE</span>{% endif %}
+            </div>
+            <div style="color:#aaa;font-size:0.85em;line-height:1.5;margin-bottom:4px;">{{ a.body }}</div>
+            {% if a.link %}<div style="font-size:0.75em;color:var(--gold);">🔗 {{ a.link }}</div>{% endif %}
+          </div>
+          <button class="btn-add" onclick="toggleAnnouncement('{{ a.id }}', {{ 'false' if a.active else 'true' }})">{{ 'Deactivate' if a.active else 'Activate' }}</button>
+          <button class="btn-del" onclick="deleteAnnouncement('{{ a.id }}')">Delete</button>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:60px;color:var(--muted);">No announcements yet. Click + New Announcement to send one.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- LAPTOPSEAL -->
+    <div class="page" id="page-laptopseal">
+      <div class="section-head"><h2>LAPTOPSEAL</h2></div>
+      <div id="laptopsealContent">
+        <div style="text-align:center;padding:60px;color:var(--muted);">Loading...</div>
       </div>
     </div>
 
@@ -422,6 +463,27 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeReviewModal()">Cancel</button>
       <button class="btn-save" onclick="saveReview()">💾 Save Review</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANNOUNCEMENT MODAL -->
+<div class="modal-overlay" id="announcementModal">
+  <div class="modal">
+    <h3>NEW ANNOUNCEMENT</h3>
+    <div class="form-row"><label>Title *</label><input type="text" id="annTitle" placeholder="e.g. New Version Available"/></div>
+    <div class="form-row"><label>Message *</label><textarea id="annBody" placeholder="What do you want LaptopSeal users to see?"></textarea></div>
+    <div class="form-row"><label>Link (optional)</label><input type="text" id="annLink" placeholder="e.g. https://lightideastechnology.com.ng/laptopseal"/></div>
+    <div class="form-row"><label>Type</label>
+      <select id="annType">
+        <option value="update">🔧 Update</option>
+        <option value="reminder">⏰ Reminder</option>
+        <option value="promo">🎁 Promo</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeAnnouncementModal()">Cancel</button>
+      <button class="btn-save" onclick="saveAnnouncement()">📢 Publish</button>
     </div>
   </div>
 </div>
@@ -733,6 +795,101 @@ async function approveReview(id) {
 }
 
 document.getElementById('reviewModal').addEventListener('click', function(e) { if (e.target === this) closeReviewModal(); });
+
+// ── ANNOUNCEMENTS ──
+function openAnnouncementModal() {
+  document.getElementById('annTitle').value = '';
+  document.getElementById('annBody').value = '';
+  document.getElementById('annLink').value = '';
+  document.getElementById('annType').value = 'update';
+  document.getElementById('announcementModal').classList.add('open');
+}
+
+function closeAnnouncementModal() { document.getElementById('announcementModal').classList.remove('open'); }
+
+async function saveAnnouncement() {
+  const title = document.getElementById('annTitle').value.trim();
+  const body = document.getElementById('annBody').value.trim();
+  if (!title) { showToast('Title is required', 'error'); return; }
+  if (!body) { showToast('Message is required', 'error'); return; }
+  const payload = {
+    title, body,
+    link: document.getElementById('annLink').value.trim(),
+    type: document.getElementById('annType').value,
+    active: true
+  };
+  try {
+    const res = await fetch('/api/announcements', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.success) { showToast('✅ Announcement published!'); closeAnnouncementModal(); location.reload(); }
+    else { showToast(data.error || 'Error saving announcement', 'error'); }
+  } catch(e) { showToast('Error saving announcement', 'error'); }
+}
+
+async function toggleAnnouncement(id, makeActive) {
+  const res = await fetch(`/api/announcements/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ active: makeActive }) });
+  const data = await res.json();
+  if (data.success) { showToast(makeActive ? '✅ Activated' : '✅ Deactivated'); location.reload(); }
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Delete this announcement?')) return;
+  const res = await fetch(`/api/announcements/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) { document.getElementById('announcement-' + id)?.remove(); showToast('✅ Deleted'); }
+}
+
+document.getElementById('announcementModal').addEventListener('click', function(e) { if (e.target === this) closeAnnouncementModal(); });
+
+// ── LAPTOPSEAL TAB (licenses + installs) ──
+let laptopSealLoaded = false;
+async function loadLaptopSeal() {
+  if (laptopSealLoaded) return;
+  laptopSealLoaded = true;
+  const box = document.getElementById('laptopsealContent');
+  try {
+    const [licRes, insRes] = await Promise.all([
+      fetch('/laptopseal/admin_data'),
+      fetch('/api/laptopseal/installs')
+    ]);
+    const lic = await licRes.json();
+    const ins = await insRes.json();
+
+    let html = `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:28px;">
+        <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">${lic.total}</div><div class="stat-label">Licenses</div></div>
+        <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">${lic.active}</div><div class="stat-label">Active</div></div>
+        <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">₦${(lic.revenue||0).toLocaleString()}</div><div class="stat-label">Revenue</div></div>
+        <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">${ins.total}</div><div class="stat-label">Installs Seen</div></div>
+      </div>
+      <div style="font-family:var(--font-display);font-size:1.1em;letter-spacing:1.5px;color:var(--gold);margin-bottom:14px;">LICENSES</div>
+      <div style="overflow-x:auto;margin-bottom:32px;">
+      <table class="products-table"><thead><tr><th>Email</th><th>Tier</th><th>Devices</th><th>Status</th><th>Expires</th></tr></thead><tbody>`;
+    if (lic.licenses && lic.licenses.length) {
+      lic.licenses.forEach(l => {
+        html += `<tr><td>${l.email}</td><td>${l.tier}</td><td>${l.devices_used}/${l.max_devices}</td><td>${l.status}</td><td>${l.expires_at}</td></tr>`;
+      });
+    } else {
+      html += `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px;">No licenses yet.</td></tr>`;
+    }
+    html += `</tbody></table></div>
+      <div style="font-family:var(--font-display);font-size:1.1em;letter-spacing:1.5px;color:var(--gold);margin-bottom:14px;">INSTALLS / CHECK-INS</div>
+      <div style="overflow-x:auto;">
+      <table class="products-table"><thead><tr><th>Device</th><th>Version</th><th>First Seen</th><th>Last Seen</th></tr></thead><tbody>`;
+    if (ins.installs && ins.installs.length) {
+      ins.installs.forEach(i => {
+        html += `<tr><td>${i.device_name || i.device_id}</td><td>${i.app_version || '—'}</td><td>${(i.first_seen||'').slice(0,10)}</td><td>${(i.last_seen||'').slice(0,10)}</td></tr>`;
+      });
+    } else {
+      html += `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px;">No check-ins yet — this fills in once the desktop app starts calling /api/laptopseal/checkin.</td></tr>`;
+    }
+    html += `</tbody></table></div>`;
+    box.innerHTML = html;
+  } catch (e) {
+    box.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);">Failed to load LaptopSeal data.</div>';
+    laptopSealLoaded = false;
+  }
+}
 </script>
 </body>
 </html>
