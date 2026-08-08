@@ -131,6 +131,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <div class="sidebar-divider"></div>
     <div class="sidebar-item" onclick="showPage('linkstats');loadLinkStats()"><span class="icon">🔗</span> Link Clicks</div>
     <div class="sidebar-item" onclick="showPage('laptopseal');loadLaptopSeal()"><span class="icon">🔬</span> LaptopSeal</div>
+    <div class="sidebar-item" onclick="showPage('laptopcare')"><span class="icon">💚</span> LaptopCare</div>
   </div>
 
   <div class="main">
@@ -302,6 +303,31 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
       <div class="section-head"><h2>LAPTOPSEAL</h2></div>
       <div id="laptopsealContent">
         <div style="text-align:center;padding:60px;color:var(--muted);">Loading...</div>
+      </div>
+    </div>
+
+    <!-- LAPTOPCARE -->
+    <div class="page" id="page-laptopcare">
+      <div class="section-head">
+        <h2>LAPTOPCARE SUBSCRIBERS</h2>
+        <button class="btn-add" onclick="openManualSubModal()">+ Add Subscriber</button>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:28px;">
+        <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">{{ laptopcare|length }}</div><div class="stat-label">Total Subscribers</div></div>
+        <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">{{ laptopcare|selectattr('status', 'equalto', 'active')|list|length }}</div><div class="stat-label">Active</div></div>
+        <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">₦{{ '{:,}'.format(laptopcare|selectattr('status', 'equalto', 'active')|list|length * 2000) }}</div><div class="stat-label">Expected Monthly</div></div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="products-table">
+          <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Status</th><th>Source</th><th>Started</th></tr></thead>
+          <tbody>
+            {% for s in laptopcare %}
+            <tr><td>{{ s.name }}</td><td>{{ s.phone }}</td><td>{{ s.email }}</td><td>{{ s.status }}</td><td>{{ '💳 Paystack' if s.source == 'paystack' else '✍️ Manual' }}</td><td>{{ s.start_date[:10] if s.start_date else '—' }}</td></tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px;">No subscribers yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -484,6 +510,21 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeAnnouncementModal()">Cancel</button>
       <button class="btn-save" onclick="saveAnnouncement()">📢 Publish</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL SUBSCRIBER MODAL -->
+<div class="modal-overlay" id="manualSubModal">
+  <div class="modal">
+    <h3>ADD SUBSCRIBER MANUALLY</h3>
+    <p style="font-size:0.8em;color:var(--muted);margin-bottom:16px;">For customers paying by bank transfer instead of card — this won't set up automatic recurring billing, you'll need to collect the ₦2,000 yourself each month.</p>
+    <div class="form-row"><label>Name *</label><input type="text" id="manName" placeholder="e.g. Emeka O."/></div>
+    <div class="form-row"><label>Phone / WhatsApp *</label><input type="text" id="manPhone" placeholder="e.g. 08169441990"/></div>
+    <div class="form-row"><label>Email (optional)</label><input type="email" id="manEmail" placeholder="e.g. emeka@example.com"/></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeManualSubModal()">Cancel</button>
+      <button class="btn-save" onclick="saveManualSub()">💾 Add Subscriber</button>
     </div>
   </div>
 </div>
@@ -840,6 +881,32 @@ async function deleteAnnouncement(id) {
 }
 
 document.getElementById('announcementModal').addEventListener('click', function(e) { if (e.target === this) closeAnnouncementModal(); });
+
+// ── LAPTOPCARE — manual subscriber ──
+function openManualSubModal() {
+  document.getElementById('manName').value = '';
+  document.getElementById('manPhone').value = '';
+  document.getElementById('manEmail').value = '';
+  document.getElementById('manualSubModal').classList.add('open');
+}
+
+function closeManualSubModal() { document.getElementById('manualSubModal').classList.remove('open'); }
+
+async function saveManualSub() {
+  const name = document.getElementById('manName').value.trim();
+  const phone = document.getElementById('manPhone').value.trim();
+  const email = document.getElementById('manEmail').value.trim();
+  if (!name) { showToast('Name is required', 'error'); return; }
+  if (!phone) { showToast('Phone / WhatsApp is required', 'error'); return; }
+  try {
+    const res = await fetch('/api/laptopcare/manual', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, phone, email }) });
+    const data = await res.json();
+    if (data.success) { showToast('✅ Subscriber added!'); closeManualSubModal(); location.reload(); }
+    else { showToast(data.error || 'Error adding subscriber', 'error'); }
+  } catch(e) { showToast('Error adding subscriber', 'error'); }
+}
+
+document.getElementById('manualSubModal').addEventListener('click', function(e) { if (e.target === this) closeManualSubModal(); });
 
 // ── LAPTOPSEAL TAB (licenses + installs) ──
 let laptopSealLoaded = false;

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LaptopCare — Keep Your Laptop Healthy | Light Ideas Technology</title>
+<link rel="icon" href="/static/images/logo.jpg" type="image/jpeg"/>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+        background:#000; color:#e8e8e8;
+        font-family:'Segoe UI', Arial, sans-serif;
+        min-height:100vh;
+        padding:40px 20px 60px;
+    }
+    .wrap { max-width:480px; margin:0 auto; text-align:center; }
+    .logo {
+        width:90px; height:90px; border-radius:50%;
+        object-fit:cover; border:3px solid #FFD700;
+        margin:0 auto 20px; display:block;
+        box-shadow:0 0 30px rgba(255,215,0,0.25);
+    }
+    .title { color:#fff; font-size:1.7em; font-weight:900; letter-spacing:0.5px; margin-bottom:10px; }
+    .title span { color:#FFD700; }
+    .subtitle { color:#aaa; font-size:0.95em; line-height:1.7; margin-bottom:32px; }
+    .price-box {
+        background:linear-gradient(135deg,#111 0%,#1a1500 100%);
+        border:1px solid rgba(255,215,0,0.3); border-radius:18px;
+        padding:24px; margin-bottom:28px;
+    }
+    .price { color:#FFD700; font-size:2.2em; font-weight:900; }
+    .price span { font-size:0.4em; color:#888; font-weight:400; }
+    .price-note { color:#888; font-size:0.78em; margin-top:4px; }
+    .features { text-align:left; margin-bottom:24px; }
+    .feature {
+        display:flex; align-items:flex-start; gap:12px;
+        background:#0a0a0a; border:1px solid #1a1a1a; border-radius:12px;
+        padding:14px 16px; margin-bottom:10px; font-size:0.88em; line-height:1.5;
+    }
+    .feature .check { color:#4ade80; font-size:1.1em; flex-shrink:0; }
+    .small-print {
+        text-align:left; background:#0a0a0a; border:1px solid #1a1a1a;
+        border-radius:12px; padding:16px 18px; margin-bottom:32px;
+        font-size:0.75em; color:#777; line-height:1.8;
+    }
+    .small-print b { color:#999; }
+    .subscribe-btn {
+        display:inline-flex; align-items:center; justify-content:center; gap:10px;
+        width:100%; background:#FFD700; color:#000;
+        padding:18px; border-radius:50px; border:none;
+        font-size:1.05em; font-weight:800; letter-spacing:0.5px;
+        cursor:pointer; box-shadow:0 4px 24px rgba(255,215,0,0.3);
+        transition:transform 0.15s ease;
+    }
+    .subscribe-btn:active { transform:scale(0.97); }
+    .wa-note { color:#666; font-size:0.78em; margin-top:20px; line-height:1.6; }
+    .wa-note a { color:#4ade80; text-decoration:none; font-weight:600; }
+    .slogan { color:#555; font-size:0.72em; letter-spacing:2px; text-transform:uppercase; margin-top:36px; }
+
+    /* MODAL */
+    .modal-overlay {
+        display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85);
+        align-items:center; justify-content:center; z-index:999; padding:20px;
+    }
+    .modal-overlay.active { display:flex; }
+    .modal {
+        background:#0d0d0d; border:1px solid rgba(255,215,0,0.25); border-radius:18px;
+        padding:32px 24px; max-width:380px; width:100%; text-align:center; position:relative;
+    }
+    .modal h2 { font-size:1.15em; margin-bottom:8px; letter-spacing:1px; color:#fff; }
+    .modal p { font-size:0.8em; color:#888; margin-bottom:20px; line-height:1.6; }
+    .modal input {
+        width:100%; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:10px;
+        padding:13px 14px; color:#fff; font-size:0.9em; margin-bottom:12px; outline:none;
+    }
+    .modal input:focus { border-color:#FFD700; }
+    .modal input::placeholder { color:#555; }
+    .modal-btn {
+        width:100%; background:#FFD700; color:#000; border:none; border-radius:10px;
+        padding:14px; font-size:0.9em; font-weight:800; cursor:pointer; margin-top:6px;
+    }
+    .modal-btn:hover { background:#e6b800; }
+    .modal-close {
+        position:absolute; top:14px; right:18px; background:none; border:none;
+        color:#666; font-size:1.4em; cursor:pointer; line-height:1;
+    }
+    .modal-close:hover { color:#FFD700; }
+    .modal-error { color:#f87171; font-size:0.75em; margin-bottom:12px; display:none; }
+    .modal-success { color:#4ade80; font-size:0.78em; margin-top:12px; display:none; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+    <img src="/static/images/logo.jpg" alt="Light Ideas Technology" class="logo"/>
+    <div class="title">Laptop<span>Care</span></div>
+    <div class="subtitle">Keep Your Laptop Healthy — ongoing care for the laptop you bought from Light Ideas Technology.</div>
+
+    <div class="price-box">
+        <div class="price">₦2,000<span>/month</span></div>
+        <div class="price-note">Cancel anytime</div>
+    </div>
+
+    <div class="features">
+        <div class="feature"><span class="check">✅</span><span>Priority WhatsApp support whenever you have a problem</span></div>
+        <div class="feature"><span class="check">✅</span><span>A full health check every 3 months using our diagnostic tool, with a report you can see</span></div>
+        <div class="feature"><span class="check">✅</span><span>Free software cleanup &amp; virus removal</span></div>
+        <div class="feature"><span class="check">✅</span><span>10–15% discount on any repair or upgrade</span></div>
+    </div>
+
+    <div class="small-print">
+        <b>Please note:</b><br/>
+        • Repair/upgrade discount benefits begin 30 days after you subscribe.<br/>
+        • Support and cleanups are unlimited. Parts/repair help is discounted and capped yearly.<br/>
+        • Cancel anytime — no long-term contract.
+    </div>
+
+    <button class="subscribe-btn" onclick="openSubscribeModal()">💚 Subscribe for ₦2,000/month</button>
+
+    <div class="wa-note">Prefer to pay by transfer instead of card? <a href="https://wa.me/2348169441990?text=Hi%20Victor%2C%20I%20want%20to%20subscribe%20to%20LaptopCare" target="_blank">Message Victor on WhatsApp</a> and he'll set it up manually.</div>
+    <div class="slogan">✦ Tested and Confirmed ✦</div>
+</div>
+
+<!-- SUBSCRIBE MODAL -->
+<div class="modal-overlay" id="subModal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeSubscribeModal()">&times;</button>
+        <h2>💚 SUBSCRIBE TO LAPTOPCARE</h2>
+        <p>Enter your details below. You'll pay <b>₦2,000</b> now via Paystack, and ₦2,000 automatically every month after.</p>
+        <div class="modal-error" id="modalError">Please fill in your name, WhatsApp number, and a valid email address.</div>
+        <input type="text" id="subName" placeholder="Your full name"/>
+        <input type="tel" id="subPhone" placeholder="WhatsApp number (e.g. 08169441990)"/>
+        <input type="email" id="subEmail" placeholder="Email address"/>
+        <button class="modal-btn" onclick="initiateSubscription()">Continue to Payment</button>
+        <div class="modal-success" id="modalSuccess">Redirecting to payment...</div>
+    </div>
+</div>
+
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+    const PAYSTACK_PUBLIC_KEY = {{ paystack_public_key | tojson }};
+    const PAYSTACK_PLAN_CODE  = {{ paystack_plan_code | tojson }};
+
+    function openSubscribeModal() { document.getElementById('subModal').classList.add('active'); }
+    function closeSubscribeModal() {
+        document.getElementById('subModal').classList.remove('active');
+        document.getElementById('modalError').style.display = 'none';
+        document.getElementById('modalSuccess').style.display = 'none';
+    }
+
+    function initiateSubscription() {
+        const name  = document.getElementById('subName').value.trim();
+        const phone = document.getElementById('subPhone').value.trim();
+        const email = document.getElementById('subEmail').value.trim();
+        if (!name || !phone || !email || !email.includes('@')) {
+            document.getElementById('modalError').style.display = 'block';
+            return;
+        }
+        document.getElementById('modalError').style.display = 'none';
+        document.getElementById('modalSuccess').style.display = 'block';
+
+        const config = {
+            key: PAYSTACK_PUBLIC_KEY,
+            email: email,
+            amount: 200000,
+            currency: 'NGN',
+            ref: 'LC_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            metadata: { product: 'LaptopCare Monthly', name: name, phone: phone },
+            callback: function(response) {
+                fetch('/laptopcare/verify_payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reference: response.reference, name: name, phone: phone, email: email })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelector('.modal').innerHTML = '<h2>✅ You\'re In!</h2><p>Thanks, ' + name + ' — your LaptopCare subscription is active. We\'ll reach out on WhatsApp soon.</p>';
+                    } else {
+                        alert('Payment went through but we could not save your subscription. Please message Victor on WhatsApp with your payment reference: ' + response.reference);
+                    }
+                });
+            },
+            onClose: function() {
+                document.getElementById('modalSuccess').style.display = 'none';
+            }
+        };
+        if (PAYSTACK_PLAN_CODE) config.plan = PAYSTACK_PLAN_CODE;
+
+        const handler = PaystackPop.setup(config);
+        handler.openIframe();
+    }
+</script>
+</body>
+</html>

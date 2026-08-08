@@ -30,6 +30,9 @@ def get_reviews_col():
 def get_announcements_col():
     return get_db()['announcements']
 
+def get_laptopcare_col():
+    return get_db()['laptopcare_subscribers']
+
 def get_ls_installs_col():
     return get_db()['ls_installs']
 
@@ -87,6 +90,13 @@ def install_to_dict(i):
         if i.get(f) and not isinstance(i[f], str):
             i[f] = i[f].isoformat()
     return i
+
+def laptopcare_to_dict(s):
+    s['id'] = str(s['_id'])
+    del s['_id']
+    if s.get('start_date') and not isinstance(s['start_date'], str):
+        s['start_date'] = s['start_date'].isoformat()
+    return s
 def send_brevo_email(to_email, subject, html_body, text_body):
     payload = {
         'sender':      EMAIL_SENDER,
@@ -181,7 +191,8 @@ def admin_dashboard():
     hero_media    = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', -1)]
     reviews       = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', -1)]
     announcements = [announcement_to_dict(a) for a in get_announcements_col().find().sort('created_at', -1)]
-    return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, reviews=reviews, announcements=announcements)
+    laptopcare    = [laptopcare_to_dict(s) for s in get_laptopcare_col().find().sort('start_date', -1)]
+    return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, reviews=reviews, announcements=announcements, laptopcare=laptopcare)
 
 # ── ADMIN LOGOUT
 @app.route('/victor-admin/logout')
@@ -640,6 +651,72 @@ def click_analytics():
     })
 
 # ─── LAPTOPSEAL ROUTES ─────────────────────────────────────────────────────
+
+# ─── LAPTOPCARE ROUTES ─────────────────────────────────────────────────────
+
+@app.route('/laptopcare')
+def laptopcare():
+    return render_template(
+        'laptopcare.html',
+        paystack_public_key=os.environ.get('PAYSTACK_PUBLIC_KEY', ''),
+        paystack_plan_code=os.environ.get('PAYSTACK_LAPTOPCARE_PLAN_CODE', '')
+    )
+
+# ── API: Verify a LaptopCare subscription payment and record the subscriber
+@app.route('/laptopcare/verify_payment', methods=['POST'])
+def laptopcare_verify_payment():
+    data      = request.get_json(silent=True) or {}
+    reference = data.get('reference')
+    name      = data.get('name', '').strip()
+    phone     = data.get('phone', '').strip()
+    email     = data.get('email', '').strip()
+    if not reference or not name or not phone or not email:
+        return jsonify({'success': False, 'error': 'Missing required details'}), 400
+
+    headers = {'Authorization': 'Bearer ' + os.environ.get('PAYSTACK_SECRET_KEY', '')}
+    r = requests.get('https://api.paystack.co/transaction/verify/' + reference, headers=headers)
+    res = r.json()
+    if not (res.get('status') and res['data']['status'] == 'success'):
+        return jsonify({'success': False, 'error': 'Payment verification failed'})
+
+    pdata = res['data']
+    get_laptopcare_col().insert_one({
+        'name':          name,
+        'phone':         phone,
+        'email':         email,
+        'reference':     reference,
+        'customer_code': (pdata.get('customer') or {}).get('customer_code', ''),
+        'plan_code':     pdata.get('plan', ''),
+        'status':        'active',
+        'source':        'paystack',
+        'start_date':    datetime.datetime.utcnow()
+    })
+    return jsonify({'success': True})
+
+# ── API: Manually add a LaptopCare subscriber (admin only) — for customers who
+# pay by bank transfer instead of card, where Paystack recurring isn't used.
+@app.route('/api/laptopcare/manual', methods=['POST'])
+def laptopcare_add_manual():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data  = request.json
+    name  = data.get('name', '').strip()
+    phone = data.get('phone', '').strip()
+    email = data.get('email', '').strip()
+    if not name or not phone:
+        return jsonify({'success': False, 'error': 'Name and phone are required'}), 400
+    get_laptopcare_col().insert_one({
+        'name':          name,
+        'phone':         phone,
+        'email':         email,
+        'reference':     '',
+        'customer_code': '',
+        'plan_code':     '',
+        'status':        'active',
+        'source':        'manual',
+        'start_date':    datetime.datetime.utcnow()
+    })
+    return jsonify({'success': True})
 
 @app.route('/laptopseal')
 def laptopseal():
