@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 import cloudinary
 import cloudinary.uploader
-import datetime, json, requests, threading, os, uuid
+import datetime, json, requests, threading, os, uuid, tempfile
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -289,13 +289,22 @@ def upload_media():
         if media_type == 'video':
             # Videos use Cloudinary's chunked upload — the plain upload() call
             # reads the whole file into memory at once and times out/fails on
-            # anything but small clips.
-            result = cloudinary.uploader.upload_large(
-                file,
-                folder='lightideas-hero',
-                resource_type='video',
-                chunk_size=6000000
-            )
+            # anything but small clips. upload_large() needs a real file path
+            # (it can't stream Flask's in-memory FileStorage object directly),
+            # so save it to a temp file first.
+            suffix = os.path.splitext(file.filename or '')[1] or '.mp4'
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp_path = tmp.name
+            file.save(tmp_path)
+            try:
+                result = cloudinary.uploader.upload_large(
+                    tmp_path,
+                    folder='lightideas-hero',
+                    resource_type='video',
+                    chunk_size=6000000
+                )
+            finally:
+                os.remove(tmp_path)
         else:
             result = cloudinary.uploader.upload(file, folder='lightideas-hero', resource_type='image')
         return jsonify({'success': True, 'url': result['secure_url']})
