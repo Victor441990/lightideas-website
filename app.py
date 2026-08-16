@@ -60,6 +60,17 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 def product_to_dict(p):
     p['id'] = str(p['_id'])
     del p['_id']
+    # Every card/thumbnail on the site and the app renders off `image`. If a
+    # product only has a video (no photo), fall back to a Cloudinary frame
+    # of that video so it still gets a real thumbnail instead of nothing.
+    if not p.get('image') and p.get('media'):
+        photo = next((m['url'] for m in p['media'] if m.get('type') == 'photo' and m.get('url')), None)
+        if photo:
+            p['image'] = photo
+        else:
+            video = next((m['url'] for m in p['media'] if m.get('type') == 'video' and m.get('url')), None)
+            if video:
+                p['image'] = video.rsplit('.', 1)[0] + '.jpg'
     return p
 
 def hero_media_to_dict(m):
