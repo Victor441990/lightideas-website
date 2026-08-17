@@ -1065,8 +1065,8 @@ def guide_alias():
 
 
 # ── LaptopSeal installer + auto-update (hosted permanently on GitHub Releases)
-LAPTOPSEAL_LATEST_VERSION = '1.0.8'
-LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.8/LaptopSeal_Setup.exe'
+LAPTOPSEAL_LATEST_VERSION = '1.0.9'
+LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.9/LaptopSeal_Setup.exe'
 @app.route('/laptopseal/download')
 def laptopseal_download():
     user_agent = request.headers.get('User-Agent', '').lower()
@@ -1080,7 +1080,7 @@ def laptopseal_version():
     return jsonify({
         'version': LAPTOPSEAL_LATEST_VERSION,
         'url':     LAPTOPSEAL_SETUP_URL,
-        'notes':   'Masked password field on the activation screen, real laptop model shown on Victor\'s dashboard instead of just the Windows device name, and check-ins now report whether a laptop was activated with the masterkey or a paid key.'
+        'notes':   'Update notifications now show for every laptop, not just ones with an active license — a lapsed or free-tier laptop will now hear about new versions too.'
     })
 
 if __name__ == '__main__':
