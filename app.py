@@ -1324,8 +1324,8 @@ def guide_alias():
 
 
 # ── LaptopSeal installer + auto-update (hosted permanently on GitHub Releases)
-LAPTOPSEAL_LATEST_VERSION = '1.0.10'
-LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.10/LaptopSeal_Setup.exe'
+LAPTOPSEAL_LATEST_VERSION = '1.0.11'
+LAPTOPSEAL_SETUP_URL = 'https://github.com/Victor441990/lightideas-website/releases/download/v1.0.11/LaptopSeal_Setup.exe'
 @app.route('/laptopseal/download')
 def laptopseal_download():
     user_agent = request.headers.get('User-Agent', '').lower()
@@ -1339,7 +1339,7 @@ def laptopseal_version():
     return jsonify({
         'version': LAPTOPSEAL_LATEST_VERSION,
         'url':     LAPTOPSEAL_SETUP_URL,
-        'notes':   'New: a quiet background helper now pops up admin announcements even while LaptopSeal is closed, with delivery tracking on the dashboard. Also fixes the diagnostic report missing results for manually-run tests, and adds clickable module details to the saved PDF report.'
+        'notes':   'New: a LaptopCare Dashboard button on the home screen — one click to check your membership status, no need to open a browser and type the address yourself.'
     })
 
 if __name__ == '__main__':
