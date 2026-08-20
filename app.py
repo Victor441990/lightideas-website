@@ -1133,6 +1133,23 @@ def laptopseal_ack():
     )
     return jsonify({'success': True})
 
+# ── API: Admin — how many laptops have acked each announcement, polled by the
+# dashboard's Announcements tab so "Reached X of Y" updates live without a
+# manual page reload.
+@app.route('/api/announcements/reach_counts')
+def announcements_reach_counts():
+    if not session.get('admin_logged_in'):
+        return jsonify({}), 401
+    total_installs = get_ls_installs_col().count_documents({})
+    counts = {}
+    for a in get_announcements_col().find({}, {'_id': 1}):
+        aid = str(a['_id'])
+        counts[aid] = {
+            'reached': get_ls_acks_col().count_documents({'announcement_id': aid}),
+            'total_installs': total_installs
+        }
+    return jsonify(counts)
+
 # ── API: LaptopSeal installs list (admin) — fetched by the dashboard's LaptopSeal tab
 @app.route('/api/laptopseal/installs')
 def laptopseal_installs():

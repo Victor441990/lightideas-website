@@ -289,7 +289,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
             </div>
             <div style="color:#aaa;font-size:0.85em;line-height:1.5;margin-bottom:4px;">{{ a.body }}</div>
             {% if a.link %}<div style="font-size:0.75em;color:var(--gold);">🔗 {{ a.link }}</div>{% endif %}
-            <div style="font-size:0.75em;color:#4ade80;margin-top:4px;">📶 Reached {{ a.reached }} of {{ a.total_installs }} laptops</div>
+            <div style="font-size:0.75em;color:#4ade80;margin-top:4px;" id="reach-{{ a.id }}">📶 Reached {{ a.reached }} of {{ a.total_installs }} laptops</div>
           </div>
           <button class="btn-add" onclick="toggleAnnouncement('{{ a.id }}', {{ 'false' if a.active else 'true' }})">{{ 'Deactivate' if a.active else 'Activate' }}</button>
           <button class="btn-del" onclick="deleteAnnouncement('{{ a.id }}')">Delete</button>
@@ -904,6 +904,21 @@ async function deleteAnnouncement(id) {
 }
 
 document.getElementById('announcementModal').addEventListener('click', function(e) { if (e.target === this) closeAnnouncementModal(); });
+
+// "Reached X of Y laptops" used to only update on a manual page reload —
+// this polls in the background and patches just those text lines in place,
+// so it stays live without touching anything else on the page.
+setInterval(async function() {
+  try {
+    const res = await fetch('/api/announcements/reach_counts');
+    if (!res.ok) return;
+    const counts = await res.json();
+    for (const [id, c] of Object.entries(counts)) {
+      const el = document.getElementById('reach-' + id);
+      if (el) el.textContent = '📶 Reached ' + c.reached + ' of ' + c.total_installs + ' laptops';
+    }
+  } catch (e) { /* offline for a moment — try again next tick */ }
+}, 15000);
 
 // ── LAPTOPCARE — manual subscriber ──
 function openManualSubModal() {
