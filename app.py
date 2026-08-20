@@ -36,6 +36,9 @@ def get_laptopcare_col():
 def get_ls_installs_col():
     return get_db()['ls_installs']
 
+def get_ls_acks_col():
+    return get_db()['ls_announcement_acks']
+
 # ── Cloudinary
 cloudinary.config(
     cloud_name = 'dfkdvznkp',
@@ -203,6 +206,13 @@ def admin_dashboard():
     reviews       = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', -1)]
     announcements = [announcement_to_dict(a) for a in get_announcements_col().find().sort('created_at', -1)]
     laptopcare    = [laptopcare_to_dict(s) for s in get_laptopcare_col().find().sort('start_date', -1)]
+
+    # "Reached X of Y laptops" — Y is every laptop that has ever checked in,
+    # X is how many distinct devices acked THIS announcement specifically.
+    total_installs = get_ls_installs_col().count_documents({})
+    for a in announcements:
+        a['reached'] = get_ls_acks_col().count_documents({'announcement_id': a['id']})
+        a['total_installs'] = total_installs
     return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, reviews=reviews, announcements=announcements, laptopcare=laptopcare)
 
 # ── ADMIN LOGOUT
@@ -925,6 +935,25 @@ def laptopseal_checkin():
             '$set': set_fields,
             '$setOnInsert': {'first_seen': now}
         },
+        upsert=True
+    )
+    return jsonify({'success': True})
+
+# ── API: Public — a laptop calls this once it has actually shown an
+# announcement (toast or in-tool popup), so the admin dashboard can report
+# "Reached X of Y laptops". Upserted on (announcement_id, device_id), so a
+# laptop that re-shows the same announcement (e.g. LiteAgent + the in-tool
+# popup both firing) is only ever counted once.
+@app.route('/api/laptopseal/ack', methods=['POST'])
+def laptopseal_ack():
+    data = request.get_json(silent=True) or {}
+    device_id = data.get('device_id')
+    version = str(data.get('version', '')).strip()
+    if not device_id or not version:
+        return jsonify({'success': False, 'error': 'Missing device_id or version'}), 400
+    get_ls_acks_col().update_one(
+        {'announcement_id': version, 'device_id': device_id},
+        {'$set': {'acked_at': datetime.datetime.utcnow()}},
         upsert=True
     )
     return jsonify({'success': True})

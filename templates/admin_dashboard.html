@@ -288,6 +288,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
             </div>
             <div style="color:#aaa;font-size:0.85em;line-height:1.5;margin-bottom:4px;">{{ a.body }}</div>
             {% if a.link %}<div style="font-size:0.75em;color:var(--gold);">🔗 {{ a.link }}</div>{% endif %}
+            <div style="font-size:0.75em;color:#4ade80;margin-top:4px;">📶 Reached {{ a.reached }} of {{ a.total_installs }} laptops</div>
           </div>
           <button class="btn-add" onclick="toggleAnnouncement('{{ a.id }}', {{ 'false' if a.active else 'true' }})">{{ 'Deactivate' if a.active else 'Activate' }}</button>
           <button class="btn-del" onclick="deleteAnnouncement('{{ a.id }}')">Delete</button>
