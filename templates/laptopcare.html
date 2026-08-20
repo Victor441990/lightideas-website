@@ -97,27 +97,28 @@
     <div class="subtitle">Keep Your Laptop Healthy — ongoing care for the laptop you bought from Light Ideas Technology.</div>
 
     <div class="price-box">
-        <div class="price">₦2,000<span>/month</span></div>
+        <div class="price">₦{{ '{:,}'.format(price) }}<span>/month</span></div>
         <div class="price-note">Cancel anytime</div>
     </div>
 
     <div class="features">
         <div class="feature"><span class="check">✅</span><span>Priority WhatsApp support whenever you have a problem</span></div>
-        <div class="feature"><span class="check">✅</span><span>A full health check every 3 months using our diagnostic tool, with a report you can see</span></div>
-        <div class="feature"><span class="check">✅</span><span>Free software cleanup &amp; virus removal</span></div>
-        <div class="feature"><span class="check">✅</span><span>10–15% discount on any repair or upgrade</span></div>
+        <div class="feature"><span class="check">✅</span><span>A full health check every month using our diagnostic tool, with a report you can see</span></div>
+        <div class="feature"><span class="check">✅</span><span>Up to 2 free software cleanups &amp; virus removals every month</span></div>
+        <div class="feature"><span class="check">✅</span><span>15% discount on any repair or upgrade</span></div>
     </div>
 
     <div class="small-print">
         <b>Please note:</b><br/>
         • Repair/upgrade discount benefits begin 30 days after you subscribe.<br/>
-        • Support and cleanups are unlimited. Parts/repair help is discounted and capped yearly.<br/>
+        • WhatsApp support is unlimited. Health checks and cleanups reset every billing month. Parts/repair help is discounted and capped yearly.<br/>
         • Cancel anytime — no long-term contract.
     </div>
 
-    <button class="subscribe-btn" onclick="openSubscribeModal()">💚 Subscribe for ₦2,000/month</button>
+    <button class="subscribe-btn" onclick="openSubscribeModal()">💚 Subscribe for ₦{{ '{:,}'.format(price) }}/month</button>
 
     <div class="wa-note">Prefer to pay by transfer instead of card? <a href="https://wa.me/2348169441990?text=Hi%20Victor%2C%20I%20want%20to%20subscribe%20to%20LaptopCare" target="_blank">Message Victor on WhatsApp</a> and he'll set it up manually.</div>
+    <div class="wa-note">Already a member? <a href="/laptopcare/login">Sign in to your dashboard</a></div>
     <div class="slogan">✦ Tested and Confirmed ✦</div>
 </div>
 
@@ -126,11 +127,12 @@
     <div class="modal">
         <button class="modal-close" onclick="closeSubscribeModal()">&times;</button>
         <h2>💚 SUBSCRIBE TO LAPTOPCARE</h2>
-        <p>Enter your details below. You'll pay <b>₦2,000</b> now via Paystack, and ₦2,000 automatically every month after.</p>
-        <div class="modal-error" id="modalError">Please fill in your name, WhatsApp number, and a valid email address.</div>
+        <p>Enter your details below. You'll pay <b>₦{{ '{:,}'.format(price) }}</b> now via Paystack, and ₦{{ '{:,}'.format(price) }} automatically every month after. Choose a password too — you'll use it to sign in to your member dashboard.</p>
+        <div class="modal-error" id="modalError">Please fill in your name, WhatsApp number, a valid email address, and a password (at least 6 characters).</div>
         <input type="text" id="subName" placeholder="Your full name"/>
         <input type="tel" id="subPhone" placeholder="WhatsApp number (e.g. 08169441990)"/>
         <input type="email" id="subEmail" placeholder="Email address"/>
+        <input type="password" id="subPassword" placeholder="Choose a password"/>
         <button class="modal-btn" onclick="initiateSubscription()">Continue to Payment</button>
         <div class="modal-success" id="modalSuccess">Redirecting to payment...</div>
     </div>
@@ -149,10 +151,11 @@
     }
 
     function initiateSubscription() {
-        const name  = document.getElementById('subName').value.trim();
-        const phone = document.getElementById('subPhone').value.trim();
-        const email = document.getElementById('subEmail').value.trim();
-        if (!name || !phone || !email || !email.includes('@')) {
+        const name     = document.getElementById('subName').value.trim();
+        const phone    = document.getElementById('subPhone').value.trim();
+        const email    = document.getElementById('subEmail').value.trim();
+        const password = document.getElementById('subPassword').value;
+        if (!name || !phone || !email || !email.includes('@') || !password || password.length < 6) {
             document.getElementById('modalError').style.display = 'block';
             return;
         }
@@ -162,7 +165,7 @@
         const config = {
             key: PAYSTACK_PUBLIC_KEY,
             email: email,
-            amount: 200000,
+            amount: {{ price * 100 }},
             currency: 'NGN',
             ref: 'LC_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
             metadata: { product: 'LaptopCare Monthly', name: name, phone: phone },
@@ -170,12 +173,12 @@
                 fetch('/laptopcare/verify_payment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reference: response.reference, name: name, phone: phone, email: email })
+                    body: JSON.stringify({ reference: response.reference, name: name, phone: phone, email: email, password: password })
                 })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        document.querySelector('.modal').innerHTML = '<h2>✅ You\'re In!</h2><p>Thanks, ' + name + ' — your LaptopCare subscription is active. We\'ll reach out on WhatsApp soon.</p>';
+                        document.querySelector('.modal').innerHTML = '<h2>✅ You\'re In!</h2><p>Thanks, ' + name + ' — your LaptopCare subscription is active.</p><a class="modal-btn" style="display:block;text-decoration:none;margin-top:10px;" href="/laptopcare/dashboard">Go to my dashboard</a>';
                     } else {
                         alert('Payment went through but we could not save your subscription. Please message Victor on WhatsApp with your payment reference: ' + response.reference);
                     }

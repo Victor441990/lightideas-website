@@ -316,16 +316,37 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:28px;">
         <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">{{ laptopcare|length }}</div><div class="stat-label">Total Subscribers</div></div>
         <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">{{ laptopcare|selectattr('status', 'equalto', 'active')|list|length }}</div><div class="stat-label">Active</div></div>
-        <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">₦{{ '{:,}'.format(laptopcare|selectattr('status', 'equalto', 'active')|list|length * 2000) }}</div><div class="stat-label">Expected Monthly</div></div>
+        <div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-num">₦{{ '{:,}'.format(laptopcare|selectattr('status', 'equalto', 'active')|list|length * laptopcare_price) }}</div><div class="stat-label">Expected Monthly</div></div>
       </div>
       <div style="overflow-x:auto;">
         <table class="products-table">
-          <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Status</th><th>Source</th><th>Started</th></tr></thead>
+          <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Status</th><th>Source</th><th>Started</th>{% for key, info in laptopcare_services.items() %}<th>{{ info.label }}</th>{% endfor %}</tr></thead>
           <tbody>
             {% for s in laptopcare %}
-            <tr><td>{{ s.name }}</td><td>{{ s.phone }}</td><td>{{ s.email }}</td><td>{{ s.status }}</td><td>{{ '💳 Paystack' if s.source == 'paystack' else '✍️ Manual' }}</td><td>{{ s.start_date[:10] if s.start_date else '—' }}</td></tr>
+            <tr>
+              <td>{{ s.name }}</td>
+              <td>{{ s.phone }}</td>
+              <td>{{ s.email }}</td>
+              <td>{{ '🟢 active' if s.status == 'active' else '🔴 cancelled' }}</td>
+              <td>{{ '💳 Paystack' if s.source == 'paystack' else '✍️ Manual' }}</td>
+              <td>{{ s.start_date[:10] if s.start_date else '—' }}</td>
+              {% for key, info in laptopcare_services.items() %}
+              {% set used = (s.entitlements or {}).get(key, 0) %}
+              <td>
+                {% if s.status == 'active' %}
+                  {% if used >= info.limit %}
+                  <span style="color:var(--muted);font-size:0.85em;">{{ used }}/{{ info.limit }} used</span>
+                  {% else %}
+                  <button class="btn-add" style="padding:4px 10px;font-size:0.75em;" onclick="markServiceUsed('{{ s.id }}', '{{ key }}', this)">Mark used ({{ used }}/{{ info.limit }})</button>
+                  {% endif %}
+                {% else %}
+                <span style="color:var(--muted);">—</span>
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
             {% else %}
-            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px;">No subscribers yet.</td></tr>
+            <tr><td colspan="{{ 6 + laptopcare_services|length }}" style="text-align:center;color:var(--muted);padding:30px;">No subscribers yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -902,9 +923,23 @@ async function saveManualSub() {
   try {
     const res = await fetch('/api/laptopcare/manual', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, phone, email }) });
     const data = await res.json();
-    if (data.success) { showToast('✅ Subscriber added!'); closeManualSubModal(); location.reload(); }
+    if (data.success) {
+      closeManualSubModal();
+      alert('Subscriber added. Their sign-in PIN is: ' + data.pin + '\n\nShare this with them over WhatsApp so they can sign in to their dashboard.');
+      location.reload();
+    }
     else { showToast(data.error || 'Error adding subscriber', 'error'); }
   } catch(e) { showToast('Error adding subscriber', 'error'); }
+}
+
+async function markServiceUsed(subId, service, btn) {
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/laptopcare/' + subId + '/mark_used', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ service }) });
+    const data = await res.json();
+    if (data.success) { showToast('✅ Marked used'); location.reload(); }
+    else { showToast(data.error || 'Could not mark used', 'error'); btn.disabled = false; }
+  } catch(e) { showToast('Error marking used', 'error'); btn.disabled = false; }
 }
 
 document.getElementById('manualSubModal').addEventListener('click', function(e) { if (e.target === this) closeManualSubModal(); });

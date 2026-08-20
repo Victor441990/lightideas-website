@@ -1,9 +1,10 @@
 ﻿from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response
 from pymongo import MongoClient
 from bson import ObjectId
+from werkzeug.security import generate_password_hash, check_password_hash
 import cloudinary
 import cloudinary.uploader
-import datetime, json, requests, threading, os, uuid, tempfile, re
+import datetime, json, requests, threading, os, uuid, tempfile, re, secrets
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -54,6 +55,17 @@ EMAIL_SENDER  = {'name': 'Light Ideas Technology', 'email': 'info@lightideastech
 # ── LaptopSeal masterkey (Victor's own fixed key — must match the desktop app's
 # MASTER_KEY constant exactly). Used only to classify check-ins server-side.
 LAPTOPSEAL_MASTERKEY = os.environ.get('MASTERKEY', '')
+
+# ── LaptopCare — services included each month that Victor marks off by hand
+# once he's actually done them for a member. Proposed by Light based on the
+# benefits already on the LaptopCare page — confirm/adjust the exact services
+# and monthly limits with Victor before treating this as final.
+LAPTOPCARE_PRICE_NAIRA = 5000
+LAPTOPCARE_SERVICES = {
+    'health_check': {'label': 'Full health check',              'limit': 1},
+    'cleanup':      {'label': 'Software cleanup & virus removal','limit': 2},
+}
+LAPTOPCARE_PERIOD_DAYS = 30
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
@@ -108,9 +120,30 @@ def install_to_dict(i):
 def laptopcare_to_dict(s):
     s['id'] = str(s['_id'])
     del s['_id']
-    if s.get('start_date') and not isinstance(s['start_date'], str):
-        s['start_date'] = s['start_date'].isoformat()
+    s.pop('password_hash', None)
+    for f in ('start_date', 'period_start', 'cancelled_at'):
+        if s.get(f) and not isinstance(s[f], str):
+            s[f] = s[f].isoformat()
     return s
+
+def laptopcare_reset_if_needed(sub):
+    """Entitlements are 'used this period' counts that reset every billing
+    cycle — checked lazily whenever a member or admin looks at the record,
+    same lazy-expiry pattern already used for LaptopSeal licenses, so no cron
+    job is needed. Returns the (possibly updated) subscriber dict."""
+    period_start = sub.get('period_start') or sub.get('start_date') or datetime.datetime.utcnow()
+    if isinstance(period_start, str):
+        period_start = datetime.datetime.fromisoformat(period_start)
+    if (datetime.datetime.utcnow() - period_start).days >= LAPTOPCARE_PERIOD_DAYS:
+        now = datetime.datetime.utcnow()
+        fresh = {k: 0 for k in LAPTOPCARE_SERVICES}
+        get_laptopcare_col().update_one(
+            {'_id': sub['_id']},
+            {'$set': {'period_start': now, 'entitlements': fresh}}
+        )
+        sub['period_start'] = now
+        sub['entitlements'] = fresh
+    return sub
 def send_brevo_email(to_email, subject, html_body, text_body):
     payload = {
         'sender':      EMAIL_SENDER,
@@ -205,7 +238,9 @@ def admin_dashboard():
     hero_media    = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', -1)]
     reviews       = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', -1)]
     announcements = [announcement_to_dict(a) for a in get_announcements_col().find().sort('created_at', -1)]
-    laptopcare    = [laptopcare_to_dict(s) for s in get_laptopcare_col().find().sort('start_date', -1)]
+    laptopcare_raw = list(get_laptopcare_col().find().sort('start_date', -1))
+    laptopcare_raw = [laptopcare_reset_if_needed(s) if s.get('status') == 'active' else s for s in laptopcare_raw]
+    laptopcare    = [laptopcare_to_dict(s) for s in laptopcare_raw]
 
     # "Reached X of Y laptops" — Y is every laptop that has ever checked in,
     # X is how many distinct devices acked THIS announcement specifically.
@@ -213,7 +248,7 @@ def admin_dashboard():
     for a in announcements:
         a['reached'] = get_ls_acks_col().count_documents({'announcement_id': a['id']})
         a['total_installs'] = total_installs
-    return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, reviews=reviews, announcements=announcements, laptopcare=laptopcare)
+    return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, reviews=reviews, announcements=announcements, laptopcare=laptopcare, laptopcare_price=LAPTOPCARE_PRICE_NAIRA, laptopcare_services=LAPTOPCARE_SERVICES)
 
 # ── ADMIN LOGOUT
 @app.route('/victor-admin/logout')
@@ -705,10 +740,13 @@ def laptopcare():
     return render_template(
         'laptopcare.html',
         paystack_public_key=os.environ.get('PAYSTACK_PUBLIC_KEY', ''),
-        paystack_plan_code=os.environ.get('PAYSTACK_LAPTOPCARE_PLAN_CODE', '')
+        paystack_plan_code=os.environ.get('PAYSTACK_LAPTOPCARE_PLAN_CODE', ''),
+        price=LAPTOPCARE_PRICE_NAIRA
     )
 
-# ── API: Verify a LaptopCare subscription payment and record the subscriber
+# ── API: Verify a LaptopCare subscription payment, record the subscriber, and
+# log them straight in (the password they set on the payment form is what
+# they'll use to sign back in later on the member dashboard).
 @app.route('/laptopcare/verify_payment', methods=['POST'])
 def laptopcare_verify_payment():
     data      = request.get_json(silent=True) or {}
@@ -716,7 +754,8 @@ def laptopcare_verify_payment():
     name      = data.get('name', '').strip()
     phone     = data.get('phone', '').strip()
     email     = data.get('email', '').strip()
-    if not reference or not name or not phone or not email:
+    password  = data.get('password', '')
+    if not reference or not name or not phone or not email or not password:
         return jsonify({'success': False, 'error': 'Missing required details'}), 400
 
     headers = {'Authorization': 'Bearer ' + os.environ.get('PAYSTACK_SECRET_KEY', '')}
@@ -726,21 +765,47 @@ def laptopcare_verify_payment():
         return jsonify({'success': False, 'error': 'Payment verification failed'})
 
     pdata = res['data']
-    get_laptopcare_col().insert_one({
-        'name':          name,
-        'phone':         phone,
-        'email':         email,
-        'reference':     reference,
-        'customer_code': (pdata.get('customer') or {}).get('customer_code', ''),
-        'plan_code':     pdata.get('plan', ''),
-        'status':        'active',
-        'source':        'paystack',
-        'start_date':    datetime.datetime.utcnow()
+    customer_code = (pdata.get('customer') or {}).get('customer_code', '')
+
+    # The transaction-verify response doesn't carry the subscription code
+    # Paystack auto-created for a plan charge — fetch it separately so we can
+    # ask Paystack to stop future billing later if this member cancels.
+    subscription_code = ''
+    if customer_code:
+        try:
+            sub_r = requests.get(
+                'https://api.paystack.co/subscription',
+                headers=headers, params={'customer': customer_code}, timeout=10
+            )
+            sub_list = (sub_r.json().get('data') or [])
+            if sub_list:
+                subscription_code = sub_list[0].get('subscription_code', '')
+        except Exception:
+            pass  # not fatal — cancellation just falls back to a manual Paystack step
+
+    now = datetime.datetime.utcnow()
+    result = get_laptopcare_col().insert_one({
+        'name':            name,
+        'phone':           phone,
+        'email':           email,
+        'password_hash':   generate_password_hash(password),
+        'reference':       reference,
+        'customer_code':   customer_code,
+        'plan_code':       pdata.get('plan', ''),
+        'subscription_code': subscription_code,
+        'status':          'active',
+        'source':          'paystack',
+        'start_date':      now,
+        'period_start':    now,
+        'entitlements':    {k: 0 for k in LAPTOPCARE_SERVICES}
     })
+    session['laptopcare_member_id'] = str(result.inserted_id)
     return jsonify({'success': True})
 
 # ── API: Manually add a LaptopCare subscriber (admin only) — for customers who
 # pay by bank transfer instead of card, where Paystack recurring isn't used.
+# A random PIN is generated as their sign-in password since there's no
+# checkout form to collect one — hand it to the customer over WhatsApp.
 @app.route('/api/laptopcare/manual', methods=['POST'])
 def laptopcare_add_manual():
     if not session.get('admin_logged_in'):
@@ -751,18 +816,128 @@ def laptopcare_add_manual():
     email = data.get('email', '').strip()
     if not name or not phone:
         return jsonify({'success': False, 'error': 'Name and phone are required'}), 400
+    pin = '%06d' % secrets.randbelow(1000000)
+    now = datetime.datetime.utcnow()
     get_laptopcare_col().insert_one({
-        'name':          name,
-        'phone':         phone,
-        'email':         email,
-        'reference':     '',
-        'customer_code': '',
-        'plan_code':     '',
-        'status':        'active',
-        'source':        'manual',
-        'start_date':    datetime.datetime.utcnow()
+        'name':            name,
+        'phone':           phone,
+        'email':           email,
+        'password_hash':   generate_password_hash(pin),
+        'reference':       '',
+        'customer_code':   '',
+        'plan_code':       '',
+        'subscription_code': '',
+        'status':          'active',
+        'source':          'manual',
+        'start_date':      now,
+        'period_start':    now,
+        'entitlements':    {k: 0 for k in LAPTOPCARE_SERVICES}
     })
+    return jsonify({'success': True, 'pin': pin})
+
+# ── LaptopCare member sign-in (email set at checkout + the password chosen then,
+# or the PIN Victor shares for manually-added subscribers)
+@app.route('/laptopcare/login', methods=['GET', 'POST'])
+def laptopcare_login():
+    if request.method == 'GET':
+        return render_template('laptopcare_login.html')
+    data = request.get_json(silent=True) or {}
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    sub = get_laptopcare_col().find_one({'email': {'$regex': '^' + re.escape(email) + '$', '$options': 'i'}})
+    if not sub or not sub.get('password_hash') or not check_password_hash(sub['password_hash'], password):
+        return jsonify({'success': False, 'error': 'Incorrect email or password'}), 401
+    session['laptopcare_member_id'] = str(sub['_id'])
     return jsonify({'success': True})
+
+@app.route('/laptopcare/logout')
+def laptopcare_logout():
+    session.pop('laptopcare_member_id', None)
+    return redirect(url_for('laptopcare_login'))
+
+# ── LaptopCare member dashboard — status, dates, and this period's entitlements
+@app.route('/laptopcare/dashboard')
+def laptopcare_dashboard():
+    member_id = session.get('laptopcare_member_id')
+    if not member_id:
+        return redirect(url_for('laptopcare_login'))
+    sub = get_laptopcare_col().find_one({'_id': ObjectId(member_id)})
+    if not sub:
+        session.pop('laptopcare_member_id', None)
+        return redirect(url_for('laptopcare_login'))
+    if sub.get('status') == 'active':
+        sub = laptopcare_reset_if_needed(sub)
+    services = []
+    entitlements = sub.get('entitlements', {})
+    for key, info in LAPTOPCARE_SERVICES.items():
+        services.append({
+            'label': info['label'],
+            'used': entitlements.get(key, 0),
+            'limit': info['limit']
+        })
+    return render_template(
+        'laptopcare_dashboard.html',
+        sub=laptopcare_to_dict(sub),
+        services=services,
+        price=LAPTOPCARE_PRICE_NAIRA
+    )
+
+# ── API: Cancel my membership — the dashboard shows one retention message
+# client-side first; this endpoint only runs once the member confirms anyway.
+@app.route('/laptopcare/cancel', methods=['POST'])
+def laptopcare_cancel():
+    member_id = session.get('laptopcare_member_id')
+    if not member_id:
+        return jsonify({'success': False}), 401
+    sub = get_laptopcare_col().find_one({'_id': ObjectId(member_id)})
+    if not sub:
+        return jsonify({'success': False}), 404
+
+    # Best-effort: ask Paystack to stop future billing. Requires the
+    # subscription's email_token, which Paystack only hands over via webhook —
+    # not implemented yet, so this currently only ever no-ops safely. Until
+    # that's added, Victor must also disable the subscription by hand in the
+    # Paystack dashboard whenever a member cancels.
+    if sub.get('subscription_code') and sub.get('email_token'):
+        try:
+            headers = {'Authorization': 'Bearer ' + os.environ.get('PAYSTACK_SECRET_KEY', '')}
+            requests.post(
+                'https://api.paystack.co/subscription/disable',
+                headers=headers,
+                json={'code': sub['subscription_code'], 'token': sub['email_token']},
+                timeout=10
+            )
+        except Exception:
+            pass
+
+    get_laptopcare_col().update_one(
+        {'_id': sub['_id']},
+        {'$set': {'status': 'cancelled', 'cancelled_at': datetime.datetime.utcnow()}}
+    )
+    return jsonify({'success': True})
+
+# ── API: Admin marks one of a member's included services as used this period
+@app.route('/api/laptopcare/<sub_id>/mark_used', methods=['POST'])
+def laptopcare_mark_used(sub_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data = request.get_json(silent=True) or {}
+    service = data.get('service', '')
+    if service not in LAPTOPCARE_SERVICES:
+        return jsonify({'success': False, 'error': 'Unknown service'}), 400
+    sub = get_laptopcare_col().find_one({'_id': ObjectId(sub_id)})
+    if not sub:
+        return jsonify({'success': False, 'error': 'Subscriber not found'}), 404
+    sub = laptopcare_reset_if_needed(sub)
+    used = sub.get('entitlements', {}).get(service, 0)
+    limit = LAPTOPCARE_SERVICES[service]['limit']
+    if used >= limit:
+        return jsonify({'success': False, 'error': 'Already used ' + str(limit) + ' this period'}), 400
+    get_laptopcare_col().update_one(
+        {'_id': sub['_id']},
+        {'$set': {'entitlements.' + service: used + 1}}
+    )
+    return jsonify({'success': True, 'used': used + 1, 'limit': limit})
 
 @app.route('/laptopseal')
 def laptopseal():

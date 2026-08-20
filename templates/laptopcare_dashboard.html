@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>My LaptopCare | Light Ideas Technology</title>
+<link rel="icon" href="/static/images/logo.jpg" type="image/jpeg"/>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+        background:#000; color:#e8e8e8;
+        font-family:'Segoe UI', Arial, sans-serif;
+        min-height:100vh;
+        padding:40px 20px 60px;
+    }
+    .wrap { max-width:480px; margin:0 auto; }
+    .top-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+    .logo { width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #FFD700; }
+    .logout-link { color:#888; font-size:0.8em; text-decoration:none; }
+    .logout-link:hover { color:#FFD700; }
+    .title { color:#fff; font-size:1.5em; font-weight:900; margin-bottom:4px; }
+    .title span { color:#FFD700; }
+    .subtitle { color:#888; font-size:0.85em; margin-bottom:24px; }
+    .card {
+        background:#0d0d0d; border:1px solid #1a1a1a; border-radius:16px;
+        padding:20px; margin-bottom:16px;
+    }
+    .status-badge {
+        display:inline-block; padding:4px 12px; border-radius:20px;
+        font-size:0.75em; font-weight:700; letter-spacing:0.5px;
+    }
+    .status-active { background:rgba(74,222,128,0.15); color:#4ade80; }
+    .status-cancelled { background:rgba(248,113,113,0.15); color:#f87171; }
+    .row { display:flex; justify-content:space-between; padding:8px 0; font-size:0.88em; border-bottom:1px solid #1a1a1a; }
+    .row:last-child { border-bottom:none; }
+    .row .label { color:#888; }
+    .row .value { color:#fff; font-weight:600; }
+    .card h3 { color:#fff; font-size:0.95em; margin-bottom:14px; }
+    .service-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #1a1a1a; font-size:0.85em; }
+    .service-row:last-child { border-bottom:none; }
+    .service-name { color:#ddd; }
+    .service-count { color:#FFD700; font-weight:700; font-size:0.85em; }
+    .service-count.full { color:#666; }
+    .cancel-btn {
+        width:100%; background:transparent; color:#f87171; border:1px solid #3a1a1a;
+        border-radius:10px; padding:13px; font-size:0.85em; font-weight:700;
+        cursor:pointer; margin-top:8px;
+    }
+    .cancel-btn:hover { background:rgba(248,113,113,0.08); }
+    .wa-note { text-align:center; color:#666; font-size:0.78em; margin-top:24px; line-height:1.6; }
+    .wa-note a { color:#4ade80; text-decoration:none; font-weight:600; }
+
+    .modal-overlay {
+        display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85);
+        align-items:center; justify-content:center; z-index:999; padding:20px;
+    }
+    .modal-overlay.active { display:flex; }
+    .modal {
+        background:#0d0d0d; border:1px solid rgba(248,113,113,0.3); border-radius:18px;
+        padding:28px 24px; max-width:380px; width:100%; text-align:center;
+    }
+    .modal h2 { font-size:1.1em; color:#fff; margin-bottom:12px; }
+    .modal p { font-size:0.85em; color:#aaa; line-height:1.6; margin-bottom:20px; text-align:left; }
+    .modal-btn-row { display:flex; gap:10px; }
+    .modal-btn-keep {
+        flex:1; background:#FFD700; color:#000; border:none; border-radius:10px;
+        padding:13px; font-size:0.85em; font-weight:800; cursor:pointer;
+    }
+    .modal-btn-cancel {
+        flex:1; background:transparent; color:#f87171; border:1px solid #3a1a1a;
+        border-radius:10px; padding:13px; font-size:0.85em; font-weight:700; cursor:pointer;
+    }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+    <div class="top-row">
+        <img src="/static/images/logo.jpg" alt="Light Ideas Technology" class="logo"/>
+        <a class="logout-link" href="/laptopcare/logout">Sign out</a>
+    </div>
+    <div class="title">My Laptop<span>Care</span></div>
+    <div class="subtitle">Welcome back, {{ sub.name }}.</div>
+
+    <div class="card">
+        <div class="row">
+            <span class="label">Status</span>
+            <span class="status-badge {{ 'status-active' if sub.status == 'active' else 'status-cancelled' }}">
+                {{ '● ACTIVE' if sub.status == 'active' else '● CANCELLED' }}
+            </span>
+        </div>
+        <div class="row"><span class="label">Plan</span><span class="value">₦{{ '{:,}'.format(price) }}/month</span></div>
+        <div class="row"><span class="label">Member since</span><span class="value">{{ sub.start_date[:10] if sub.start_date else '—' }}</span></div>
+        {% if sub.status == 'cancelled' and sub.cancelled_at %}
+        <div class="row"><span class="label">Cancelled on</span><span class="value">{{ sub.cancelled_at[:10] }}</span></div>
+        {% endif %}
+    </div>
+
+    {% if sub.status == 'active' %}
+    <div class="card">
+        <h3>This month's services</h3>
+        {% for s in services %}
+        <div class="service-row">
+            <span class="service-name">{{ s.label }}</span>
+            <span class="service-count {{ 'full' if s.used >= s.limit else '' }}">{{ s.used }} / {{ s.limit }} used</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button class="cancel-btn" onclick="openCancelModal()">Cancel my membership</button>
+    {% else %}
+    <div class="wa-note">Want to come back? <a href="/laptopcare">Subscribe again</a></div>
+    {% endif %}
+
+    <div class="wa-note">Need help? <a href="https://wa.me/2348169441990" target="_blank">Message Victor on WhatsApp</a></div>
+</div>
+
+<div class="modal-overlay" id="cancelModal">
+    <div class="modal">
+        <h2>Before you go —</h2>
+        <p>
+            Cancelling means you'll lose priority WhatsApp support, your monthly free health check,
+            up to 2 free cleanups a month, and your 15% repair/upgrade discount.
+            <br/><br/>
+            If it's about the cost, message Victor first — we may be able to work something out.
+        </p>
+        <div class="modal-btn-row">
+            <button class="modal-btn-keep" onclick="closeCancelModal()">Keep my plan</button>
+            <button class="modal-btn-cancel" onclick="confirmCancel()">Yes, cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openCancelModal() { document.getElementById('cancelModal').classList.add('active'); }
+    function closeCancelModal() { document.getElementById('cancelModal').classList.remove('active'); }
+    function confirmCancel() {
+        fetch('/laptopcare/cancel', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Something went wrong. Please message Victor on WhatsApp to cancel.');
+                }
+            });
+    }
+</script>
+</body>
+</html>
