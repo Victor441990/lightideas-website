@@ -332,7 +332,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
               <td>{{ '💳 Paystack' if s.source == 'paystack' else '✍️ Manual' }}</td>
               <td>{{ s.start_date[:10] if s.start_date else '—' }}</td>
               {% for key, info in laptopcare_services.items() %}
-              {% set used = (s.entitlements or {}).get(key, 0) %}
+              {% set used = ((s.entitlements or {}).get(key) or {}).get('used', 0) %}
               <td>
                 {% if s.status == 'active' %}
                   {% if used >= info.limit %}

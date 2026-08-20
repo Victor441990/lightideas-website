@@ -61,11 +61,14 @@ LAPTOPSEAL_MASTERKEY = os.environ.get('MASTERKEY', '')
 # benefits already on the LaptopCare page — confirm/adjust the exact services
 # and monthly limits with Victor before treating this as final.
 LAPTOPCARE_PRICE_NAIRA = 5000
+# Each service resets on its own clock — health checks/cleanups make sense
+# monthly, but a physical servicing visit (opening the laptop, cleaning vents)
+# is only worth offering every 3 months, roughly one visit per ~₦15,000 paid in.
 LAPTOPCARE_SERVICES = {
-    'health_check': {'label': 'Full health check',              'limit': 1},
-    'cleanup':      {'label': 'Software cleanup & virus removal','limit': 2},
+    'health_check':   {'label': 'Full health check',                        'limit': 1, 'period_days': 30},
+    'cleanup':        {'label': 'Software cleanup & virus removal',         'limit': 2, 'period_days': 30},
+    'laptop_service': {'label': 'Laptop servicing (vents, hardware clean)', 'limit': 1, 'period_days': 90},
 }
-LAPTOPCARE_PERIOD_DAYS = 30
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
@@ -121,28 +124,49 @@ def laptopcare_to_dict(s):
     s['id'] = str(s['_id'])
     del s['_id']
     s.pop('password_hash', None)
-    for f in ('start_date', 'period_start', 'cancelled_at'):
+    for f in ('start_date', 'cancelled_at'):
         if s.get(f) and not isinstance(s[f], str):
             s[f] = s[f].isoformat()
+    for e in (s.get('entitlements') or {}).values():
+        if isinstance(e, dict) and e.get('period_start') and not isinstance(e['period_start'], str):
+            e['period_start'] = e['period_start'].isoformat()
     return s
 
+def _as_datetime(v, fallback):
+    if v is None:
+        return fallback
+    if isinstance(v, str):
+        return datetime.datetime.fromisoformat(v)
+    return v
+
 def laptopcare_reset_if_needed(sub):
-    """Entitlements are 'used this period' counts that reset every billing
-    cycle — checked lazily whenever a member or admin looks at the record,
-    same lazy-expiry pattern already used for LaptopSeal licenses, so no cron
-    job is needed. Returns the (possibly updated) subscriber dict."""
-    period_start = sub.get('period_start') or sub.get('start_date') or datetime.datetime.utcnow()
-    if isinstance(period_start, str):
-        period_start = datetime.datetime.fromisoformat(period_start)
-    if (datetime.datetime.utcnow() - period_start).days >= LAPTOPCARE_PERIOD_DAYS:
-        now = datetime.datetime.utcnow()
-        fresh = {k: 0 for k in LAPTOPCARE_SERVICES}
-        get_laptopcare_col().update_one(
-            {'_id': sub['_id']},
-            {'$set': {'period_start': now, 'entitlements': fresh}}
-        )
-        sub['period_start'] = now
-        sub['entitlements'] = fresh
+    """Each service's 'used this period' count resets on its OWN clock —
+    health checks/cleanups monthly, laptop servicing quarterly — checked
+    lazily whenever a member or admin looks at the record, same lazy-expiry
+    pattern already used for LaptopSeal licenses, so no cron job is needed.
+    Returns the (possibly updated) subscriber dict."""
+    now = datetime.datetime.utcnow()
+    entitlements = sub.get('entitlements') or {}
+    changed = False
+    for key, info in LAPTOPCARE_SERVICES.items():
+        entry = entitlements.get(key)
+        if isinstance(entry, dict):
+            period_start = _as_datetime(entry.get('period_start'), sub.get('start_date') or now)
+        else:
+            # Not seen before (a brand new service, or the old flat-int
+            # format from before per-service periods existed) — anchor it to
+            # when the member's subscription started, not "now", so a
+            # service due immediately isn't quietly pushed back a full period.
+            period_start = _as_datetime(sub.get('start_date'), now)
+        if (now - period_start).days >= info['period_days']:
+            entitlements[key] = {'used': 0, 'period_start': now}
+            changed = True
+        elif not isinstance(entry, dict):
+            entitlements[key] = {'used': entry if isinstance(entry, int) else 0, 'period_start': period_start}
+            changed = True
+    if changed:
+        get_laptopcare_col().update_one({'_id': sub['_id']}, {'$set': {'entitlements': entitlements}})
+        sub['entitlements'] = entitlements
     return sub
 def send_brevo_email(to_email, subject, html_body, text_body):
     payload = {
@@ -796,8 +820,7 @@ def laptopcare_verify_payment():
         'status':          'active',
         'source':          'paystack',
         'start_date':      now,
-        'period_start':    now,
-        'entitlements':    {k: 0 for k in LAPTOPCARE_SERVICES}
+        'entitlements':    {k: {'used': 0, 'period_start': now} for k in LAPTOPCARE_SERVICES}
     })
     session['laptopcare_member_id'] = str(result.inserted_id)
     return jsonify({'success': True})
@@ -830,8 +853,7 @@ def laptopcare_add_manual():
         'status':          'active',
         'source':          'manual',
         'start_date':      now,
-        'period_start':    now,
-        'entitlements':    {k: 0 for k in LAPTOPCARE_SERVICES}
+        'entitlements':    {k: {'used': 0, 'period_start': now} for k in LAPTOPCARE_SERVICES}
     })
     return jsonify({'success': True, 'pin': pin})
 
@@ -872,7 +894,7 @@ def laptopcare_dashboard():
     for key, info in LAPTOPCARE_SERVICES.items():
         services.append({
             'label': info['label'],
-            'used': entitlements.get(key, 0),
+            'used': (entitlements.get(key) or {}).get('used', 0),
             'limit': info['limit']
         })
     return render_template(
@@ -929,13 +951,13 @@ def laptopcare_mark_used(sub_id):
     if not sub:
         return jsonify({'success': False, 'error': 'Subscriber not found'}), 404
     sub = laptopcare_reset_if_needed(sub)
-    used = sub.get('entitlements', {}).get(service, 0)
+    used = (sub.get('entitlements', {}).get(service) or {}).get('used', 0)
     limit = LAPTOPCARE_SERVICES[service]['limit']
     if used >= limit:
         return jsonify({'success': False, 'error': 'Already used ' + str(limit) + ' this period'}), 400
     get_laptopcare_col().update_one(
         {'_id': sub['_id']},
-        {'$set': {'entitlements.' + service: used + 1}}
+        {'$set': {'entitlements.' + service + '.used': used + 1}}
     )
     return jsonify({'success': True, 'used': used + 1, 'limit': limit})
 
