@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 import cloudinary
 import cloudinary.uploader
-import datetime, json, requests, threading, os, uuid, tempfile
+import datetime, json, requests, threading, os, uuid, tempfile, re
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -464,6 +464,22 @@ def delete_announcement(announcement_id):
     get_announcements_col().delete_one({'_id': ObjectId(announcement_id)})
     return jsonify({'success': True})
 
+# Announcements are typed by hand in the admin dashboard, so the link field
+# sometimes arrives messy — a leading list marker ("1.https://...") or a bare
+# domain with no scheme. Cleaned once here, at the single source both the
+# desktop app's in-tool popup and the LiteAgent toast pull from, so neither
+# consumer needs its own copy of this logic.
+def clean_announcement_link(url):
+    if not url:
+        return ''
+    url = url.strip()
+    m = re.search(r'https?://\S+', url)
+    if m:
+        return m.group(0)
+    if re.match(r'^[\w.-]+\.\w{2,}(/\S*)?$', url):
+        return 'https://' + url
+    return url
+
 # ── API: Public — current active announcement, polled by the LaptopSeal desktop app.
 # "version" is the announcement's own id — the desktop app remembers the last id it
 # showed and only pops up a new notification when this id changes.
@@ -476,7 +492,7 @@ def laptopseal_notification():
         'version': str(a['_id']),
         'title':   a.get('title', ''),
         'body':    a.get('body', ''),
-        'link':    a.get('link', ''),
+        'link':    clean_announcement_link(a.get('link', '')),
         'type':    a.get('type', 'update')
     })
 
