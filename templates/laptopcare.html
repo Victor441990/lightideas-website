@@ -113,7 +113,8 @@
         <b>Please note:</b><br/>
         • Repair/upgrade discount benefits begin 30 days after you subscribe.<br/>
         • WhatsApp support is unlimited. Health checks and cleanups reset every billing month; laptop servicing every 3 months. Parts/repair help is discounted and capped yearly.<br/>
-        • Cancel anytime — no long-term contract.
+        • Cancel anytime — no long-term contract.<br/>
+        • Full details: <a href="/laptopcare/terms" style="color:#FFD700;">Terms &amp; Conditions</a>.
     </div>
 
     <button class="subscribe-btn" onclick="openSubscribeModal()">💚 Subscribe for ₦{{ '{:,}'.format(price) }}/month</button>
@@ -135,6 +136,7 @@
         <input type="email" id="subEmail" placeholder="Email address"/>
         <input type="password" id="subPassword" placeholder="Choose a password"/>
         <button class="modal-btn" onclick="initiateSubscription()">Continue to Payment</button>
+        <div style="text-align:center;font-size:0.72em;color:#666;margin-top:10px;">By subscribing you agree to the <a href="/laptopcare/terms" target="_blank" style="color:#FFD700;">Terms &amp; Conditions</a>.</div>
         <div class="modal-success" id="modalSuccess">Redirecting to payment...</div>
     </div>
 </div>

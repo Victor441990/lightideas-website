@@ -1287,6 +1287,10 @@ def laptopseal_apps():
 def terms_page():
     return render_template('terms.html')
 
+@app.route('/laptopcare/terms')
+def laptopcare_terms_page():
+    return render_template('laptopcare_terms.html')
+
 
 @app.route('/save')
 def save_contact_page():
