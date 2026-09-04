@@ -7,7 +7,7 @@
    exactly as before. Only the visual values were elevated.
    ═══════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@1,500;1,600&display=swap');
 
 :root {
   --gold: #FFD700;
@@ -138,24 +138,49 @@ nav {
 }
 .hero-title {
   font-family: var(--font-display);
-  font-size: clamp(3.2em, 8vw, 7em);
-  line-height: 0.92; letter-spacing: 5px; color: #fdfcf9; margin-bottom: 10px;
+  font-size: clamp(4em, 12vw, 10.5em);
+  line-height: 0.88; letter-spacing: 6px; color: #fdfcf9; margin-bottom: 12px;
   animation: fadeUp 1s var(--ease) 0.16s both;
-  text-shadow: 0 2px 30px rgba(0,0,0,0.4);
+  text-shadow: 0 2px 40px rgba(0,0,0,0.5);
 }
-.hero-title span { background: linear-gradient(180deg, var(--gold-soft), var(--gold2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero-title span { background: linear-gradient(175deg, #fff3c4 0%, var(--gold) 45%, #8a6d0b 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 6px 26px rgba(255,215,0,0.22)); }
 .hero-sub {
   font-family: var(--font-display);
-  font-size: clamp(1em, 2.5vw, 1.65em);
-  letter-spacing: 8px; color: var(--muted); margin-bottom: 22px;
+  font-size: clamp(1em, 2.6vw, 1.7em);
+  letter-spacing: clamp(8px, 2.4vw, 22px); color: var(--muted); margin-bottom: 26px;
   animation: fadeUp 1s var(--ease) 0.24s both;
+  text-indent: clamp(8px, 2.4vw, 22px); /* balances the trailing letter-spacing so it stays centered */
 }
 .hero-slogan {
-  font-size: 0.8em; font-weight: 500; letter-spacing: 3px;
-  text-transform: uppercase; color: var(--gold2); margin-bottom: 44px;
+  font-family: 'Cormorant Garamond', serif; font-style: italic;
+  font-size: clamp(1.15em, 2.4vw, 1.55em); font-weight: 500; letter-spacing: 1px;
+  text-transform: none; color: var(--gold-soft); margin-bottom: 46px;
   animation: fadeUp 1s var(--ease) 0.32s both;
+  position: relative; padding: 0 26px;
 }
+.hero-slogan::before, .hero-slogan::after {
+  content: ''; position: absolute; top: 50%; width: 44px; height: 1px;
+  background: linear-gradient(to right, transparent, rgba(255,215,0,0.5));
+}
+.hero-slogan::before { right: 100%; }
+.hero-slogan::after { left: 100%; transform: scaleX(-1); }
 .hero-btns { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; animation: fadeUp 1s var(--ease) 0.4s both; }
+.hero-stats {
+  display: flex; align-items: center; justify-content: center; gap: clamp(22px, 5vw, 56px);
+  margin-top: 58px; padding: 26px clamp(24px, 5vw, 64px);
+  border-top: 1px solid rgba(255,215,0,0.12);
+  border-bottom: 1px solid rgba(255,215,0,0.12);
+  background: linear-gradient(to right, transparent, rgba(255,215,0,0.03), transparent);
+  animation: fadeUp 1s var(--ease) 0.52s both;
+}
+.hero-stat { text-align: center; }
+.hero-stat-num { font-family: var(--font-display); font-size: clamp(1.9em, 4vw, 2.7em); letter-spacing: 2px; background: linear-gradient(180deg, #fff3c4, var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; line-height: 1; }
+.hero-stat-label { font-size: 0.66em; color: var(--muted); letter-spacing: 2.5px; text-transform: uppercase; margin-top: 8px; }
+.hero-stat-div { width: 1px; height: 44px; background: linear-gradient(to bottom, transparent, rgba(255,215,0,0.35), transparent); }
+@media (max-width: 640px) {
+  .hero-stats { gap: 16px; padding: 20px 12px; }
+  .hero-slogan::before, .hero-slogan::after { display: none; }
+}
 .hero-scroll {
   position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 9px;
@@ -208,17 +233,17 @@ nav {
 .section-divider { border-top: 1px solid var(--black4); }
 .section-bg-alt { background: linear-gradient(180deg, var(--black2), var(--black3) 60%, var(--black2)); }
 .section-label {
-  font-size: 0.68em; font-weight: 700; letter-spacing: 4.5px;
+  font-size: 0.7em; font-weight: 700; letter-spacing: 5.5px;
   text-transform: uppercase; color: var(--gold-soft);
-  margin-bottom: 14px; display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px; display: flex; align-items: center; gap: 14px;
 }
-.section-label::before { content:''; width: 34px; height: 1px; background: linear-gradient(to right, var(--gold), transparent); }
+.section-label::before { content:''; width: 44px; height: 1px; background: linear-gradient(to right, var(--gold), transparent); }
 .section-title {
   font-family: var(--font-display);
-  font-size: clamp(2.1em, 5vw, 3.7em);
-  letter-spacing: 2px; color: #fdfcf9; margin-bottom: 18px; line-height: 1.08;
+  font-size: clamp(2.6em, 6.5vw, 5.2em);
+  letter-spacing: 3px; color: #fdfcf9; margin-bottom: 20px; line-height: 1.02;
 }
-.section-desc { font-size: 0.98em; color: var(--muted); max-width: 560px; line-height: 1.75; font-weight: 300; }
+.section-desc { font-size: 1.02em; color: var(--muted); max-width: 580px; line-height: 1.8; font-weight: 300; }
 
 /* ── SERVICES ── */
 .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 26px; margin-top: 54px; }
