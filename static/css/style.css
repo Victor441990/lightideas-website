@@ -253,7 +253,7 @@ nav {
   border-radius: 22px; padding: 36px; transition: all 0.5s var(--ease); position: relative; overflow: hidden;
 }
 .service-card::before {
-  content:''; position: absolute; inset: 0;
+  content:''; position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(circle at top left, var(--gold-dim), transparent 60%);
   opacity: 0; transition: opacity 0.5s var(--ease);
 }
