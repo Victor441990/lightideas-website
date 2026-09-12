@@ -4,6 +4,7 @@ from bson import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 import cloudinary
 import cloudinary.uploader
+import cloudinary.api
 import datetime, json, requests, threading, os, uuid, tempfile, re, secrets
 
 app = Flask(__name__)
@@ -390,6 +391,33 @@ def upload_media():
         return jsonify({'success': True, 'url': result['secure_url']})
     except Exception as e:
         app.logger.error(f'Hero media upload failed: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ── One-time setup: an unsigned Cloudinary preset so PRODUCT videos upload
+# straight from the admin's browser to Cloudinary, skipping our own small
+# Render server entirely. A real one-minute video relayed through the server
+# (the old path, still used for hero videos) can hit Render's request time
+# limit before it ever reaches Cloudinary on a slow connection — this removes
+# that failure point completely for product videos. Visit this URL once
+# while logged into /victor-admin; safe to visit again, does nothing if the
+# preset already exists.
+PRODUCT_VIDEO_PRESET = 'lightideas_product_video'
+@app.route('/api/admin/setup_video_preset', methods=['GET'])
+def setup_video_preset():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    try:
+        cloudinary.api.create_upload_preset(
+            name=PRODUCT_VIDEO_PRESET,
+            unsigned=True,
+            folder='lightideas-products',
+            resource_type='video'
+        )
+        return jsonify({'success': True, 'message': 'Preset created — product video uploads are ready to use.'})
+    except Exception as e:
+        if 'already exist' in str(e).lower():
+            return jsonify({'success': True, 'message': 'Preset already exists — product video uploads are ready to use.'})
+        app.logger.error(f'Video preset setup failed: {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ── API: Get hero media (photos + videos for the homepage slider)

@@ -589,6 +589,15 @@ function removeProductMedia(i) {
 
 async function uploadProductMedia(input, type) {
   const file = input.files[0]; if (!file) return;
+
+  // Videos go straight from this browser to Cloudinary — skipping our own
+  // Render server, which was silently failing/timing out on real one-minute
+  // videos over a slow connection before they ever reached Cloudinary.
+  if (type === 'video') {
+    uploadProductVideoDirect(file, input);
+    return;
+  }
+
   showToast('Uploading...');
   const formData = new FormData();
   formData.append('file', file);
@@ -599,9 +608,43 @@ async function uploadProductMedia(input, type) {
     if (!d.success) { showToast(d.error || 'Upload failed', 'error'); input.value = ''; return; }
     productMediaList.push({ type, url: d.url });
     renderMediaThumbs();
-    showToast('✅ ' + (type === 'video' ? 'Video' : 'Photo') + ' added!');
+    showToast('✅ Photo added!');
   } catch(e) { showToast('Upload failed', 'error'); }
   input.value = '';
+}
+
+function uploadProductVideoDirect(file, input) {
+  showToast('Uploading video: 0%');
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'lightideas_product_video');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.cloudinary.com/v1_1/dfkdvznkp/video/upload', true);
+
+  xhr.upload.onprogress = function (e) {
+    if (e.lengthComputable) {
+      showToast('Uploading video: ' + Math.round((e.loaded / e.total) * 100) + '%');
+    }
+  };
+  xhr.onload = function () {
+    input.value = '';
+    let data = null;
+    try { data = JSON.parse(xhr.responseText); } catch (e2) {}
+    if (xhr.status >= 200 && xhr.status < 300 && data && data.secure_url) {
+      productMediaList.push({ type: 'video', url: data.secure_url });
+      renderMediaThumbs();
+      showToast('✅ Video added!');
+    } else {
+      const msg = (data && data.error && data.error.message) || 'Video upload failed';
+      showToast(msg, 'error');
+    }
+  };
+  xhr.onerror = function () {
+    input.value = '';
+    showToast('Video upload failed — check your connection and try again', 'error');
+  };
+  xhr.send(formData);
 }
 
 function autoCategory() {
