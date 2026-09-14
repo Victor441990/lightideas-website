@@ -429,7 +429,13 @@ def setup_video_preset():
             )
             messages.append(f'{preset_name}: created.')
         except Exception as e:
-            if 'already exist' in str(e).lower():
+            msg = str(e).lower()
+            # Cloudinary's actual wording here is "Name has already been
+            # taken" (confirmed live), not "already exist" — the original
+            # check only matched the wrong phrase, so it never recognised an
+            # existing preset and bailed out of the whole loop on the very
+            # first (already-created) one, before ever reaching the second.
+            if 'already' in msg or '409' in msg:
                 messages.append(f'{preset_name}: already exists.')
             else:
                 app.logger.error(f'Video preset setup failed for {preset_name}: {e}')
