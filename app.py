@@ -41,6 +41,9 @@ def get_ls_installs_col():
 def get_ls_acks_col():
     return get_db()['ls_announcement_acks']
 
+def get_ads_col():
+    return get_db()['ads']
+
 # ── Cloudinary
 cloudinary.config(
     cloud_name = 'dfkdvznkp',
@@ -100,6 +103,13 @@ def hero_media_to_dict(m):
         # extension is swapped to .jpg — used as the blurred slide background.
         m['poster'] = m['url'].rsplit('.', 1)[0] + '.jpg'
     return m
+
+def ad_to_dict(a):
+    a['id'] = str(a['_id'])
+    del a['_id']
+    if a.get('created_at') and not isinstance(a['created_at'], str):
+        a['created_at'] = a['created_at'].isoformat()
+    return a
 
 def review_to_dict(r):
     r['id'] = str(r['_id'])
@@ -261,6 +271,7 @@ def admin_dashboard():
     products      = [product_to_dict(p) for p in get_products_col().find()]
     emails        = [e['email'] for e in get_emails_col().find()]
     hero_media    = [hero_media_to_dict(m) for m in get_hero_media_col().find().sort('created_at', -1)]
+    ads           = [ad_to_dict(a) for a in get_ads_col().find().sort('created_at', -1)]
     reviews       = [review_to_dict(r) for r in get_reviews_col().find().sort('created_at', -1)]
     announcements = [announcement_to_dict(a) for a in get_announcements_col().find().sort('created_at', -1)]
     laptopcare_raw = list(get_laptopcare_col().find().sort('start_date', -1))
@@ -273,7 +284,7 @@ def admin_dashboard():
     for a in announcements:
         a['reached'] = get_ls_acks_col().count_documents({'announcement_id': a['id']})
         a['total_installs'] = total_installs
-    return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, reviews=reviews, announcements=announcements, laptopcare=laptopcare, laptopcare_price=LAPTOPCARE_PRICE_NAIRA, laptopcare_services=LAPTOPCARE_SERVICES)
+    return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, ads=ads, reviews=reviews, announcements=announcements, laptopcare=laptopcare, laptopcare_price=LAPTOPCARE_PRICE_NAIRA, laptopcare_services=LAPTOPCARE_SERVICES)
 
 # ── ADMIN LOGOUT
 @app.route('/victor-admin/logout')
@@ -393,32 +404,37 @@ def upload_media():
         app.logger.error(f'Hero media upload failed: {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ── One-time setup: an unsigned Cloudinary preset so PRODUCT videos upload
-# straight from the admin's browser to Cloudinary, skipping our own small
-# Render server entirely. A real one-minute video relayed through the server
-# (the old path, still used for hero videos) can hit Render's request time
-# limit before it ever reaches Cloudinary on a slow connection — this removes
-# that failure point completely for product videos. Visit this URL once
-# while logged into /victor-admin; safe to visit again, does nothing if the
-# preset already exists.
+# ── One-time setup: unsigned Cloudinary presets so PRODUCT and AD videos
+# upload straight from the admin's browser to Cloudinary, skipping our own
+# small Render server entirely. A real one-minute video relayed through the
+# server (the old path, still used for hero videos) can hit Render's request
+# time limit before it ever reaches Cloudinary on a slow connection — this
+# removes that failure point completely. Visit this URL once while logged
+# into /victor-admin; safe to visit again, does nothing for a preset that
+# already exists.
 PRODUCT_VIDEO_PRESET = 'lightideas_product_video'
+AD_VIDEO_PRESET = 'lightideas_ad_video'
 @app.route('/api/admin/setup_video_preset', methods=['GET'])
 def setup_video_preset():
     if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 401
-    try:
-        cloudinary.api.create_upload_preset(
-            name=PRODUCT_VIDEO_PRESET,
-            unsigned=True,
-            folder='lightideas-products',
-            resource_type='video'
-        )
-        return jsonify({'success': True, 'message': 'Preset created — product video uploads are ready to use.'})
-    except Exception as e:
-        if 'already exist' in str(e).lower():
-            return jsonify({'success': True, 'message': 'Preset already exists — product video uploads are ready to use.'})
-        app.logger.error(f'Video preset setup failed: {e}')
-        return jsonify({'success': False, 'error': str(e)}), 500
+    messages = []
+    for preset_name, folder in ((PRODUCT_VIDEO_PRESET, 'lightideas-products'), (AD_VIDEO_PRESET, 'lightideas-ads')):
+        try:
+            cloudinary.api.create_upload_preset(
+                name=preset_name,
+                unsigned=True,
+                folder=folder,
+                resource_type='video'
+            )
+            messages.append(f'{preset_name}: created.')
+        except Exception as e:
+            if 'already exist' in str(e).lower():
+                messages.append(f'{preset_name}: already exists.')
+            else:
+                app.logger.error(f'Video preset setup failed for {preset_name}: {e}')
+                return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({'success': True, 'message': ' Video uploads are ready to use. ' + ' '.join(messages)})
 
 # ── API: Get hero media (photos + videos for the homepage slider)
 @app.route('/api/hero_media', methods=['GET'])
@@ -452,6 +468,60 @@ def delete_hero_media(media_id):
     if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 401
     get_hero_media_col().delete_one({'_id': ObjectId(media_id)})
+    return jsonify({'success': True})
+
+# ── Ads — short promo videos for reposting on social media + the Android
+# app's own "Ads" tab. Deliberately NOT products: just a video and a
+# caption, no name/price. Never shown on the website itself — nothing in
+# templates/ renders these. Two read routes, same separation-of-contract
+# reasoning as /api/products vs /api/catalog: the admin dashboard needs to
+# see every ad (including hidden ones) to manage them, the app must only
+# ever see the ones marked available.
+@app.route('/api/ads', methods=['GET'])
+def api_ads():
+    ads = [ad_to_dict(a) for a in get_ads_col().find({'available': True}).sort('created_at', -1)]
+    return jsonify(ads)
+
+@app.route('/api/admin/ads', methods=['GET'])
+def admin_list_ads():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    ads = [ad_to_dict(a) for a in get_ads_col().find().sort('created_at', -1)]
+    return jsonify(ads)
+
+@app.route('/api/ads', methods=['POST'])
+def add_ad():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data = request.json or {}
+    video_url = data.get('video_url', '').strip()
+    if not video_url:
+        return jsonify({'success': False, 'error': 'No video URL provided'}), 400
+    ad = {
+        'video_url':  video_url,
+        'caption':    data.get('caption', '').strip(),
+        'available':  True,
+        'created_at': datetime.datetime.now().isoformat()
+    }
+    result = get_ads_col().insert_one(ad)
+    ad['id'] = str(result.inserted_id)
+    ad.pop('_id', None)
+    return jsonify({'success': True, 'ad': ad})
+
+@app.route('/api/ads/<ad_id>', methods=['PUT'])
+def update_ad(ad_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data = request.json or {}
+    data.pop('id', None)
+    get_ads_col().update_one({'_id': ObjectId(ad_id)}, {'$set': data})
+    return jsonify({'success': True})
+
+@app.route('/api/ads/<ad_id>', methods=['DELETE'])
+def delete_ad(ad_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    get_ads_col().delete_one({'_id': ObjectId(ad_id)})
     return jsonify({'success': True})
 
 # ── API: Get customer reviews

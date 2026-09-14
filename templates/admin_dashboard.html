@@ -101,6 +101,9 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
 .media-card{position:relative;height:140px;border-radius:12px;overflow:hidden;background:var(--black4);border:1px solid #1a1a1a;}
 .media-card img,.media-card video{width:100%;height:100%;object-fit:cover;display:block;}
 .media-del{position:absolute;top:6px;right:6px;padding:3px 9px;font-size:0.65em;}
+.ad-card{position:relative;border-radius:12px;overflow:hidden;background:var(--black4);border:1px solid #1a1a1a;display:flex;flex-direction:column;}
+.ad-card video{width:100%;height:160px;object-fit:cover;display:block;background:#000;}
+.ad-caption{font-size:0.75em;color:var(--muted);padding:8px 10px;line-height:1.4;}
 .review-card{display:flex;align-items:center;gap:14px;background:var(--black);border:1px solid #1a1a1a;border-radius:12px;padding:14px 18px;}
 .review-card img{width:52px;height:52px;border-radius:10px;object-fit:cover;flex-shrink:0;}
 </style>
@@ -123,6 +126,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <div class="sidebar-item active" onclick="showPage('overview')"><span class="icon">📊</span> Overview</div>
     <div class="sidebar-item" onclick="showPage('products')"><span class="icon">📦</span> Products</div>
     <div class="sidebar-item" onclick="showPage('heromedia')"><span class="icon">🎬</span> Hero Media</div>
+    <div class="sidebar-item" onclick="showPage('ads')"><span class="icon">📣</span> Ads</div>
     <div class="sidebar-item" onclick="showPage('reviews')"><span class="icon">⭐</span> Reviews</div>
     <div class="sidebar-item" onclick="showPage('announcements')"><span class="icon">📢</span> Announcements</div>
     <div class="sidebar-divider"></div>
@@ -222,6 +226,38 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
           <div style="color:var(--muted);font-size:0.85em;">No videos yet.</div>
           {% endfor %}
         </div>
+      </div>
+    </div>
+
+    <!-- ADS -->
+    <div class="page" id="page-ads">
+      <div class="section-head"><h2>ADS</h2></div>
+      <p style="color:var(--muted);font-size:0.82em;margin-bottom:24px;max-width:560px;line-height:1.6;">
+        Short promo videos — just a video and a caption, no product name or price.
+        These never appear on the website. They show up in the app's own "Ads" tab,
+        and you can always come back here to grab the video link for reposting on
+        Instagram, WhatsApp Status, TikTok, etc.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:420px;margin-bottom:32px;">
+        <button type="button" class="btn-add" id="adVideoBtn" onclick="document.getElementById('adVideoFile').click()">+ Add Ad Video</button>
+        <input type="file" id="adVideoFile" accept="video/*" style="display:none" onchange="uploadAdVideo(this)"/>
+        <video id="adVideoPreviewEl" controls style="display:none;width:100%;max-width:260px;border-radius:10px;"></video>
+        <textarea id="adCaption" placeholder="Caption for this ad…" rows="3" style="background:#111;border:1px solid #333;border-radius:8px;padding:10px;color:var(--text);font-size:0.85em;font-family:inherit;"></textarea>
+        <button type="button" class="btn-add" onclick="saveAd()" id="saveAdBtn" disabled>Save Ad</button>
+      </div>
+
+      <div style="font-family:var(--font-display);font-size:1.15em;letter-spacing:1.5px;color:var(--gold);margin-bottom:16px;">ALL ADS</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;" id="adsList">
+        {% for a in ads %}
+        <div class="ad-card" id="ad-{{ a.id }}">
+          <video src="{{ a.video_url }}" controls></video>
+          <div class="ad-caption">{{ a.caption or '—' }}</div>
+          <button class="btn-del media-del" onclick="deleteAd('{{ a.id }}')">✕</button>
+        </div>
+        {% else %}
+        <div style="color:var(--muted);font-size:0.85em;">No ads yet.</div>
+        {% endfor %}
       </div>
     </div>
 
@@ -645,6 +681,96 @@ function uploadProductVideoDirect(file, input) {
     showToast('Video upload failed — check your connection and try again', 'error');
   };
   xhr.send(formData);
+}
+
+// ── ADS ──
+let stagedAdVideoUrl = null;
+
+function uploadAdVideo(input) {
+  const file = input.files[0]; if (!file) return;
+  showToast('Uploading video: 0%');
+  document.getElementById('saveAdBtn').disabled = true;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'lightideas_ad_video');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.cloudinary.com/v1_1/dfkdvznkp/video/upload', true);
+  xhr.upload.onprogress = function (e) {
+    if (e.lengthComputable) {
+      showToast('Uploading video: ' + Math.round((e.loaded / e.total) * 100) + '%');
+    }
+  };
+  xhr.onload = function () {
+    input.value = '';
+    let data = null;
+    try { data = JSON.parse(xhr.responseText); } catch (e2) {}
+    if (xhr.status >= 200 && xhr.status < 300 && data && data.secure_url) {
+      stagedAdVideoUrl = data.secure_url;
+      const preview = document.getElementById('adVideoPreviewEl');
+      preview.src = stagedAdVideoUrl;
+      preview.style.display = 'block';
+      document.getElementById('saveAdBtn').disabled = false;
+      showToast('✅ Video uploaded — add a caption and click Save Ad');
+    } else {
+      const msg = (data && data.error && data.error.message) || 'Video upload failed';
+      showToast(msg, 'error');
+    }
+  };
+  xhr.onerror = function () {
+    input.value = '';
+    showToast('Video upload failed — check your connection and try again', 'error');
+  };
+  xhr.send(formData);
+}
+
+async function saveAd() {
+  if (!stagedAdVideoUrl) { showToast('Upload a video first', 'error'); return; }
+  const caption = document.getElementById('adCaption').value.trim();
+  const btn = document.getElementById('saveAdBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const r = await fetch('/api/ads', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video_url: stagedAdVideoUrl, caption })
+    });
+    const d = await r.json();
+    if (!d.success) { showToast(d.error || 'Could not save ad', 'error'); btn.disabled = false; btn.textContent = 'Save Ad'; return; }
+
+    const list = document.getElementById('adsList');
+    const empty = list.querySelector('div[style*="No ads yet"]');
+    if (empty) empty.remove();
+    const card = document.createElement('div');
+    card.className = 'ad-card';
+    card.id = 'ad-' + d.ad.id;
+    card.innerHTML = `<video src="${d.ad.video_url}" controls></video>
+      <div class="ad-caption">${caption ? caption.replace(/</g, '&lt;') : '—'}</div>
+      <button class="btn-del media-del" onclick="deleteAd('${d.ad.id}')">✕</button>`;
+    list.prepend(card);
+
+    stagedAdVideoUrl = null;
+    document.getElementById('adCaption').value = '';
+    document.getElementById('adVideoPreviewEl').style.display = 'none';
+    document.getElementById('adVideoPreviewEl').src = '';
+    showToast('✅ Ad added!');
+    btn.disabled = true; btn.textContent = 'Save Ad';
+  } catch (e) {
+    showToast('Could not save ad', 'error');
+    btn.disabled = false; btn.textContent = 'Save Ad';
+  }
+}
+
+async function deleteAd(id) {
+  if (!confirm('Delete this ad?')) return;
+  try {
+    await fetch('/api/ads/' + id, { method: 'DELETE' });
+    const el = document.getElementById('ad-' + id);
+    if (el) el.remove();
+    showToast('Ad deleted');
+  } catch (e) {
+    showToast('Could not delete ad', 'error');
+  }
 }
 
 function autoCategory() {
