@@ -601,10 +601,18 @@ function showPage(name) {
   });
 }
 
+let toastHideTimer = null;
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = 'toast' + (type === 'error' ? ' error' : '');
-  t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
+  t.style.display = 'block';
+  // Fast repeated calls (e.g. an upload-progress percentage updating many
+  // times a second) used to each schedule their own separate "hide in 3s"
+  // timer without cancelling the last one — so an old timer would hide the
+  // toast out from under a newer message, making it blink on and off.
+  // Only the most recent call's timer should ever be allowed to fire.
+  if (toastHideTimer) clearTimeout(toastHideTimer);
+  toastHideTimer = setTimeout(() => { t.style.display = 'none'; }, 3000);
 }
 
 let productMediaList = [];
