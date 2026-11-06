@@ -57,6 +57,7 @@ input[type=password]:focus{border-color:rgba(255,215,0,0.4);}
   <div class="error">{{ error }}</div>
   {% endif %}
   <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="input-wrap">
       <label>Password</label>
       <input type="password" name="password" placeholder="Enter admin password" autofocus/>

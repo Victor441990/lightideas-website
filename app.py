@@ -7,8 +7,58 @@ import cloudinary.uploader
 import cloudinary.api
 import datetime, json, requests, threading, os, uuid, tempfile, re, secrets
 
+from config import Config
+from biztrack_client import BiztrackServiceError, export_csv as biztrack_export_csv, overview as biztrack_overview, registrations as biztrack_registrations
+from security import LoginRateLimiter, client_address, csrf_token, validate_csrf
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 app = Flask(__name__)
+app.config.from_object(Config)
+if app.config['TRUST_PROXY_HEADERS']:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
+ADMIN_PASSWORD_HASH = os.environ.get('ADMIN_PASSWORD_HASH')
+login_rate_limiter = LoginRateLimiter()
+
+ADMIN_WRITE_ENDPOINTS = {
+    'add_product', 'update_product', 'delete_product', 'upload_image',
+    'upload_media', 'setup_video_preset', 'add_hero_media', 'delete_hero_media',
+    'add_ad', 'update_ad', 'delete_ad', 'add_review', 'approve_review',
+    'delete_review', 'add_announcement', 'update_announcement',
+    'delete_announcement', 'send_bulk_email', 'laptopcare_add_manual',
+    'laptopcare_mark_used', 'admin_logout', 'biztrack_export',
+}
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {'csrf_token': csrf_token}
+
+
+@app.before_request
+def protect_admin_state_changes():
+    if request.method not in {'POST', 'PUT', 'PATCH', 'DELETE'}:
+        return None
+    if request.endpoint == 'admin_login':
+        validate_csrf()
+    elif request.endpoint in ADMIN_WRITE_ENDPOINTS:
+        if not session.get('admin_logged_in'):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        validate_csrf()
+    return None
+
+
+@app.after_request
+def set_security_headers(response):
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'DENY')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    if request.path.startswith('/victor-admin'):
+        response.headers['Cache-Control'] = 'no-store, max-age=0'
+    return response
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
+if not app.secret_key:
+    raise RuntimeError('FLASK_SECRET_KEY must be configured before the application starts.')
 
 # ── MongoDB
 MONGO_URI = os.environ.get('MONGO_URI')
@@ -51,6 +101,14 @@ cloudinary.config(
     api_secret = os.environ.get('CLOUDINARY_API_SECRET')
 )
 
+# Environment configuration must win over legacy source settings. This keeps
+# private Cloudinary credentials out of the running configuration.
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+)
+
 # ── Brevo email config
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
@@ -58,7 +116,7 @@ EMAIL_SENDER  = {'name': 'Light Ideas Technology', 'email': 'info@lightideastech
 
 # ── LaptopSeal masterkey (Victor's own fixed key — must match the desktop app's
 # MASTER_KEY constant exactly). Used only to classify check-ins server-side.
-LAPTOPSEAL_MASTERKEY = os.environ.get('MASTERKEY', '')
+LAPTOPSEAL_MASTERKEY = os.environ.get('LAPTOPSEAL_MASTER_KEY') or os.environ.get('MASTERKEY', '')
 
 # ── LaptopCare — services included each month that Victor marks off by hand
 # once he's actually done them for a member. Proposed by Light based on the
@@ -256,11 +314,22 @@ def admin_login():
         return redirect(url_for('admin_dashboard'))
     error = None
     if request.method == 'POST':
-        if request.form.get('password') == ADMIN_PASSWORD:
+        address = client_address()
+        if login_rate_limiter.is_locked(address):
+            error = 'Too many sign-in attempts. Please try again later.'
+        elif not ADMIN_PASSWORD_HASH:
+            app.logger.error('ADMIN_PASSWORD_HASH is not configured')
+            error = 'Administrator sign-in is temporarily unavailable.'
+        elif check_password_hash(ADMIN_PASSWORD_HASH, request.form.get('password', '')):
+            session.clear()
+            session.permanent = True
             session['admin_logged_in'] = True
+            csrf_token()
+            login_rate_limiter.clear(address)
             return redirect(url_for('admin_dashboard'))
         else:
-            error = 'Wrong password. Try again.'
+            login_rate_limiter.register_failure(address)
+            error = 'Invalid administrator credentials.'
     return render_template('admin_login.html', error=error)
 
 # ── ADMIN DASHBOARD
@@ -286,8 +355,59 @@ def admin_dashboard():
         a['total_installs'] = total_installs
     return render_template('admin_dashboard.html', products=products, emails=emails, hero_media=hero_media, ads=ads, reviews=reviews, announcements=announcements, laptopcare=laptopcare, laptopcare_price=LAPTOPCARE_PRICE_NAIRA, laptopcare_services=LAPTOPCARE_SERVICES)
 
+
+def require_dashboard_admin():
+    if session.get('admin_logged_in'):
+        return None
+    return jsonify({'success': False, 'error': 'Administrator authentication is required.'}), 401
+
+
+def biztrack_filters():
+    return {
+        'q': request.args.get('q', '')[:120],
+        'willingness': request.args.get('willingness', '')[:30],
+        'source': request.args.get('source', '')[:120],
+    }
+
+
+@app.route('/api/admin/biztrack/overview')
+def biztrack_overview_api():
+    denied = require_dashboard_admin()
+    if denied:
+        return denied
+    try:
+        return jsonify(biztrack_overview())
+    except BiztrackServiceError:
+        return jsonify({'error': 'Biztrack demand data is temporarily unavailable.'}), 502
+
+
+@app.route('/api/admin/biztrack/registrations')
+def biztrack_registrations_api():
+    denied = require_dashboard_admin()
+    if denied:
+        return denied
+    try:
+        return jsonify(biztrack_registrations(biztrack_filters()))
+    except BiztrackServiceError:
+        return jsonify({'error': 'Biztrack registrations are temporarily unavailable.'}), 502
+
+
+@app.route('/api/admin/biztrack/export.csv', methods=['POST'])
+def biztrack_export():
+    denied = require_dashboard_admin()
+    if denied:
+        return denied
+    try:
+        data = biztrack_export_csv(biztrack_filters())
+    except BiztrackServiceError:
+        return jsonify({'error': 'Biztrack export is temporarily unavailable.'}), 502
+    return Response(data, content_type='text/csv; charset=utf-8', headers={
+        'Content-Disposition': 'attachment; filename="biztrack-waitlist.csv"',
+        'Cache-Control': 'no-store',
+    })
+
 # ── ADMIN LOGOUT
-@app.route('/victor-admin/logout')
+@app.route('/victor-admin/logout', methods=['POST'])
 def admin_logout():
     session.clear()
     return redirect(url_for('admin_login'))
