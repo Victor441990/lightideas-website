@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="csrf-token" content="{{ csrf_token() }}"/>
 <title>Admin Dashboard — Light Ideas</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
@@ -23,7 +24,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
 .topbar-right{display:flex;align-items:center;gap:16px;}
 .btn-view{padding:7px 18px;border-radius:50px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(255,215,0,0.2);font-size:0.78em;font-weight:600;text-decoration:none;letter-spacing:1px;transition:all 0.2s;}
 .btn-view:hover{background:var(--gold);color:#000;}
-.btn-logout{padding:7px 18px;border-radius:50px;background:transparent;color:var(--muted);border:1px solid #222;font-size:0.78em;font-weight:600;text-decoration:none;letter-spacing:1px;transition:all 0.2s;}
+.btn-logout{padding:7px 18px;border-radius:50px;background:transparent;color:var(--muted);border:1px solid #222;font-size:0.78em;font-weight:600;text-decoration:none;letter-spacing:1px;transition:all 0.2s;cursor:pointer;}
 .btn-logout:hover{border-color:#555;color:#fff;}
 .layout{display:flex;min-height:calc(100vh - 62px);}
 .sidebar{width:220px;background:var(--black);border-right:1px solid #1a1a1a;padding:24px 0;flex-shrink:0;}
@@ -31,7 +32,7 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
 .sidebar-item:hover,.sidebar-item.active{color:var(--gold);background:var(--gold-dim);border-left-color:var(--gold);}
 .sidebar-item .icon{font-size:1em;width:20px;text-align:center;}
 .sidebar-divider{height:1px;background:#1a1a1a;margin:12px 0;}
-.main{flex:1;padding:32px;}
+.main{flex:1;min-width:0;padding:32px;}
 .page{display:none;}
 .page.active{display:block;}
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:32px;}
@@ -106,6 +107,18 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
 .ad-caption{font-size:0.75em;color:var(--muted);padding:8px 10px;line-height:1.4;}
 .review-card{display:flex;align-items:center;gap:14px;background:var(--black);border:1px solid #1a1a1a;border-radius:12px;padding:14px 18px;}
 .review-card img{width:52px;height:52px;border-radius:10px;object-fit:cover;flex-shrink:0;}
+.biztrack-filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:18px;}
+.biztrack-filters input,.biztrack-filters select{background:var(--black4);color:#fff;border:1px solid #2a2a2a;border-radius:8px;padding:11px 12px;min-width:0;font-family:var(--font-body);}
+@media (max-width:760px){
+  .topbar{padding:12px 16px;}
+  .layout{flex-direction:column;}
+  .sidebar{width:100%;display:flex;overflow-x:auto;padding:8px 0;border-right:none;border-bottom:1px solid #1a1a1a;}
+  .sidebar-item{white-space:nowrap;padding:10px 16px;flex:0 0 auto;}
+  .sidebar-divider{width:1px;height:auto;margin:0 4px;}
+  .main{padding:20px 16px;}
+  .section-head{align-items:flex-start;gap:12px;}
+  .biztrack-filters{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
@@ -117,7 +130,10 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
   </div>
   <div class="topbar-right">
     <a href="/" target="_blank" class="btn-view">🌐 View Website</a>
-    <a href="/victor-admin/logout" class="btn-logout">Logout</a>
+    <form action="/victor-admin/logout" method="POST" style="display:inline;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn-logout">Logout</button>
+    </form>
   </div>
 </div>
 
@@ -137,6 +153,8 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
     <div class="sidebar-item" onclick="showPage('laptopseal');loadLaptopSeal()"><span class="icon">🔬</span> LaptopSeal</div>
     <div class="sidebar-item" onclick="window.location.href='/victor-admin/laptopseal'"><span class="icon">🔑</span> LaptopSeal Licenses</div>
     <div class="sidebar-item" onclick="showPage('laptopcare')"><span class="icon">💚</span> LaptopCare</div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-item" onclick="showPage('biztrack');loadBiztrack()"><span class="icon">B</span> Biztrack OS</div>
   </div>
 
   <div class="main">
@@ -484,6 +502,32 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
       </div>
     </div>
 
+    <!-- BIZTRACK OS -->
+    <div class="page" id="page-biztrack">
+      <div class="section-head">
+        <div><h2>Biztrack OS demand</h2><div style="font-size:.78em;color:var(--muted);margin-top:5px;">Early-access demand only. Test records are excluded from these metrics.</div></div>
+        <button class="btn-add" onclick="exportBiztrackCsv()">Export CSV</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num" id="biztrackVisitors">—</div><div class="stat-label">Unique visitors</div></div>
+        <div class="stat-card"><div class="stat-num" id="biztrackRegistrations">—</div><div class="stat-label">Early-access registrations</div></div>
+        <div class="stat-card"><div class="stat-num" id="biztrackConversion">—</div><div class="stat-label">Conversion rate</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:28px;">
+        <div class="stat-card"><div class="stat-label" style="margin-bottom:12px;">Willingness to pay</div><div id="biztrackWillingness" style="font-size:.84em;color:var(--muted);">Loading…</div></div>
+        <div class="stat-card"><div class="stat-label" style="margin-bottom:12px;">Advertising sources</div><div id="biztrackSources" style="font-size:.84em;color:var(--muted);">Loading…</div></div>
+      </div>
+      <div style="background:var(--black);border:1px solid #1a1a1a;border-radius:16px;padding:24px;">
+        <div class="section-head"><h2 style="font-size:1.25em;">Early-access registrations</h2><span id="biztrackCount" style="font-size:.8em;color:var(--muted);"></span></div>
+        <div class="biztrack-filters">
+          <input id="biztrackSearch" oninput="queueBiztrackLoad()" placeholder="Search name, business, email or WhatsApp"/>
+          <select id="biztrackWillingnessFilter" onchange="loadBiztrackRegistrations()"><option value="">All willingness</option><option>Yes</option><option>Maybe</option><option>No</option><option>Prefer not to say</option></select>
+          <select id="biztrackSourceFilter" onchange="loadBiztrackRegistrations()"><option value="">All sources</option></select>
+        </div>
+        <div style="overflow-x:auto;"><table class="products-table"><thead><tr><th>Date</th><th>Contact</th><th>Business</th><th>WhatsApp</th><th>Category</th><th>Challenge</th><th>Willingness</th><th>Updates</th><th>Source</th></tr></thead><tbody id="biztrackRows"><tr><td colspan="9" style="color:var(--muted);padding:22px;">Open Biztrack OS to load demand data.</td></tr></tbody></table></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -591,6 +635,17 @@ body{background:var(--black2);color:#e8e8e8;font-family:var(--font-body);min-hei
 <div class="toast" id="toast"></div>
 
 <script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+const nativeFetch = window.fetch.bind(window);
+window.fetch = (input, init = {}) => {
+  const method = (init.method || 'GET').toUpperCase();
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const headers = new Headers(init.headers || {});
+    headers.set('X-CSRF-Token', csrfToken);
+    init = { ...init, headers };
+  }
+  return nativeFetch(input, init);
+};
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
@@ -599,6 +654,47 @@ function showPage(name) {
   document.querySelectorAll('.sidebar-item').forEach(s => {
     if (s.getAttribute('onclick') && s.getAttribute('onclick').includes("'" + name + "'")) s.classList.add('active');
   });
+}
+
+let biztrackTimer = null;
+function escapeBiztrack(value) { return String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
+function summaryLines(items) { return items && items.length ? items.map(item => `<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid #1a1a1a;"><span>${escapeBiztrack(item.label)}</span><strong style="color:var(--gold);">${escapeBiztrack(item.count)}</strong></div>`).join('') : '<span>No data yet.</span>'; }
+async function loadBiztrack() {
+  try {
+    const res = await fetch('/api/admin/biztrack/overview');
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    document.getElementById('biztrackVisitors').textContent = data.visitors ?? 0;
+    document.getElementById('biztrackRegistrations').textContent = data.registrations ?? 0;
+    document.getElementById('biztrackConversion').textContent = `${data.conversionRate ?? 0}%`;
+    document.getElementById('biztrackWillingness').innerHTML = summaryLines(data.willingness);
+    document.getElementById('biztrackSources').innerHTML = summaryLines(data.sources);
+    const sourceFilter = document.getElementById('biztrackSourceFilter');
+    const selected = sourceFilter.value;
+    sourceFilter.innerHTML = '<option value="">All sources</option>' + (data.sources || []).map(item => `<option value="${escapeBiztrack(item.label)}">${escapeBiztrack(item.label)}</option>`).join('');
+    sourceFilter.value = selected;
+    await loadBiztrackRegistrations();
+  } catch (error) { showToast('Biztrack demand data is unavailable.', 'error'); }
+}
+function queueBiztrackLoad() { clearTimeout(biztrackTimer); biztrackTimer = setTimeout(loadBiztrackRegistrations, 250); }
+function biztrackQuery() { return new URLSearchParams({ q: document.getElementById('biztrackSearch').value.trim(), willingness: document.getElementById('biztrackWillingnessFilter').value, source: document.getElementById('biztrackSourceFilter').value }); }
+async function loadBiztrackRegistrations() {
+  const rows = document.getElementById('biztrackRows');
+  try {
+    const res = await fetch(`/api/admin/biztrack/registrations?${biztrackQuery()}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json(), registrations = data.registrations || [];
+    document.getElementById('biztrackCount').textContent = `${registrations.length} shown`;
+    rows.innerHTML = registrations.length ? registrations.map(item => `<tr><td>${escapeBiztrack(item.created_at)}</td><td><strong>${escapeBiztrack(item.full_name)}</strong><br><span style="color:var(--muted);font-size:.85em;">${escapeBiztrack(item.email)}</span></td><td>${escapeBiztrack(item.business_name)}</td><td>${escapeBiztrack(item.whatsapp || '—')}</td><td>${escapeBiztrack(item.business_type)}</td><td>${escapeBiztrack(item.challenge || '—')}</td><td>${escapeBiztrack(item.willingness)}</td><td>${item.updates_opt_in ? 'Yes' : 'No'}</td><td>${escapeBiztrack(item.source)}</td></tr>`).join('') : '<tr><td colspan="9" style="color:var(--muted);padding:22px;">No matching registrations.</td></tr>';
+  } catch (error) { rows.innerHTML = '<tr><td colspan="9" style="color:var(--red);padding:22px;">Could not load registrations.</td></tr>'; }
+}
+async function exportBiztrackCsv() {
+  try {
+    const res = await fetch(`/api/admin/biztrack/export.csv?${biztrackQuery()}`, { method: 'POST' });
+    if (!res.ok) throw new Error();
+    const url = URL.createObjectURL(await res.blob()), link = document.createElement('a');
+    link.href = url; link.download = 'biztrack-waitlist.csv'; link.click(); URL.revokeObjectURL(url);
+  } catch (error) { showToast('Could not export Biztrack registrations.', 'error'); }
 }
 
 let toastHideTimer = null;
