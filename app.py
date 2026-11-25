@@ -1,11 +1,30 @@
 ﻿from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING, DESCENDING, ReturnDocument
+from pymongo.errors import DuplicateKeyError
 from bson import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
+from cryptography.fernet import Fernet, InvalidToken
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
-import datetime, json, requests, threading, os, uuid, tempfile, re, secrets
+import datetime, json, requests, threading, os, uuid, tempfile, re, secrets, hmac
+from html import escape as html_escape
+from urllib.parse import urlsplit
+from laptopseal_security import (
+    PLANS, make_token, normalise_email, paystack_signature_is_valid,
+    safe_reference, token_hash, token_prefix, verified_plan_from_transaction,
+)
+from owner_master_security import (
+    OWNER_ACCESS_DAYS, OWNER_RATE_MAX_ATTEMPTS, OWNER_RATE_WINDOW_SECONDS,
+    device_token_hash, hash_master_key, new_device_token, opaque_id,
+    valid_master_key, verify_master_key,
+)
+from laptopseal_vendor import VENDOR_PLANS, VendorLicenseError
+from laptopseal_vendor_auth import normalize_email as normalize_vendor_email
+from laptopseal_vendor_payments import (
+    PRODUCT_ID as VENDOR_PRODUCT_ID, issue_paid_vendor_package,
+    require_vendor_payment_indexes,
+)
 
 from config import Config
 from biztrack_client import BiztrackServiceError, export_csv as biztrack_export_csv, overview as biztrack_overview, registrations as biztrack_registrations
@@ -27,6 +46,8 @@ ADMIN_WRITE_ENDPOINTS = {
     'delete_review', 'add_announcement', 'update_announcement',
     'delete_announcement', 'send_bulk_email', 'laptopcare_add_manual',
     'laptopcare_mark_used', 'admin_logout', 'biztrack_export',
+    'revoke_laptopseal_license', 'owner_master_key_admin',
+    'revoke_owner_master_key',
 }
 
 
@@ -60,12 +81,43 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 if not app.secret_key:
     raise RuntimeError('FLASK_SECRET_KEY must be configured before the application starts.')
 
+@app.after_request
+def no_store_owner_credentials(response):
+    if (request.path.startswith('/laptopseal/owner/')
+            or request.path.startswith('/api/laptopseal/owner-master-key')
+            or request.path == '/laptopseal/activate'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
+
 # ── MongoDB
 MONGO_URI = os.environ.get('MONGO_URI')
+PRODUCTION_MONGO_DB_NAME = 'lightideas'
+MONGO_DB_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]{1,63}$')
 _mongo_client = MongoClient(MONGO_URI)
 
+def configured_mongo_db_name():
+    """Return the production default unless a database was explicitly selected."""
+    configured = os.environ.get('MONGO_DB_NAME')
+    return configured.strip() if configured is not None else PRODUCTION_MONGO_DB_NAME
+
+def laptopseal_test_database_error():
+    """Fail closed when the local payment-test runner is not isolated."""
+    if os.environ.get('LAPTOPSEAL_TEST_MODE') != '1':
+        return None
+    database_name = configured_mongo_db_name()
+    if not database_name:
+        return 'MONGO_DB_NAME is required for LaptopSeal payment testing.'
+    if database_name.casefold() == PRODUCTION_MONGO_DB_NAME:
+        return 'LaptopSeal payment testing cannot use the production database.'
+    if not MONGO_DB_NAME_PATTERN.fullmatch(database_name):
+        return 'MONGO_DB_NAME is not a valid isolated database name.'
+    return None
+
 def get_db():
-    return _mongo_client['lightideas']
+    configuration_error = laptopseal_test_database_error()
+    if configuration_error:
+        raise RuntimeError(configuration_error)
+    return _mongo_client[configured_mongo_db_name()]
 
 def get_products_col():
     return get_db()['products']
@@ -91,6 +143,25 @@ def get_ls_installs_col():
 def get_ls_acks_col():
     return get_db()['ls_announcement_acks']
 
+def get_ls_owner_key_col():
+    return get_db()['ls_owner_master_key']
+
+def get_ls_owner_activations_col():
+    return get_db()['ls_owner_device_activations']
+
+def get_ls_owner_attempts_col():
+    return get_db()['ls_owner_key_attempts']
+
+def get_ls_paystack_events_col():
+    return get_db()['ls_paystack_events']
+
+def get_ls_license_audit_col():
+    """Administrative LaptopSeal license events, never activation secrets."""
+    return get_db()['ls_license_audit']
+
+def get_ls_payment_intents_col():
+    return get_db()['ls_payment_intents']
+
 def get_ads_col():
     return get_db()['ads']
 
@@ -112,11 +183,98 @@ cloudinary.config(
 # ── Brevo email config
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
-EMAIL_SENDER  = {'name': 'Light Ideas Technology', 'email': 'info@lightideastechnology.com.ng'}
+EMAIL_SENDER  = {
+    'name': os.environ.get('BREVO_SENDER_NAME', 'Light Ideas Technology'),
+    'email': os.environ.get('BREVO_SENDER_EMAIL', 'info@lightideastechnology.com.ng'),
+}
 
-# ── LaptopSeal masterkey (Victor's own fixed key — must match the desktop app's
-# MASTER_KEY constant exactly). Used only to classify check-ins server-side.
-LAPTOPSEAL_MASTERKEY = os.environ.get('LAPTOPSEAL_MASTER_KEY') or os.environ.get('MASTERKEY', '')
+# New LaptopSeal credentials are one-way HMAC values.  Do not set a fallback:
+# accepting a source-controlled default would recreate the former bypass.
+LAPTOPSEAL_LICENSE_PEPPER = os.environ.get('LAPTOPSEAL_LICENSE_PEPPER', '')
+PAYSTACK_WEBHOOK_SECRET = os.environ.get('PAYSTACK_SECRET_KEY', '')
+LAPTOPSEAL_DELIVERY_KEY = os.environ.get('LAPTOPSEAL_DELIVERY_KEY', '')
+
+def _delivery_cipher():
+    if not LAPTOPSEAL_DELIVERY_KEY:
+        raise RuntimeError('Secure license delivery is not configured.')
+    return Fernet(LAPTOPSEAL_DELIVERY_KEY.encode('ascii'))
+
+def _encrypt_delivery_token(token):
+    return _delivery_cipher().encrypt(token.encode('utf-8')).decode('ascii')
+
+def _decrypt_delivery_token(value):
+    return _delivery_cipher().decrypt(value.encode('ascii')).decode('utf-8')
+
+def _send_laptopseal_license_email(license_doc, token):
+    plan = PLANS[license_doc['tier']]
+    text = ('Your LaptopSeal activation key is: ' + token + '\n\nIt covers ' +
+            str(plan['max_devices']) + ' device(s) for 30 days.')
+    html = '<p>Your LaptopSeal activation key is:</p><p><strong>' + token + '</strong></p>'
+    try:
+        return bool(BREVO_API_KEY and send_brevo_email(license_doc['email'],
+                    'Your LaptopSeal activation key', html, text))
+    except Exception:
+        return False
+
+def _record_delivery_attempt(license_doc, token):
+    sent = _send_laptopseal_license_email(license_doc, token)
+    get_db()['ls_licenses'].update_one({'_id': license_doc['_id']}, {
+        '$set': {'delivery_status': 'sent' if sent else 'pending',
+                 'delivery_last_attempt_at': datetime.datetime.utcnow()},
+        '$inc': {'delivery_attempts': 1}})
+    return sent
+
+def ensure_laptopseal_security_indexes():
+    """Create only additive indexes. Invoke deliberately during release setup.
+
+    It is never called by a request, so this source change cannot alter current
+    production records before the owner approves a migration/release.
+    """
+    get_db()['ls_licenses'].create_index([('reference', ASCENDING)], unique=True,
+                                         name='ls_unique_payment_reference', sparse=True)
+    get_db()['ls_licenses'].create_index([('token_hash', ASCENDING)], unique=True,
+                                         name='ls_unique_token_hash', sparse=True)
+    get_ls_owner_attempts_col().create_index([('expires_at', ASCENDING)],
+                                              expireAfterSeconds=0, name='ls_owner_attempt_expiry')
+    get_ls_paystack_events_col().create_index([('event_key', ASCENDING)], unique=True,
+                                              name='ls_unique_paystack_event')
+    get_ls_license_audit_col().create_index([('license_id', ASCENDING), ('created_at', DESCENDING)],
+                                            name='ls_license_audit_license_time')
+    get_ls_payment_intents_col().create_index([('reference', ASCENDING)], unique=True,
+                                              name='ls_unique_payment_intent_reference')
+
+def _license_hash(value):
+    if not LAPTOPSEAL_LICENSE_PEPPER:
+        raise RuntimeError('LaptopSeal licensing is not configured.')
+    return token_hash(value, LAPTOPSEAL_LICENSE_PEPPER)
+
+def _find_laptopseal_license(raw_token):
+    """New hashed tokens plus a read-only compatibility path for old records."""
+    try:
+        hashed = _license_hash(raw_token)
+        found = get_db()['ls_licenses'].find_one({'token_hash': hashed, 'active': True})
+        if found:
+            return found
+    except RuntimeError:
+        # Existing purchased licenses remain valid until the approved migration
+        # sets the pepper.  New licences and owner credentials cannot be issued.
+        pass
+    return get_db()['ls_licenses'].find_one({'token': raw_token, 'active': True})
+
+def _is_known_laptopseal_key(raw_token):
+    """Recognise issued customer keys, including revoked/expired records.
+
+    This lets the unified activation route reject a known customer key through
+    the customer path instead of attempting owner-key verification. No raw key
+    is stored or returned by this lookup.
+    """
+    try:
+        hashed = _license_hash(raw_token)
+        if get_db()['ls_licenses'].find_one({'token_hash': hashed}):
+            return True
+    except RuntimeError:
+        pass
+    return bool(get_db()['ls_licenses'].find_one({'token': raw_token}))
 
 # ── LaptopCare — services included each month that Victor marks off by hand
 # once he's actually done them for a member. Proposed by Light based on the
@@ -132,7 +290,6 @@ LAPTOPCARE_SERVICES = {
     'laptop_service': {'label': 'Laptop servicing (vents, hardware clean)', 'limit': 1, 'period_days': 90},
 }
 
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
 # ── Anthropic (AI chat widget)
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
@@ -1187,7 +1344,11 @@ def laptopcare_mark_used(sub_id):
 
 @app.route('/laptopseal')
 def laptopseal():
-    return render_template('laptopseal.html', paystack_public_key=os.environ.get('PAYSTACK_PUBLIC_KEY', ''))
+    # Checkout is explicitly disabled until a sandbox/production release is
+    # approved.  The browser never contains a fallback live key.
+    return render_template('laptopseal.html',
+                           paystack_public_key=os.environ.get('PAYSTACK_PUBLIC_KEY', ''),
+                           payments_enabled=os.environ.get('LAPTOPSEAL_PAYMENTS_ENABLED') == '1')
 
 @app.route('/laptopseal/tool')
 def laptopseal_tool():
@@ -1195,69 +1356,400 @@ def laptopseal_tool():
     # send anyone who lands here back to the sales / download page.
     return redirect('/laptopseal')
 
+
+def _vendor_payment_configuration_error():
+    """Vendor checkout has its own release gate; legacy checkout is unchanged."""
+    public = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
+    secret = os.environ.get('PAYSTACK_SECRET_KEY', '')
+    if os.environ.get('LAPTOPSEAL_TEST_MODE') == '1':
+        if (configured_mongo_db_name() != 'laptopseal_test'
+                or not public.startswith('pk_test_')
+                or not secret.startswith('sk_test_')):
+            return 'Isolated vendor payment configuration is unavailable.'
+    elif (configured_mongo_db_name() != PRODUCTION_MONGO_DB_NAME
+          or not public.startswith('pk_live_')
+          or not secret.startswith('sk_live_')):
+        return 'Vendor payment configuration is unavailable.'
+    if not app.secret_key:
+        return 'Payment session is unavailable.'
+    return None
+
+
+def _same_origin_vendor_purchase():
+    if request.headers.get('Sec-Fetch-Site', '').lower() == 'cross-site':
+        return False
+    origin = request.headers.get('Origin')
+    if not origin:
+        return True
+    parsed = urlsplit(origin)
+    return (parsed.netloc == request.host
+            and (parsed.scheme == 'https'
+                 or (parsed.scheme == 'http'
+                     and os.environ.get('LAPTOPSEAL_TEST_MODE') == '1'
+                     and request.host.split(':')[0] in ('127.0.0.1', 'localhost'))))
+
+
+def _verify_paystack_reference(reference):
+    """Shared direct Paystack verification; a redirect or webhook is no proof."""
+    if not safe_reference(reference):
+        raise ValueError('Invalid payment reference.')
+    secret = os.environ.get('PAYSTACK_SECRET_KEY', '')
+    if not secret:
+        raise RuntimeError('Paystack is not configured.')
+    response = requests.get('https://api.paystack.co/transaction/verify/' + reference,
+                            headers={'Authorization': 'Bearer ' + secret}, timeout=15)
+    response.raise_for_status()
+    verification = response.json()
+    return verification.get('data') if verification.get('status') else None
+
+
+def _send_vendor_package_email(package, email):
+    """A purchase notice, never a license key. Test mode cannot send mail."""
+    if os.environ.get('LAPTOPSEAL_TEST_MODE') == '1' or not BREVO_API_KEY:
+        return False
+    name = package['plan_id'].capitalize()
+    price = '₦' + format(package['amount_kobo'] // 100, ',')
+    purchased = package['issued_at'].strftime('%d %B %Y %H:%M UTC')
+    expiry = package['expires_at'].strftime('%d %B %Y %H:%M UTC')
+    portal = 'https://lightideastechnology.com.ng/laptopseal/vendor'
+    steps = ('Install LaptopSeal on the laptop.', 'Open LaptopSeal.',
+             'Select Activate with QR Code.', 'Open the portal link on your phone.',
+             'Verify your email when requested.', 'Scan the laptop QR code.',
+             'Approve activation.')
+    text = (f'Your LaptopSeal {name} package supports {package["max_devices"]} laptops.\n'
+            f'Price paid: {price}\nPurchase date: {purchased}\nExpires: {expiry}\n'
+            f'Purchase reference: {package["purchase_reference"]}\n'
+            f'Verify your email at {portal}. Keep this link for future activations.\n\n'
+            + '\n'.join(f'{number}. {step}' for number, step in enumerate(steps, 1)))
+    html = ('<p>Your LaptopSeal ' + html_escape(name) + ' package supports '
+            + str(package['max_devices']) + ' laptops.</p><p>Price paid: '
+            + html_escape(price) + '<br>Purchase date: ' + html_escape(purchased)
+            + '<br>Expires: ' + html_escape(expiry) + '<br>Purchase reference: '
+            + html_escape(package['purchase_reference']) + '</p><p><a href="' + portal
+            + '">Open the vendor portal on your phone</a>. Keep this link for future activations; email verification may be required again.</p><ol>'
+            + ''.join('<li>' + html_escape(step) + '</li>' for step in steps) + '</ol>')
+    try:
+        return bool(send_brevo_email(email, 'Your LaptopSeal vendor package', html, text))
+    except Exception:
+        return False
+
+
+def _deliver_vendor_package_email(db, package, email):
+    """Claim a pending notice once; failure leaves the issued package intact."""
+    collection = db.ls_vendor_packages
+    if os.environ.get('LAPTOPSEAL_TEST_MODE') == '1':
+        collection.update_one({'_id': package['_id'], 'delivery_status': 'pending'},
+                              {'$set': {'delivery_status': 'skipped_test'}})
+        return
+    claimed = collection.find_one_and_update(
+        {'_id': package['_id'], 'delivery_status': 'pending'},
+        {'$set': {'delivery_status': 'sending'}, '$inc': {'delivery_attempts': 1}},
+        return_document=ReturnDocument.AFTER)
+    if not claimed:
+        return
+    sent = _send_vendor_package_email(claimed, email)
+    collection.update_one({'_id': package['_id'], 'delivery_status': 'sending'},
+                          {'$set': {'delivery_status': 'sent' if sent else 'pending'}})
+
+
+def _fulfill_verified_vendor_payment(intent, transaction):
+    db = get_db()
+    try:
+        package, created = issue_paid_vendor_package(db, intent, transaction)
+    except VendorLicenseError:
+        return {'success': False, 'error': 'Payment details could not be verified.', 'status': 400}
+    except Exception:
+        return {'success': False, 'error': 'Package issuance is unavailable. Retry verification.', 'status': 503}
+    try:
+        _deliver_vendor_package_email(db, package, intent['email'])
+    except Exception:
+        pass  # The issued package remains available through verified-email login.
+    return {'success': True, 'already_fulfilled': not created,
+            'plan_id': package['plan_id'], 'max_devices': package['max_devices'],
+            'expires_at': package['expires_at'].isoformat(),
+            'confirmation_path': '/laptopseal/vendor/confirmation'}
+
+
+@app.route('/laptopseal/vendor/initialize_payment', methods=['POST'])
+def vendor_initialize_payment():
+    if os.environ.get('LAPTOPSEAL_VENDOR_PAYMENTS_ENABLED') != '1':
+        return jsonify({'success': False, 'error': 'Vendor checkout is not enabled.'}), 403
+    error = _vendor_payment_configuration_error()
+    if error:
+        return jsonify({'success': False, 'error': error}), 503
+    if not request.is_json or not _same_origin_vendor_purchase():
+        return jsonify({'success': False, 'error': 'Invalid purchase request.'}), 403
+    data = request.get_json(silent=True) or {}
+    email = normalize_vendor_email(data.get('email'))
+    plan_id = data.get('plan_id')
+    if not email or plan_id not in VENDOR_PLANS:
+        return jsonify({'success': False, 'error': 'Choose a package and enter a valid email.'}), 400
+    try:
+        require_vendor_payment_indexes(get_db())
+    except Exception:
+        return jsonify({'success': False, 'error': 'Vendor checkout setup is incomplete.'}), 503
+    reference = 'LSV_' + secrets.token_urlsafe(24).replace('-', '').replace('_', '')
+    plan = VENDOR_PLANS[plan_id]
+    get_ls_payment_intents_col().insert_one({
+        'reference': reference, 'product_id': VENDOR_PRODUCT_ID,
+        'email': email, 'plan_id': plan_id, 'amount': plan['amount_kobo'],
+        'currency': 'NGN', 'environment': ('test' if os.environ.get('LAPTOPSEAL_TEST_MODE') == '1'
+                                         else 'production'),
+        'state': 'pending', 'created_at': datetime.datetime.utcnow(),
+    })
+    session['laptopseal_vendor_payment_reference'] = reference
+    return jsonify({'success': True, 'reference': reference,
+                    'amount': plan['amount_kobo'], 'currency': 'NGN'})
+
+
+@app.route('/laptopseal/vendor/verify_payment', methods=['POST'])
+def vendor_verify_payment():
+    if os.environ.get('LAPTOPSEAL_VENDOR_PAYMENTS_ENABLED') != '1':
+        return jsonify({'success': False, 'error': 'Vendor checkout is not enabled.'}), 403
+    error = _vendor_payment_configuration_error()
+    if error:
+        return jsonify({'success': False, 'error': error}), 503
+    if not request.is_json or not _same_origin_vendor_purchase():
+        return jsonify({'success': False, 'error': 'Invalid payment request.'}), 403
+    reference = str((request.get_json(silent=True) or {}).get('reference') or '').strip()
+    if (not safe_reference(reference)
+            or session.get('laptopseal_vendor_payment_reference') != reference):
+        return jsonify({'success': False, 'error': 'Start payment again from the vendor page.'}), 400
+    intent = get_ls_payment_intents_col().find_one({'reference': reference,
+                                                    'product_id': VENDOR_PRODUCT_ID})
+    if not intent:
+        return jsonify({'success': False, 'error': 'Purchase is unavailable.'}), 404
+    if intent.get('state') == 'fulfilled':
+        package = get_db().ls_vendor_packages.find_one({
+            'purchase_reference': reference, '_id': intent.get('package_id')})
+        if package:
+            try:
+                _deliver_vendor_package_email(get_db(), package, intent['email'])
+            except Exception:
+                pass
+            return jsonify({'success': True, 'already_fulfilled': True,
+                            'confirmation_path': '/laptopseal/vendor/confirmation'})
+        return jsonify({'success': False, 'error': 'Payment fulfilment state is inconsistent.'}), 409
+    try:
+        transaction = _verify_paystack_reference(reference)
+    except Exception:
+        return jsonify({'success': False, 'error': 'Payment verification is unavailable. Retry later.'}), 503
+    outcome = _fulfill_verified_vendor_payment(intent, transaction)
+    return jsonify(outcome), (200 if outcome['success'] else outcome['status'])
+
 @app.route('/laptopseal/verify_payment', methods=['POST'])
 def laptopseal_verify_payment():
-    data = request.get_json()
-    reference = data.get('reference')
-    email = data.get('email')
-    if not reference or not email:
-        return jsonify({'success': False, 'error': 'Missing reference or email'})
-    headers = {'Authorization': 'Bearer ' + os.environ.get('PAYSTACK_SECRET_KEY', '')}
-    r = requests.get('https://api.paystack.co/transaction/verify/' + reference, headers=headers)
-    res = r.json()
-    if res.get('status') and res['data']['status'] == 'success':
-        amount_paid = res['data']['amount']  # in kobo
-        # Determine tier + laptop limit from the amount paid.
-        if amount_paid >= 6000000:      # ₦60,000
-            tier, max_devices = 'unlimited', 999999
-        elif amount_paid >= 3000000:    # ₦30,000
-            tier, max_devices = 'medium', 20
-        elif amount_paid >= 800000:     # ₦8,000
-            tier, max_devices = 'small', 5
-        elif amount_paid >= 200000:     # ₦2,000
-            tier, max_devices = 'single', 1
-        else:
-            return jsonify({'success': False, 'error': 'Amount too low for any plan'})
+    if os.environ.get('LAPTOPSEAL_PAYMENTS_ENABLED') != '1':
+        return jsonify({'success': False, 'error': 'LaptopSeal checkout is not enabled.'}), 403
+    configuration_error = laptopseal_test_database_error()
+    if configuration_error:
+        return jsonify({'success': False, 'error': configuration_error}), 503
+    data = request.get_json(silent=True) or {}
+    reference = str(data.get('reference') or '').strip()
+    intent = get_ls_payment_intents_col().find_one({'reference': reference})
+    if (not safe_reference(reference) or not intent
+            or session.get('laptopseal_payment_reference') != reference):
+        return jsonify({'success': False, 'error': 'Start payment again from the LaptopSeal page.'}), 400
+    if intent.get('state') == 'fulfilled':
+        # The same browser can submit its callback twice.  A fulfilled intent
+        # with its already-created licence is a successful no-op, not a second
+        # Paystack fulfilment or delivery attempt.
+        if get_db()['ls_licenses'].find_one({'reference': reference, 'active': True}):
+            session['laptopseal_delivery_reference'] = reference
+            return jsonify({'success': True, 'already_fulfilled': True,
+                            'message': 'Payment was already confirmed. Continue to your secure delivery page.'})
+        return jsonify({'success': False, 'error': 'Payment fulfilment state is inconsistent.'}), 409
+    if intent.get('state') != 'pending':
+        return jsonify({'success': False, 'error': 'Payment is not available for verification.'}), 409
+    email = intent['email']
+    plan_id = intent['plan_id']
+    if not email or plan_id not in PLANS:
+        return jsonify({'success': False, 'error': 'Invalid payment details.'}), 400
+    if not os.environ.get('PAYSTACK_SECRET_KEY') or not LAPTOPSEAL_LICENSE_PEPPER:
+        return jsonify({'success': False, 'error': 'Checkout is not configured.'}), 503
+    try:
+        transaction = _verify_paystack_reference(reference)
+    except Exception:
+        return jsonify({'success': False, 'error': 'Payment verification is unavailable.'}), 503
+    verified_plan = verified_plan_from_transaction(transaction, plan_id, email)
+    if not verified_plan:
+        return jsonify({'success': False, 'error': 'Payment details could not be verified.'}), 400
+    outcome = _fulfill_verified_laptopseal_payment(transaction, verified_plan, email)
+    if outcome.get('success') or outcome.get('already_fulfilled'):
+        session['laptopseal_delivery_reference'] = reference
+    status = 200 if outcome['success'] else outcome.get('status', 400)
+    return jsonify(outcome), status
 
-        token = str(uuid.uuid4()).replace('-', '')
-        expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=30)
-        get_db()['ls_licenses'].insert_one({
-            'email': email,
-            'token': token,
-            'reference': reference,
-            'amount': amount_paid,
-            'tier': tier,
-            'max_devices': max_devices,
-            'devices': [],
-            'active': True,
-            'created_at': datetime.datetime.utcnow(),
-            'expires_at': expires_at,
-            'hardware_id': None  # kept for backward compatibility
-        })
-        return jsonify({'success': True, 'token': token, 'tier': tier, 'max_devices': max_devices})
-    return jsonify({'success': False, 'error': 'Payment verification failed'})
+@app.route('/laptopseal/initialize_payment', methods=['POST'])
+def laptopseal_initialize_payment():
+    if os.environ.get('LAPTOPSEAL_PAYMENTS_ENABLED') != '1':
+        return jsonify({'success': False, 'error': 'LaptopSeal checkout is not enabled.'}), 403
+    configuration_error = laptopseal_test_database_error()
+    if configuration_error:
+        return jsonify({'success': False, 'error': configuration_error}), 503
+    data = request.get_json(silent=True) or {}
+    email, plan_id = normalise_email(data.get('email')), str(data.get('plan_id') or '').strip()
+    if not email or plan_id not in PLANS or not os.environ.get('PAYSTACK_PUBLIC_KEY'):
+        return jsonify({'success': False, 'error': 'Invalid purchase details.'}), 400
+    try:
+        _delivery_cipher()
+    except Exception:
+        return jsonify({'success': False, 'error': 'Secure license delivery is unavailable.'}), 503
+    reference = 'LS_' + secrets.token_urlsafe(24).replace('-', '').replace('_', '')
+    plan = PLANS[plan_id]
+    get_ls_payment_intents_col().insert_one({'reference': reference, 'email': email,
+        'plan_id': plan_id, 'amount': plan['amount'], 'currency': 'NGN', 'state': 'pending',
+        'created_at': datetime.datetime.utcnow()})
+    session['laptopseal_payment_reference'] = reference
+    return jsonify({'success': True, 'reference': reference, 'amount': plan['amount'], 'currency': 'NGN'})
+
+def _fulfill_verified_laptopseal_payment(transaction, plan_id, email):
+    """Fulfil once.  A unique reference index is the final concurrency guard."""
+    reference = str(transaction.get('reference') or '').strip()
+    if not safe_reference(reference):
+        return {'success': False, 'error': 'Invalid verified payment reference.', 'status': 400}
+    plan = PLANS[plan_id]
+    token = make_token('LS')
+    try:
+        encrypted_token = _encrypt_delivery_token(token)
+    except Exception:
+        return {'success': False, 'error': 'Secure license delivery is unavailable.', 'status': 503}
+    now = datetime.datetime.utcnow()
+    document = {
+        'email': normalise_email(email), 'token_hash': _license_hash(token),
+        'token_prefix': token_prefix(token), 'reference': reference,
+        'amount': plan['amount'], 'currency': 'NGN', 'tier': plan_id,
+        'max_devices': plan['max_devices'], 'devices': [], 'active': True,
+        'created_at': now, 'expires_at': now + datetime.timedelta(days=30),
+        'hardware_id': None, 'fulfilment_source': 'paystack_verified',
+        'delivery_token_encrypted': encrypted_token, 'delivery_status': 'pending', 'delivery_attempts': 0
+    }
+    try:
+        get_db()['ls_licenses'].insert_one(document)
+    except DuplicateKeyError:
+        # Never reveal a prior licence secret to an arbitrary replay caller.
+        return {'success': True, 'already_fulfilled': True,
+                'message': 'Payment was already confirmed. Continue to your secure delivery page.'}
+    stored = get_db()['ls_licenses'].find_one({'reference': reference})
+    # Write an issuance audit only after the unique licence insert succeeds.
+    # Duplicate payment callbacks return above, so they cannot create another
+    # licence, audit record, or delivery attempt.
+    get_ls_license_audit_col().insert_one({
+        'event': 'customer_license_issued', 'license_id': str(stored['_id']),
+        'reference': reference, 'token_prefix': stored.get('token_prefix', ''),
+        'tier': plan_id, 'amount': plan['amount'], 'currency': 'NGN',
+        'max_devices': plan['max_devices'], 'created_at': now,
+        'actor': 'paystack_verified'
+    })
+    delivered = _record_delivery_attempt(stored, token)
+    get_ls_payment_intents_col().update_one({'reference': reference}, {'$set': {'state': 'fulfilled'}})
+    return {'success': True, 'tier': plan_id, 'max_devices': plan['max_devices'],
+            'expires_at': document['expires_at'].isoformat(), 'email_delivered': delivered}
+
+@app.route('/webhooks/paystack/laptopseal', methods=['POST'])
+def laptopseal_paystack_webhook():
+    raw_body = request.get_data(cache=True)
+    signature = request.headers.get('x-paystack-signature', '')
+    if not paystack_signature_is_valid(raw_body, signature, PAYSTACK_WEBHOOK_SECRET):
+        return jsonify({'success': False, 'error': 'Invalid webhook signature.'}), 401
+    payload = request.get_json(silent=True) or {}
+    event = payload.get('event')
+    transaction = payload.get('data') or {}
+    reference = str(transaction.get('reference') or '')
+    event_key = str(payload.get('id') or (event or '') + ':' + reference)
+    if event != 'charge.success' or not safe_reference(reference):
+        return jsonify({'success': True, 'ignored': True})
+    intent = get_ls_payment_intents_col().find_one({'reference': reference})
+    if intent and intent.get('product_id') == VENDOR_PRODUCT_ID:
+        error = _vendor_payment_configuration_error()
+        if error:
+            return jsonify({'success': False, 'error': error}), 503
+        try:
+            verified = _verify_paystack_reference(reference)
+        except Exception:
+            return jsonify({'success': False, 'error': 'Payment verification is unavailable.'}), 503
+        outcome = _fulfill_verified_vendor_payment(intent, verified)
+        if outcome['success']:
+            try:
+                get_ls_paystack_events_col().insert_one({
+                    'event_key': event_key, 'received_at': datetime.datetime.utcnow()})
+            except DuplicateKeyError:
+                pass
+        return jsonify({'success': outcome['success'],
+                        'duplicate': outcome.get('already_fulfilled', False)}), (
+                            200 if outcome['success'] else outcome['status'])
+    metadata = transaction.get('metadata') or {}
+    email = normalise_email((transaction.get('customer') or {}).get('email'))
+    plan_id = metadata.get('plan_id')
+    if plan_id not in PLANS:
+        # A checkout page already open before deployment carries the former
+        # descriptive metadata.  Infer only the exact known plan label.
+        legacy_product = str(metadata.get('product') or '')
+        plan_id = next((candidate for candidate, plan in PLANS.items()
+                        if legacy_product.startswith('LaptopSeal')
+                        and legacy_product.endswith(plan['label'])), None)
+    if verified_plan_from_transaction(transaction, plan_id, email) is None:
+        return jsonify({'success': False, 'error': 'Webhook payment does not match LaptopSeal checkout.'}), 400
+    outcome = _fulfill_verified_laptopseal_payment(transaction, plan_id, email)
+    try:
+        get_ls_paystack_events_col().insert_one({'event_key': event_key, 'received_at': datetime.datetime.utcnow()})
+    except DuplicateKeyError:
+        pass
+    # A browser callback may already have fulfilled this reference.  That is a
+    # successful, idempotent webhook outcome rather than a failed payment.
+    return jsonify({'success': bool(outcome.get('success') or outcome.get('already_fulfilled')),
+                    'duplicate': bool(outcome.get('already_fulfilled'))})
 
 @app.route('/laptopseal/activate')
 def laptopseal_activate():
-    token = request.args.get('token')
-    email = request.args.get('email', '')
-    if not token:
+    reference = session.get('laptopseal_delivery_reference')
+    if not reference:
         return redirect('/laptopseal')
-    license_data = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
-    if not license_data:
+    license_doc = get_db()['ls_licenses'].find_one({'reference': reference, 'active': True})
+    if not license_doc:
         return redirect('/laptopseal')
-    return render_template('laptopseal_activate.html', token=token, email=email)
+    try:
+        token = _decrypt_delivery_token(license_doc['delivery_token_encrypted'])
+    except (KeyError, InvalidToken, ValueError):
+        return redirect('/laptopseal')
+    return render_template('laptopseal_activate.html', token=token,
+                           email_delivered=license_doc.get('delivery_status') == 'sent')
+
+@app.route('/laptopseal/recover-license', methods=['POST'])
+def laptopseal_recover_license():
+    """Re-send an existing encrypted key; never creates or returns another key."""
+    data = request.get_json(silent=True) or {}
+    reference, email = str(data.get('reference') or '').strip(), normalise_email(data.get('email'))
+    response = {'success': True, 'message': 'If the purchase details match, we will email your activation key.'}
+    if not safe_reference(reference) or not email:
+        return jsonify(response)
+    license_doc = get_db()['ls_licenses'].find_one({'reference': reference, 'email': email, 'active': True})
+    if not license_doc:
+        return jsonify(response)
+    try:
+        token = _decrypt_delivery_token(license_doc['delivery_token_encrypted'])
+    except (KeyError, InvalidToken, ValueError):
+        return jsonify(response)
+    _record_delivery_attempt(license_doc, token)
+    return jsonify(response)
 
 @app.route('/laptopseal/bind_hardware', methods=['POST'])
-def laptopseal_bind_hardware():
-    data = request.get_json()
-    token = data.get('token')
-    hardware_id = data.get('hardware_id')
+def laptopseal_bind_hardware(token=None, hardware_id=None, generic_errors=False):
+    if token is None or hardware_id is None:
+        data = request.get_json(silent=True) or {}
+        token = str(data.get('token') or '').strip()
+        hardware_id = str(data.get('hardware_id') or '').strip()
+    def fail(message, status=None):
+        response = jsonify({'success': False,
+                            'error': 'Activation could not be completed.' if generic_errors else message})
+        return (response, status) if status else response
     if not token or not hardware_id:
-        return jsonify({'success': False, 'error': 'Missing data'})
-    lic = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
+        return fail('Missing data')
+    lic = _find_laptopseal_license(token)
     if not lic:
-        return jsonify({'success': False, 'error': 'Invalid license'})
+        return fail('Invalid license')
+    if lic.get('expires_at') and lic['expires_at'] <= datetime.datetime.utcnow():
+        return fail('License expired')
 
     # Backward compatibility: migrate old single-hardware_id licenses to a device list
     devices = lic.get('devices')
@@ -1274,30 +1766,39 @@ def laptopseal_bind_hardware():
     # Room for another laptop?
     if len(devices) < max_devices:
         devices.append(hardware_id)
-        get_db()['ls_licenses'].update_one({'token': token},
+        # The query includes the prior list size so concurrent requests cannot
+        # silently overrun a purchased device limit.
+        write = get_db()['ls_licenses'].update_one({
+            '_id': lic['_id'],
+            '$or': [{'devices': devices[:-1]}, {'devices': {'$exists': False}}]
+        },
             {'$set': {'devices': devices, 'max_devices': max_devices,
                       'hardware_id': devices[0]}})
+        if not write.modified_count:
+            return fail('Activation changed; please retry.', 409)
         return jsonify({'success': True, 'message': 'License activated on this device',
                         'tier': lic.get('tier', 'single'),
                         'devices_used': len(devices), 'max_devices': max_devices})
 
     # Limit reached
     return jsonify({'success': False,
-                    'error': 'This license has reached its limit of ' + str(max_devices) + ' laptop(s).',
+                    'error': ('Activation could not be completed.' if generic_errors else
+                              'This license has reached its limit of ' + str(max_devices) + ' laptop(s).'),
                     'devices_used': len(devices), 'max_devices': max_devices})
 
 @app.route('/laptopseal/check_license', methods=['POST'])
 def laptopseal_check_license():
-    data = request.get_json()
-    token = data.get('token')
-    hardware_id = data.get('hardware_id')
+    data = request.get_json(silent=True) or {}
+    token = str(data.get('token') or '').strip()
+    hardware_id = str(data.get('hardware_id') or '').strip()
     if not token:
         return jsonify({'valid': False, 'tier': 'free'})
-    lic = get_db()['ls_licenses'].find_one({'token': token, 'active': True})
+    lic = _find_laptopseal_license(token)
     if not lic:
         return jsonify({'valid': False, 'tier': 'free'})
-    if lic.get('expires_at') and lic['expires_at'] < datetime.datetime.utcnow():
-        get_db()['ls_licenses'].update_one({'token': token}, {'$set': {'active': False}})
+    now = datetime.datetime.utcnow()
+    if lic.get('expires_at') and lic['expires_at'] <= now:
+        get_db()['ls_licenses'].update_one({'_id': lic['_id']}, {'$set': {'active': False}})
         return jsonify({'valid': False, 'tier': 'free', 'error': 'License expired'})
 
     # Backward compatibility: migrate old single-hardware_id licenses
@@ -1307,28 +1808,29 @@ def laptopseal_check_license():
     max_devices = lic.get('max_devices', 1)
 
     # This laptop must be one of the registered devices
-    if hardware_id and hardware_id not in devices:
+    if not hardware_id or hardware_id not in devices:
         return jsonify({'valid': False, 'tier': 'free', 'error': 'Not activated on this device',
                         'devices_used': len(devices), 'max_devices': max_devices})
 
     expires_at = lic['expires_at']
-    days_left = (expires_at - datetime.datetime.utcnow()).days
+    days_left = (expires_at - now).days
     return jsonify({
         'valid': True,
         'tier': lic.get('tier', 'pro'),
         'email': lic['email'],
         'days_left': days_left,
         'expires_at': expires_at.strftime('%d %B %Y'),
+        # The legacy display value above is retained for compatibility.  The
+        # desktop uses these exact UTC values to enforce bounded offline access.
+        'expires_at_utc': expires_at.replace(tzinfo=datetime.timezone.utc).isoformat(),
+        'server_time_utc': now.replace(tzinfo=datetime.timezone.utc).isoformat(),
         'devices_used': len(devices),
         'max_devices': max_devices
     })
 
 # ── API: Public — the desktop app calls this on launch (and periodically) so
-# Victor can see who's actually using LaptopSeal, not just who bought a license.
-# On activation, the desktop app should also send `activation_key` — the exact key
-# the user entered (masterkey or a paid token) — so this device can be classified.
-# The raw key itself is never stored, only the true/false result of comparing it
-# to MASTERKEY, so the key value doesn't sit in the database long-term.
+# Victor can see which devices are running LaptopSeal, not just who bought a
+# license.  Activation secrets are intentionally never accepted by telemetry.
 @app.route('/api/laptopseal/checkin', methods=['POST'])
 def laptopseal_checkin():
     data = request.get_json(silent=True) or {}
@@ -1344,11 +1846,8 @@ def laptopseal_checkin():
         'last_seen':    now
     }
 
-    activation_key = data.get('activation_key')
-    if activation_key:
-        if LAPTOPSEAL_MASTERKEY:
-            set_fields['is_masterkey'] = (activation_key == LAPTOPSEAL_MASTERKEY)
-        set_fields['activated_at'] = now
+    # This telemetry endpoint deliberately does not receive activation secrets.
+    # Ownership is recorded only by the authenticated activation flow.
 
     get_ls_installs_col().update_one(
         {'device_id': device_id},
@@ -1413,7 +1912,7 @@ def laptopseal_admin_data():
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 401
     now = datetime.datetime.utcnow()
-    raw = list(get_db()['ls_licenses'].find({}, {'_id': 0}))
+    raw = list(get_db()['ls_licenses'].find())
     # Newest first (sort on the real datetime before formatting)
     raw.sort(key=lambda l: l.get('created_at') or datetime.datetime.min, reverse=True)
 
@@ -1450,8 +1949,11 @@ def laptopseal_admin_data():
         tier = l.get('tier', 'single')
 
         licenses.append({
+            'license_id':  str(l.get('_id', '')),
             'email':       l.get('email', '—'),
-            'token':       l.get('token', ''),
+            # Customer bearer tokens are never returned to an administrator UI.
+            'token_prefix': l.get('token_prefix', ''),
+            'reference':   l.get('reference', ''),
             'amount':      amount,
             'tier':        tier,
             'devices_used': len(devices),
@@ -1471,6 +1973,195 @@ def laptopseal_admin_data():
         'expired':  expired,
         'revenue':  total_revenue / 100
     })
+
+def _owner_admin_authenticated(data):
+    supplied = data.get('admin_password', '')
+    return (bool(session.get('admin_logged_in')) and bool(ADMIN_PASSWORD_HASH)
+            and isinstance(supplied, str) and bool(supplied)
+            and check_password_hash(ADMIN_PASSWORD_HASH, supplied))
+
+def _admin_json_mutation_authenticated(data):
+    """Require the existing admin re-authentication on a same-origin JSON action.
+
+    The endpoint has no CORS grant.  Reject an explicit cross-site browser
+    request as defence in depth; a cross-site form cannot submit this JSON body
+    or the re-authentication password.  Non-browser admin API clients remain
+    supported when they supply the session and password.
+    """
+    if not request.is_json:
+        return False
+    if request.headers.get('Sec-Fetch-Site', '').lower() == 'cross-site':
+        return False
+    return _owner_admin_authenticated(data)
+
+@app.route('/api/laptopseal/licenses/revoke', methods=['POST'])
+def revoke_laptopseal_license():
+    """Revoke one customer license without receiving or returning its token."""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = request.get_json(silent=True) or {}
+    if not _admin_json_mutation_authenticated(data):
+        return jsonify({'success': False, 'error': 'Administrator re-authentication failed.'}), 403
+
+    reference = str(data.get('reference') or '').strip()
+    if not safe_reference(reference):
+        return jsonify({'success': False, 'error': 'A valid payment reference is required.'}), 400
+    license_doc = get_db()['ls_licenses'].find_one({'reference': reference})
+    if not license_doc:
+        return jsonify({'success': False, 'error': 'License not found.'}), 404
+
+    now = datetime.datetime.utcnow()
+    result = get_db()['ls_licenses'].update_one(
+        {'_id': license_doc['_id'], 'active': True},
+        {'$set': {'active': False, 'revoked_at': now, 'revocation_reason': 'administrator_revoked'}})
+    if not result.modified_count:
+        return jsonify({'success': False, 'error': 'License is already inactive.'}), 409
+
+    # Do not store an administrator password or a customer bearer token in the
+    # audit record.  The payment reference and token prefix identify the event
+    # for support without granting activation access.
+    get_ls_license_audit_col().insert_one({
+        'event': 'customer_license_revoked', 'license_id': str(license_doc['_id']),
+        'reference': reference, 'token_prefix': license_doc.get('token_prefix', ''),
+        'created_at': now, 'actor': 'authenticated_admin'
+    })
+    return jsonify({'success': True, 'message': 'License revoked.'})
+
+@app.route('/api/laptopseal/owner-master-key', methods=['GET', 'POST'])
+def owner_master_key_admin():
+    """Set or rotate one stable owner password. Never return its plaintext/hash."""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    if request.method == 'GET':
+        key = get_ls_owner_key_col().find_one({'_id': 'primary'}, {'password_hash': 0}) or {}
+        return jsonify({'configured': bool(key.get('active')),
+                        'changed_at': key['changed_at'].isoformat() if key.get('changed_at') else None})
+    data = request.get_json(silent=True) or {}
+    if not _owner_admin_authenticated(data):
+        return jsonify({'success': False, 'error': 'Owner re-authentication failed.'}), 403
+    master_key = data.get('master_key')
+    if not valid_master_key(master_key):
+        return jsonify({'success': False, 'error': 'Owner key must be 20–256 characters without leading or trailing spaces.'}), 400
+    current = get_ls_owner_key_col().find_one({'_id': 'primary', 'active': True})
+    if current and verify_master_key(master_key, current.get('password_hash')):
+        return jsonify({'success': True, 'message': 'Owner key is unchanged.'})
+    now = datetime.datetime.utcnow()
+    get_ls_owner_key_col().update_one(
+        {'_id': 'primary'},
+        {'$set': {'password_hash': hash_master_key(master_key), 'active': True,
+                  'changed_at': now}, '$inc': {'version': 1}}, upsert=True)
+    return jsonify({'success': True, 'message': 'Owner key set. Existing owner device sessions must reactivate.'})
+
+@app.route('/api/laptopseal/owner-master-key/revoke', methods=['POST'])
+def revoke_owner_master_key():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = request.get_json(silent=True) or {}
+    if not _owner_admin_authenticated(data):
+        return jsonify({'success': False, 'error': 'Owner re-authentication failed.'}), 403
+    result = get_ls_owner_key_col().update_one(
+        {'_id': 'primary', 'active': True},
+        {'$set': {'active': False, 'revoked_at': datetime.datetime.utcnow()},
+         '$inc': {'version': 1}})
+    return jsonify({'success': bool(result.modified_count)})
+
+def _owner_attempt_allowed(hardware_id):
+    """Limit failed guesses, not legitimate activations, across IP/device/global buckets."""
+    now = datetime.datetime.utcnow()
+    window = int(now.timestamp()) // OWNER_RATE_WINDOW_SECONDS
+    source = request.remote_addr or 'unknown'
+    for scope, value, limit in (('ip', source, OWNER_RATE_MAX_ATTEMPTS),
+                                ('device', hardware_id, OWNER_RATE_MAX_ATTEMPTS),
+                                ('global', 'all', OWNER_RATE_MAX_ATTEMPTS * 20)):
+        bucket_id = scope + ':' + str(window) + ':' + opaque_id(value, LAPTOPSEAL_LICENSE_PEPPER)
+        attempts = get_ls_owner_attempts_col().find_one({'_id': bucket_id}) or {}
+        if attempts.get('count', 0) >= limit:
+            return False
+    return True
+
+
+def _record_owner_failed_attempt(hardware_id):
+    """Atomic increments after a failed key; never stores the submitted key."""
+    now = datetime.datetime.utcnow()
+    window = int(now.timestamp()) // OWNER_RATE_WINDOW_SECONDS
+    source = request.remote_addr or 'unknown'
+    for scope, value in (('ip', source), ('device', hardware_id), ('global', 'all')):
+        bucket_id = scope + ':' + str(window) + ':' + opaque_id(value, LAPTOPSEAL_LICENSE_PEPPER)
+        get_ls_owner_attempts_col().find_one_and_update(
+            {'_id': bucket_id},
+            {'$inc': {'count': 1},
+             '$setOnInsert': {'expires_at': now + datetime.timedelta(hours=1)}},
+            upsert=True, return_document=ReturnDocument.AFTER)
+
+@app.route('/laptopseal/owner/activate', methods=['POST'])
+def laptopseal_owner_activate(submitted_key=None, hardware_id=None, generic_errors=False):
+    if submitted_key is None or hardware_id is None:
+        data = request.get_json(silent=True) or {}
+        hardware_id = str(data.get('hardware_id') or '').strip()
+        submitted_key = data.get('master_key')
+    def fail(message, status):
+        return jsonify({'success': False,
+                        'error': 'Activation could not be completed.' if generic_errors else message}), status
+    if not LAPTOPSEAL_LICENSE_PEPPER:
+        return fail('Owner activation is unavailable.', 503)
+    if not hardware_id or len(hardware_id) > 256 or not isinstance(submitted_key, str):
+        return fail('Invalid activation request.', 400)
+    if not _owner_attempt_allowed(hardware_id):
+        return fail('Too many attempts. Try again later.', 429)
+    config = get_ls_owner_key_col().find_one({'_id': 'primary', 'active': True})
+    if not config or not verify_master_key(submitted_key, config.get('password_hash')):
+        _record_owner_failed_attempt(hardware_id)
+        return fail('Invalid owner key.', 403)
+    now = datetime.datetime.utcnow()
+    expires_at = now + datetime.timedelta(days=OWNER_ACCESS_DAYS)
+    device_token = new_device_token()
+    device_id = opaque_id(hardware_id, LAPTOPSEAL_LICENSE_PEPPER)
+    get_ls_owner_activations_col().update_one(
+        {'_id': device_id},
+        {'$set': {'hardware_id': hardware_id,
+                  'token_hash': device_token_hash(device_token, LAPTOPSEAL_LICENSE_PEPPER),
+                  'key_version': config['version'], 'activated_at': now,
+                  'expires_at': expires_at}}, upsert=True)
+    return jsonify({'success': True, 'owner_token': device_token,
+                    'days_left': OWNER_ACCESS_DAYS, 'expires_at': expires_at.isoformat()})
+
+@app.route('/laptopseal/activate_key', methods=['POST'])
+def laptopseal_activate_key():
+    """Unified activation without exposing or trusting a client key type."""
+    data = request.get_json(silent=True) or {}
+    key = str(data.get('key') or '').strip()
+    hardware_id = str(data.get('hardware_id') or '').strip()
+    if not key or not hardware_id or len(hardware_id) > 256:
+        return jsonify({'success': False, 'error': 'Activation could not be completed.'}), 400
+    if _is_known_laptopseal_key(key):
+        return laptopseal_bind_hardware(key, hardware_id, generic_errors=True)
+    return laptopseal_owner_activate(key, hardware_id, generic_errors=True)
+
+@app.route('/laptopseal/owner/check', methods=['POST'])
+def laptopseal_owner_check():
+    data = request.get_json(silent=True) or {}
+    hardware_id = str(data.get('hardware_id') or '').strip()
+    owner_token = data.get('owner_token')
+    invalid = {'valid': False, 'tier': 'free'}
+    if (not LAPTOPSEAL_LICENSE_PEPPER or not hardware_id or len(hardware_id) > 256
+            or not isinstance(owner_token, str) or len(owner_token) > 128):
+        return jsonify(invalid)
+    config = get_ls_owner_key_col().find_one({'_id': 'primary', 'active': True})
+    if not config:
+        return jsonify(invalid)
+    activation = get_ls_owner_activations_col().find_one(
+        {'_id': opaque_id(hardware_id, LAPTOPSEAL_LICENSE_PEPPER)})
+    if (not activation or activation.get('key_version') != config.get('version')
+            or not activation.get('expires_at')
+            or activation['expires_at'] <= datetime.datetime.utcnow()
+            or not hmac.compare_digest(
+                activation.get('token_hash', ''),
+                device_token_hash(owner_token, LAPTOPSEAL_LICENSE_PEPPER))):
+        return jsonify(invalid)
+    remaining = activation['expires_at'] - datetime.datetime.utcnow()
+    days_left = max(1, (remaining.days + (remaining.seconds > 0)))
+    return jsonify({'valid': True, 'tier': 'owner', 'days_left': days_left,
+                    'expires_at': activation['expires_at'].isoformat()})
 
 @app.route('/victor-admin/laptopseal')
 def laptopseal_admin_page():
@@ -1569,6 +2260,47 @@ def laptopseal_version():
         'url':     LAPTOPSEAL_SETUP_URL,
         'notes':   'Improved Windows/Office license checking — now flags a Volume/KMS-licensed copy (a sign of a pirated install), not just whether it reports as activated. The "What Can This Laptop Run?" check now correctly recognizes newer processors (Intel Core Ultra, 12th/13th generation, AMD Ryzen AI) and checks Adobe\'s DirectX/SSE requirements.'
     })
+
+from laptopseal_vendor_api import register_vendor_api
+register_vendor_api(app, get_db, send_brevo_email)
+
+@app.route('/laptopseal/vendor')
+def laptopseal_vendor_portal():
+    response = app.make_response(render_template('laptopseal_vendor.html'))
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@app.route('/laptopseal/vendor/purchase')
+def laptopseal_vendor_purchase():
+    enabled = (os.environ.get('LAPTOPSEAL_VENDOR_PAYMENTS_ENABLED') == '1'
+               and _vendor_payment_configuration_error() is None)
+    response = app.make_response(render_template(
+        'laptopseal_vendor_purchase.html', plans=VENDOR_PLANS,
+        selected_plan=request.args.get('plan') if request.args.get('plan') in VENDOR_PLANS else 'single',
+        payments_enabled=enabled,
+        paystack_public_key=os.environ.get('PAYSTACK_PUBLIC_KEY', '') if enabled else ''))
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@app.route('/laptopseal/vendor/confirmation')
+def laptopseal_vendor_confirmation():
+    reference = session.get('laptopseal_vendor_payment_reference')
+    if not safe_reference(reference):
+        return redirect('/laptopseal/vendor/purchase')
+    intent = get_ls_payment_intents_col().find_one({
+        'reference': reference, 'product_id': VENDOR_PRODUCT_ID})
+    if not intent:
+        return redirect('/laptopseal/vendor/purchase')
+    package = get_db().ls_vendor_packages.find_one({
+        'purchase_reference': reference, '_id': intent.get('package_id')})
+    response = app.make_response(render_template(
+        'laptopseal_vendor_confirmation.html', reference=reference,
+        package=package, plan_id=intent['plan_id'], email=intent['email'],
+        max_devices=VENDOR_PLANS[intent['plan_id']]['max_devices']))
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, port=5050)

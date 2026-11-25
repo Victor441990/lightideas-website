@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>LaptopSeal Dashboard — Light Ideas Technology</title>
 <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -42,6 +43,14 @@
     @keyframes s { to { transform:rotate(360deg); } }
     .refresh { background:#FFD700; color:#000; border:none; border-radius:40px; padding:8px 20px; font-weight:bold; font-size:0.78em; cursor:pointer; letter-spacing:1px; }
     .refresh:hover { background:#e6b800; }
+    .owner-control { margin-bottom:24px; }
+    .owner-control p { color:#999; font-size:0.8em; line-height:1.6; margin-bottom:12px; }
+    .owner-control input { display:block; width:100%; max-width:460px; margin:8px 0; padding:11px;
+                           background:#161616; border:1px solid #444; border-radius:8px; color:#fff; }
+    .owner-control button { margin:8px 8px 0 0; padding:10px 16px; border-radius:8px;
+                            border:1px solid #665500; background:#222; color:#FFD700; cursor:pointer; }
+    .owner-control .revoke { border-color:#7f1d1d; color:#fca5a5; }
+    #ownerMessage { margin-top:12px; }
     @media(max-width:700px){ .stats{grid-template-columns:repeat(2,1fr);} table{font-size:0.7em;} .hide-sm{display:none;} }
 </style>
 </head>
@@ -66,6 +75,18 @@
     <div class="stat gold"><div class="num" id="s-revenue">—</div><div class="lbl">Total Revenue</div></div>
 </div>
 
+<div class="panel owner-control">
+    <div class="panel-title">Owner Master Key</div>
+    <p id="ownerStatus">Checking owner key status...</p>
+    <p>Set one private key of at least 20 characters. The same key activates any number of laptops for 30 days each. Changing or revoking it ends current server-issued owner sessions.</p>
+    <input id="newOwnerKey" type="password" minlength="20" maxlength="256" autocomplete="new-password" spellcheck="false" placeholder="New owner master key">
+    <input id="confirmOwnerKey" type="password" minlength="20" maxlength="256" autocomplete="new-password" spellcheck="false" placeholder="Confirm new owner master key">
+    <input id="ownerAdminPassword" type="password" autocomplete="current-password" placeholder="Admin password to confirm">
+    <button type="button" onclick="setOwnerKey()">Set or Change Key</button>
+    <button type="button" class="revoke" onclick="revokeOwnerKey()">Revoke Key</button>
+    <p id="ownerMessage" role="status"></p>
+</div>
+
 <div class="panel">
     <div class="panel-title">All Licenses</div>
     <div id="tableWrap">
@@ -74,6 +95,60 @@
 </div>
 
 <script>
+const adminCsrfToken = document.querySelector('meta[name="csrf-token"]').content;
+async function loadOwnerStatus() {
+    const res = await fetch('/api/laptopseal/owner-master-key', {cache: 'no-store'});
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById('ownerStatus').textContent = data.configured
+        ? 'Owner key is active.' : 'No active owner key is configured.';
+}
+
+async function setOwnerKey() {
+    const key = document.getElementById('newOwnerKey').value;
+    const confirmation = document.getElementById('confirmOwnerKey').value;
+    const password = document.getElementById('ownerAdminPassword').value;
+    const message = document.getElementById('ownerMessage');
+    if (key.length < 20 || key.length > 256 || key !== confirmation || !password) {
+        message.textContent = 'Enter a matching 20–256 character key and your admin password.';
+        return;
+    }
+    try {
+        const res = await fetch('/api/laptopseal/owner-master-key', {
+            method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': adminCsrfToken},
+            body: JSON.stringify({master_key: key, admin_password: password})
+        });
+        const data = await res.json();
+        message.textContent = data.message || data.error || 'Could not change owner key.';
+        if (res.ok) loadOwnerStatus();
+    } catch (_) {
+        message.textContent = 'Connection failed. Try again.';
+    } finally {
+        document.getElementById('newOwnerKey').value = '';
+        document.getElementById('confirmOwnerKey').value = '';
+        document.getElementById('ownerAdminPassword').value = '';
+    }
+}
+
+async function revokeOwnerKey() {
+    const password = document.getElementById('ownerAdminPassword').value;
+    const message = document.getElementById('ownerMessage');
+    if (!password || !window.confirm('Revoke the owner key and all current owner device sessions?')) return;
+    try {
+        const res = await fetch('/api/laptopseal/owner-master-key/revoke', {
+            method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': adminCsrfToken},
+            body: JSON.stringify({admin_password: password})
+        });
+        const data = await res.json();
+        message.textContent = data.success ? 'Owner key revoked.' : (data.error || 'No active owner key was found.');
+        if (res.ok) loadOwnerStatus();
+    } catch (_) {
+        message.textContent = 'Connection failed. Try again.';
+    } finally {
+        document.getElementById('ownerAdminPassword').value = '';
+    }
+}
+
 async function load() {
     const wrap = document.getElementById('tableWrap');
     wrap.innerHTML = '<div class="loading"><span class="spin"></span> Loading...</div>';
@@ -136,6 +211,7 @@ function revealKey(i, btn) {
 }
 
 load();
+loadOwnerStatus();
 </script>
 </body>
 </html>

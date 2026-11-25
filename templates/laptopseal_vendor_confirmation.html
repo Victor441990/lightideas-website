@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LaptopSeal vendor purchase</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/laptopseal-vendor.css') }}">
+</head>
+<body>
+  <header><span class="mark">⬡</span><div><strong>LaptopSeal</strong><small>Vendor packages · Light Ideas Technology</small></div></header>
+  <main>
+    <section class="panel">
+      {% if package %}
+      <h1>Payment confirmed</h1>
+      <p>Your package is ready. Verify your email in the vendor portal to view it and approve a laptop QR activation.</p>
+      {% else %}
+      <h1>Payment not yet confirmed</h1>
+      <p>No package has been issued for this purchase yet. If you completed payment, retry verification of the same reference. This will not start another charge.</p>
+      {% endif %}
+      <div id="confirmation-notice" class="notice" role="status" aria-live="polite"></div>
+      <div class="summary"><span>Package</span><strong>{{ plan_id|capitalize }}</strong></div>
+      <div class="summary"><span>Supported laptops</span><strong>{{ max_devices }}</strong></div>
+      <div class="summary"><span>Purchase reference</span><strong>{{ reference }}</strong></div>
+      {% if package %}<div class="summary"><span>Expires</span><strong>{{ package.expires_at.strftime('%d %B %Y %H:%M UTC') }}</strong></div>{% endif %}
+      <p>Purchase email: {{ email }}</p>
+      {% if not package %}<button id="retry-verification" type="button">Retry payment verification</button>{% endif %}
+      <p><a href="/laptopseal/vendor">Open the secure vendor portal</a></p>
+    </section>
+  </main>
+  {% if not package %}
+  <script>
+    document.getElementById('retry-verification').addEventListener('click', async function () {
+      this.disabled = true;
+      const notice = document.getElementById('confirmation-notice');
+      notice.textContent = 'Checking the same payment with Paystack…';
+      try {
+        const response = await fetch('/laptopseal/vendor/verify_payment', {
+          method: 'POST', credentials: 'same-origin', cache: 'no-store',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({reference: {{ reference|tojson }}})
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Payment is not confirmed.');
+        window.location.reload();
+      } catch (error) { notice.textContent = error.message; this.disabled = false; }
+    });
+  </script>
+  {% endif %}
+</body>
+</html>
