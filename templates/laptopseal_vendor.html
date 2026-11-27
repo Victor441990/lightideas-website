@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LaptopSeal Vendor Activation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/laptopseal-vendor.css') }}">
+</head>
+<body>
+  <header><span class="mark">⬡</span><div><strong>LaptopSeal</strong><small>Vendor activation · Light Ideas Technology</small></div></header>
+  <main>
+    <div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+    <section id="view-email" class="panel" hidden>
+      <h1>Sign in with your email</h1>
+      <p>We’ll send a one-time code. Opening a scanner link alone never signs you in.</p>
+      <form id="email-form"><label for="vendor-email">Verified vendor email</label>
+        <input id="vendor-email" type="email" autocomplete="email" required maxlength="254">
+        <button type="submit">Send sign-in code</button></form>
+      <p><a href="/laptopseal/vendor/purchase">Buy a vendor package</a></p>
+    </section>
+
+    <section id="view-code" class="panel" hidden>
+      <h1>Verify your email</h1>
+      <p>Enter the eight-digit code sent to your mailbox. It expires after 10 minutes.</p>
+      <form id="code-form"><label for="vendor-code">Verification code</label>
+        <input id="vendor-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="one-time-code" required>
+        <button type="submit">Verify and continue</button></form>
+      <button type="button" class="secondary" id="back-email">Use another email</button>
+    </section>
+
+    <section id="view-dashboard" class="panel" hidden>
+      <div class="row"><h1>Your packages</h1><button id="logout" class="secondary" type="button">Sign out</button></div>
+      <p>Each package has its own 30-day period and device allowance.</p>
+      <div id="package-list" class="package-list"></div>
+      <button id="scan-button" type="button">SCAN A LAPTOP QR CODE</button>
+      <p><a class="package-action" href="/laptopseal/vendor/purchase">BUY ANOTHER PACKAGE</a></p>
+    </section>
+
+    <section id="view-scanner" class="panel" hidden>
+      <h1>Scan the laptop</h1>
+      <p>On the laptop, choose <strong>Activate with QR Code</strong>. Point your phone camera at its temporary QR.</p>
+      <video id="scanner-video" playsinline muted hidden></video>
+      <button id="start-camera" type="button">Open camera</button>
+      <label class="upload-label" for="qr-file">Or choose a saved QR image for local testing</label>
+      <input id="qr-file" type="file" accept="image/*">
+      <button id="back-dashboard" class="secondary" type="button">Back to packages</button>
+    </section>
+
+    <section id="view-review" class="panel" hidden>
+      <h1>Review activation</h1>
+      <p>Confirm that the device hint below matches the laptop you intend to activate.</p>
+      <div class="summary"><span>Device hint</span><strong id="device-hint"></strong></div>
+      <div class="summary"><span>QR expires</span><strong id="challenge-expiry"></strong></div>
+      <label for="package-choice">Choose your package</label>
+      <select id="package-choice"></select>
+      <div id="package-summary" class="summary"></div>
+      <button id="approve" type="button">Approve this laptop</button>
+      <button id="back-scan" class="secondary" type="button">Cancel review</button>
+    </section>
+
+    <section id="view-confirmation" class="panel" hidden>
+      <h1>Activation approved</h1>
+      <p>The laptop can now collect its signed activation. Return to LaptopSeal and wait for its confirmation.</p>
+      <p id="confirmation-slots"></p>
+      <button id="done" type="button">View packages</button>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='js/jsQR-1.4.0.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/laptopseal-vendor.js') }}" defer></script>
+</body>
+</html>

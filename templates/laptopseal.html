@@ -422,7 +422,11 @@
                 <li><span class="feat-check">&#10003;</span> Tested & Confirmed Stamp</li>
                 <li><span class="feat-check">&#10003;</span> Free updates while active</li>
             </ul>
-            <button class="plan-btn plan-btn-paid" onclick="openPayment(200000, 'Single (1 laptop)')">Buy &mdash; &#8358;2,000</button>
+            {% if payments_enabled %}
+            <button class="plan-btn plan-btn-paid" onclick="openPayment('single')">Buy &mdash; &#8358;2,000</button>
+            {% else %}
+            <button class="plan-btn plan-btn-paid" disabled title="Checkout is not available yet">Checkout coming soon</button>
+            {% endif %}
         </div>
 
         <!-- RESELLER 5 -->
@@ -437,7 +441,11 @@
                 <li><span class="feat-check">&#10003;</span> One key, 5 devices</li>
                 <li><span class="feat-check">&#10003;</span> Free updates while active</li>
             </ul>
-            <button class="plan-btn plan-btn-paid" onclick="openPayment(800000, 'Reseller 5 laptops')">Buy &mdash; &#8358;8,000</button>
+            {% if payments_enabled %}
+            <button class="plan-btn plan-btn-paid" onclick="openPayment('reseller_5')">Buy &mdash; &#8358;8,000</button>
+            {% else %}
+            <button class="plan-btn plan-btn-paid" disabled title="Checkout is not available yet">Checkout coming soon</button>
+            {% endif %}
         </div>
 
         <!-- RESELLER 20 -->
@@ -452,7 +460,11 @@
                 <li><span class="feat-check">&#10003;</span> One key, 20 devices</li>
                 <li><span class="feat-check">&#10003;</span> Free updates while active</li>
             </ul>
-            <button class="plan-btn plan-btn-paid" onclick="openPayment(3000000, 'Reseller 20 laptops')">Buy &mdash; &#8358;30,000</button>
+            {% if payments_enabled %}
+            <button class="plan-btn plan-btn-paid" onclick="openPayment('reseller_20')">Buy &mdash; &#8358;30,000</button>
+            {% else %}
+            <button class="plan-btn plan-btn-paid" disabled title="Checkout is not available yet">Checkout coming soon</button>
+            {% endif %}
         </div>
 
         <!-- UNLIMITED -->
@@ -467,7 +479,11 @@
                 <li><span class="feat-check">&#10003;</span> Best for big dealers</li>
                 <li><span class="feat-check">&#10003;</span> Free updates while active</li>
             </ul>
-            <button class="plan-btn plan-btn-paid" onclick="openPayment(6000000, 'Unlimited laptops')">Buy &mdash; &#8358;60,000</button>
+            {% if payments_enabled %}
+            <button class="plan-btn plan-btn-paid" onclick="openPayment('unlimited')">Buy &mdash; &#8358;60,000</button>
+            {% else %}
+            <button class="plan-btn plan-btn-paid" disabled title="Checkout is not available yet">Checkout coming soon</button>
+            {% endif %}
         </div>
 
     </div>
@@ -517,16 +533,25 @@
     </div>
 </div>
 
+{% if payments_enabled %}
 <script src="https://js.paystack.co/v1/inline.js"></script>
+{% endif %}
 <script>
-    let selectedAmount = 200000;
-    let selectedPlan = 'Single (1 laptop)';
+    const PAYSTACK_PUBLIC_KEY = {{ paystack_public_key | tojson }};
+    const PAYMENT_PLANS = {
+        single: { amount: 200000, name: 'Single (1 laptop)' },
+        reseller_5: { amount: 800000, name: 'Reseller 5 laptops' },
+        reseller_20: { amount: 3000000, name: 'Reseller 20 laptops' },
+        unlimited: { amount: 6000000, name: 'Unlimited laptops' }
+    };
+    let selectedPlanId = 'single';
 
-    function openPayment(amount, planName) {
-        selectedAmount = amount || 200000;
-        selectedPlan = planName || 'Single (1 laptop)';
-        document.getElementById('modalPlanTitle').textContent = planName ? planName.toUpperCase() : 'GET ACCESS';
-        document.getElementById('modalPriceText').innerHTML = '&#8358;' + (selectedAmount / 100).toLocaleString();
+    function openPayment(planId) {
+        const plan = PAYMENT_PLANS[planId];
+        if (!plan || !PAYSTACK_PUBLIC_KEY) return;
+        selectedPlanId = planId;
+        document.getElementById('modalPlanTitle').textContent = plan.name.toUpperCase();
+        document.getElementById('modalPriceText').innerHTML = '&#8358;' + (plan.amount / 100).toLocaleString();
         document.getElementById('payModal').classList.add('active');
     }
     function closeModal() {
@@ -538,6 +563,7 @@
 
     function initiatePayment() {
         const email = document.getElementById('payEmail').value.trim();
+        const selectedPlan = PAYMENT_PLANS[selectedPlanId];
         if (!email || !email.includes('@')) {
             document.getElementById('modalError').style.display = 'block';
             return;
@@ -545,26 +571,33 @@
         document.getElementById('modalError').style.display = 'none';
         document.getElementById('modalSuccess').style.display = 'block';
 
+        fetch('/laptopseal/initialize_payment', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email: email, plan_id: selectedPlanId})
+        }).then(r => r.json()).then(function(intent) {
+        if (!intent.success) throw new Error(intent.error || 'Could not start payment.');
         const handler = PaystackPop.setup({
-            key: 'pk_live_96c41ce6a261f2299884c0d47feebdae255215ee',
+            key: PAYSTACK_PUBLIC_KEY,
             email: email,
-            amount: selectedAmount,
-            currency: 'NGN',
-            ref: 'LS_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-            metadata: { product: 'LaptopSeal — ' + selectedPlan, email: email },
+            amount: intent.amount,
+            currency: intent.currency,
+            ref: intent.reference,
+            metadata: { product_id: 'laptopseal', plan_id: selectedPlanId },
             callback: function(response) {
                 fetch('/laptopseal/verify_payment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reference: response.reference, email: email })
+                    body: JSON.stringify({ reference: response.reference })
                 })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        window.location.href = '/laptopseal/activate?token=' + data.token + '&email=' + encodeURIComponent(email);
+                        window.location.href = '/laptopseal/activate';
                     } else {
                         alert('Payment verified but activation failed. Contact support.');
                     }
+                }).catch(function() {
+                    alert('We could not confirm the payment. Please contact support with your payment reference.');
                 });
             },
             onClose: function() {
@@ -572,6 +605,10 @@
             }
         });
         handler.openIframe();
+        }).catch(function(error) {
+            document.getElementById('modalSuccess').style.display = 'none';
+            alert(error.message || 'Could not start payment. Please try again.');
+        });
     }
 </script>
 </body>

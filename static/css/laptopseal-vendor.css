@@ -1,0 +1,16 @@
+:root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#0b0b0d;color:#fff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b0b0d}
+header{display:flex;align-items:center;gap:13px;padding:18px max(20px,calc((100vw - 700px)/2));background:#171717;border-bottom:1px solid #6b5520}
+header .mark{font-size:2.2rem;color:#f5c542}header strong{display:block;font-size:1.25rem}header small{display:block;color:#a3a3a3;margin-top:2px}
+main{max-width:700px;margin:0 auto;padding:24px 16px 64px}.panel{background:#1c1c1e;border:1px solid #6b5520;border-radius:18px;padding:24px;box-shadow:0 18px 42px #0008}
+.panel[hidden]{display:none}h1{font-size:1.5rem;margin:0 0 12px;color:#f5c542}p{color:#c4c4c4;line-height:1.5;margin:0 0 20px}
+label{display:block;margin:16px 0 7px;color:#e9d28b;font-weight:600}input,select{display:block;width:100%;min-height:46px;padding:10px 12px;color:#fff;background:#111;border:1px solid #7b6632;border-radius:9px;font:inherit}
+input:focus,select:focus,button:focus-visible{outline:2px solid #f5c542;outline-offset:2px}button{min-height:46px;padding:11px 18px;margin-top:16px;border:1px solid #d4af37;border-radius:9px;background:linear-gradient(#f5d768,#d4af37);color:#16120a;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
+button.secondary{background:#171717;color:#f5c542}.row{display:flex;justify-content:space-between;align-items:center;gap:12px}.row button{margin:0}
+.notice{min-height:22px;margin:0 0 12px;color:#f5c542}.notice.error{color:#ff9d9d}.package-list{display:grid;gap:12px;margin-bottom:18px}
+a{color:#f5c542}a:hover{color:#fff}
+.package-action{display:inline-block;margin-top:4px;padding:10px 0;font-weight:700}
+.package-card,.summary{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:14px;border:1px solid #5c4c27;border-radius:11px;background:#131313}
+.package-card strong,.summary strong{color:#f5c542}.package-card small{display:block;color:#aaa;margin-top:5px}.package-card.expired{opacity:.6}
+#scanner-video{display:block;width:100%;max-height:350px;object-fit:cover;border:1px solid #d4af37;border-radius:10px;margin:16px 0}#scanner-video[hidden]{display:none}.upload-label{margin-top:20px}
+@media(max-width:480px){header{padding:14px 16px}.panel{padding:18px}.row{align-items:flex-start}.row h1{font-size:1.3rem}.row button{white-space:nowrap}.package-card{align-items:flex-start;flex-direction:column;gap:8px}#scan-button{width:100%}}

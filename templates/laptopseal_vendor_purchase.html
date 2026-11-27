@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Buy a LaptopSeal vendor package</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/laptopseal-vendor.css') }}">
+</head>
+<body>
+  <header><span class="mark">⬡</span><div><strong>LaptopSeal</strong><small>Vendor packages · Light Ideas Technology</small></div></header>
+  <main>
+    <section class="panel">
+      <h1>Choose your vendor package</h1>
+      <p>Each purchase provides a separate 30-day package. After payment, verify the same email in the vendor portal to use its laptop slots.</p>
+      <div id="purchase-notice" class="notice" role="status" aria-live="polite"></div>
+      <form id="vendor-purchase-form">
+        <label for="vendor-plan">Package</label>
+        <select id="vendor-plan" required>
+          {% for plan_id, plan in plans.items() %}
+          <option value="{{ plan_id }}"{% if plan_id == selected_plan %} selected{% endif %}>{{ plan_id|capitalize }} · ₦{{ '{:,}'.format(plan.amount_kobo // 100) }} · {{ plan.max_devices }} laptop{{ '' if plan.max_devices == 1 else 's' }}</option>
+          {% endfor %}
+        </select>
+        <label for="purchase-email">Email address</label>
+        <input id="purchase-email" type="email" autocomplete="email" required maxlength="254">
+        <button id="purchase-button" type="submit" {% if not payments_enabled %}disabled{% endif %}>Continue to Paystack</button>
+      </form>
+      {% if not payments_enabled %}<p>Vendor checkout is currently disabled. No payment will be started.</p>{% endif %}
+      <p><a href="/laptopseal/vendor">Already purchased? Verify your email to view your packages.</a></p>
+    </section>
+  </main>
+  {% if payments_enabled %}
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script src="{{ url_for('static', filename='js/laptopseal-vendor-purchase.js', v='v1-callback-20261121') }}" defer></script>
+  <script>window.LaptopSealVendorPaystackPublicKey = {{ paystack_public_key | tojson }};</script>
+  {% endif %}
+</body>
+</html>

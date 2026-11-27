@@ -71,7 +71,7 @@
 
     <div class="token-box">
         <div class="token-label">YOUR LICENSE KEY</div>
-        <div class="token-value" id="tokenDisplay">{{ token }}</div>
+        <div class="token-value" id="tokenDisplay">Loading your license key...</div>
     </div>
     <button class="copy-btn" id="copyBtn" onclick="copyKey()">&#128203; Copy License Key</button>
 
@@ -92,10 +92,12 @@
     <a href="/laptopseal/download" class="dl-btn">&#11015; Don't have the app? Download LaptopSeal</a>
 
     <a href="/laptopseal" class="home-link">&#8592; Back to LaptopSeal</a>
-    <div class="email-note">A copy of your key has been sent to {{ email }}</div>
+    <div class="email-note">{% if email_delivered %}A copy was sent to your verified purchase email.{% else %}Email delivery is pending. Save this key now and use the recovery option on the LaptopSeal page if needed.{% endif %}</div>
 </div>
 
 <script>
+    document.getElementById('tokenDisplay').textContent = {{ token | tojson }};
+
     function copyKey() {
         var key = document.getElementById('tokenDisplay').textContent.trim();
         var btn = document.getElementById('copyBtn');
